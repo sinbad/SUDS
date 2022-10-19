@@ -139,8 +139,3 @@ MediaSrc/Textures/Environment/Props/PaintingMachine/metal_grid_expanded_height.p
 
 # Source Riderlink
 Plugins/Developer/RiderLink
-
-# Allow precompiled binaries for antlr
-# Except in antlr
-!antlr/**/*.lib
-!antlr/**/*.pdb
