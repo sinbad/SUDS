@@ -52,8 +52,12 @@ public class SUDSEditor : ModuleRules
 			);
 
 		AddAntlr();
+		
 		// Required for Antlr
 		bUseRTTI = true;
+		// Antlr Cpp gen doesn't respect UE PCH rules
+		PrivatePCHHeaderFile = "Private/SUDSEditorPCH.h";
+		PCHUsage = PCHUsageMode.NoSharedPCHs;
 
 	}
 	

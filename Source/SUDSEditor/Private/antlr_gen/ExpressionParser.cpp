@@ -1,4 +1,3 @@
-#include "ExpressionParser.h"
 
 // Generated from C:/Users/steve/projects/Games/snuka/Plugins/SUDS/Source/SUDSEditor\Expression.g4 by ANTLR 4.10.1
 
@@ -6,6 +5,7 @@
 #include "ExpressionListener.h"
 #include "ExpressionVisitor.h"
 
+#include "ExpressionParser.h"
 
 
 using namespace antlrcpp;
