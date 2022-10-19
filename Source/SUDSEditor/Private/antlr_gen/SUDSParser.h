@@ -12,7 +12,7 @@
 class  SUDSParser : public antlr4::Parser {
 public:
   enum {
-    INT = 1, ID = 2, WS = 3, OPERATOR = 4, LPARENS = 5, RPARENS = 6
+    INT = 1, ID = 2, BOL = 3, INDENT = 4, OPERATOR = 5, LPARENS = 6, RPARENS = 7
   };
 
   enum {

@@ -12,7 +12,8 @@
 class  SUDSLexer : public antlr4::Lexer {
 public:
   enum {
-    INT = 1, ID = 2, WS = 3, OPERATOR = 4, LPARENS = 5, RPARENS = 6
+    INT = 1, ID = 2, BOL = 3, BOLINDENT = 4, WS = 5, OPERATOR = 6, LPARENS = 7, 
+    RPARENS = 8
   };
 
   enum {
