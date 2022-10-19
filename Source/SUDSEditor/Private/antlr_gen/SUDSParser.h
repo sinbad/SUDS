@@ -1,5 +1,5 @@
 
-// Generated from C:/Users/steve/projects/Games/snuka/Plugins/SUDS/Source/SUDSEditor\Expression.g4 by ANTLR 4.10.1
+// Generated from C:/Users/steve/projects/Games/snuka/Plugins/SUDS/Source/SUDSEditor\SUDSParser.g4 by ANTLR 4.10.1
 
 #pragma once
 
@@ -9,22 +9,21 @@
 
 
 
-class  ExpressionParser : public antlr4::Parser {
+class  SUDSParser : public antlr4::Parser {
 public:
   enum {
-    T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, T__4 = 5, T__5 = 6, INT = 7, 
-    ID = 8, WS = 9
+    INT = 1, ID = 2, WS = 3, OPERATOR = 4, LPARENS = 5, RPARENS = 6
   };
 
   enum {
     RuleExpr = 0
   };
 
-  explicit ExpressionParser(antlr4::TokenStream *input);
+  explicit SUDSParser(antlr4::TokenStream *input);
 
-  ExpressionParser(antlr4::TokenStream *input, const antlr4::atn::ParserATNSimulatorOptions &options);
+  SUDSParser(antlr4::TokenStream *input, const antlr4::atn::ParserATNSimulatorOptions &options);
 
-  ~ExpressionParser() override;
+  ~SUDSParser() override;
 
   std::string getGrammarFileName() const override;
 
@@ -43,10 +42,13 @@ public:
   public:
     ExprContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *LPARENS();
     std::vector<ExprContext *> expr();
     ExprContext* expr(size_t i);
+    antlr4::tree::TerminalNode *RPARENS();
     antlr4::tree::TerminalNode *INT();
     antlr4::tree::TerminalNode *ID();
+    antlr4::tree::TerminalNode *OPERATOR();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;

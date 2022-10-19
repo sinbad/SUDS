@@ -2,8 +2,8 @@
 
 #include "SUDSEditor.h"
 #include "antlr4-runtime.h"
-#include "antlr_gen/ExpressionLexer.h"
-#include "antlr_gen/ExpressionParser.h"
+#include "antlr_gen/SUDSLexer.h"
+#include "antlr_gen/SUDSParser.h"
 
 #define LOCTEXT_NAMESPACE "FSUDSModule"
 
@@ -13,13 +13,13 @@ void FSUDSEditorModule::StartupModule()
 	antlr4::ANTLRInputStream input("6*(2+3)");
     
 	// Create a lexer from the input
-	ExpressionLexer lexer(&input);
+	SUDSLexer lexer(&input);
     
 	// Create a token stream from the lexer
 	antlr4::CommonTokenStream tokens(&lexer);
     
 	// Create a parser from the token stream
-	ExpressionParser parser(&tokens);    
+	SUDSParser parser(&tokens);    
 
 	// Display the parse tree
 	// Note: use UTF8_TO_TCHAR(c_str()) for cases where there will be UTF8

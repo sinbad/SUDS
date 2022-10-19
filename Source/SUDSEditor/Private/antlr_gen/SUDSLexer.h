@@ -1,5 +1,5 @@
 
-// Generated from C:/Users/steve/projects/Games/snuka/Plugins/SUDS/Source/SUDSEditor\Expression.g4 by ANTLR 4.10.1
+// Generated from C:/Users/steve/projects/Games/snuka/Plugins/SUDS/Source/SUDSEditor\SUDSLexer.g4 by ANTLR 4.10.1
 
 #pragma once
 
@@ -9,16 +9,19 @@
 
 
 
-class  ExpressionLexer : public antlr4::Lexer {
+class  SUDSLexer : public antlr4::Lexer {
 public:
   enum {
-    T__0 = 1, T__1 = 2, T__2 = 3, T__3 = 4, T__4 = 5, T__5 = 6, INT = 7, 
-    ID = 8, WS = 9
+    INT = 1, ID = 2, WS = 3, OPERATOR = 4, LPARENS = 5, RPARENS = 6
   };
 
-  explicit ExpressionLexer(antlr4::CharStream *input);
+  enum {
+    WHITESPACE = 2
+  };
 
-  ~ExpressionLexer() override;
+  explicit SUDSLexer(antlr4::CharStream *input);
+
+  ~SUDSLexer() override;
 
 
   std::string getGrammarFileName() const override;
