@@ -1,6 +1,4 @@
-﻿// Copyright Epic Games, Inc. All Rights Reserved.
-
-#include "SUDS.h"
+﻿#include "SUDS.h"
 
 #define LOCTEXT_NAMESPACE "FSUDSModule"
 

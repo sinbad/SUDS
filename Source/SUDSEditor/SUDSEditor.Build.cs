@@ -1,7 +1,4 @@
-﻿// Copyright Epic Games, Inc. All Rights Reserved.
-
-using System.IO;
-using UnrealBuildTool;
+﻿using UnrealBuildTool;
 
 public class SUDSEditor : ModuleRules
 {
@@ -27,6 +24,7 @@ public class SUDSEditor : ModuleRules
 			new string[]
 			{
 				"Core",
+				"SUDS"
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -39,6 +37,7 @@ public class SUDSEditor : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+				"UnrealEd"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
