@@ -23,6 +23,11 @@
       "Name": "SUDSEditor",
       "Type": "Editor",
       "LoadingPhase": "Default"
+    },
+    {
+      "Name": "SUDSTest",
+      "Type": "DeveloperTool",
+      "LoadingPhase": "Default"
     }
   ]
 }
