@@ -19,6 +19,8 @@ public:
 	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings)
 	TObjectPtr<class UAssetImportData> AssetImportData;
 
+	// Array of nodes (static after import)
+	
 	// UObject interface
 	virtual void PostInitProperties() override;
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
