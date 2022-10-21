@@ -74,15 +74,27 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 
 bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const FString& NameForErrors, bool bSilent)
 {
-	if (Line.Len() == 0 && !bTextInProgress)
+	// Trim off any whitespace, but record how much of it there is since it can be relevant
+	int IndentLevel;
+	const FStringView TrimmedLine = TrimLine(Line, &IndentLevel);
+
+	if (TrimmedLine.Len() == 0 && !bTextInProgress)
 	{
 		// We will skip any blank lines that aren't inside text
+		UE_LOG(LogSUDSEditor, Log, TEXT("%d: BLANK %s"), LineNo, *FString(Line));
+		return true;
+	}
+
+	if (IsCommentLine(TrimmedLine))
+	{
+		// Skip over comment lines
+		UE_LOG(LogSUDSEditor, Log, TEXT("%d: COMMENT %s"), LineNo, *FString(Line));
 		return true;
 	}
 
 	// Check for headers
 	static const FStringView HeaderPrefix(TEXT("==="));
-	if (Line.StartsWith(HeaderPrefix))
+	if (TrimmedLine.StartsWith(HeaderPrefix))
 	{
 		if (bHeaderDone)
 		{
@@ -107,19 +119,17 @@ bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const F
 	}
 	else if (bHeaderInProgress)
 	{
-		return ParseHeaderLine(Line, LineNo, NameForErrors, bSilent);
+		return ParseHeaderLine(TrimmedLine, LineNo, NameForErrors, bSilent);
 	}
 
 	// Process body
 
 	UE_LOG(LogSUDSEditor, Log, TEXT("%d: BODY  : %s"), LineNo, *FString(Line));
-	
-	// Trim off any leading whitespace, but record how much of it there is since it's relevant
+
+	// Body indenting matters
 	// If less than current indent, pop context from stack
 	// If more than current indent, then a child of previous line
 	// If same as current indent, continuation of current context
-	int IndentLevel;
-	FStringView Trimmed = TrimLine(Line, &IndentLevel);
 
 
 	return true;
@@ -132,6 +142,11 @@ bool FSUDSScriptImporter::ParseHeaderLine(const FStringView& Line, int LineNo, c
 
 	UE_LOG(LogSUDSEditor, Log, TEXT("%d: HEADER: %s"), LineNo, *FString(Line));
 	return true;
+}
+
+bool FSUDSScriptImporter::IsCommentLine(const FStringView& TrimmedLine)
+{
+	return TrimmedLine.StartsWith('#');
 }
 
 FStringView FSUDSScriptImporter::TrimLine(const FStringView& Line, int* OutIndentLevel) const
@@ -150,6 +165,8 @@ FStringView FSUDSScriptImporter::TrimLine(const FStringView& Line, int* OutInden
 		else
 			++OutIndentLevel;
 	}
-	return FStringView(Line.GetData() + SkippedChars, Line.Len() - SkippedChars);
+	FStringView LeftTrimmed = FStringView(Line.GetData() + SkippedChars, Line.Len() - SkippedChars);
+	// Trim end, don't need to know how much it was
+	return LeftTrimmed.TrimEnd();
 	
 }

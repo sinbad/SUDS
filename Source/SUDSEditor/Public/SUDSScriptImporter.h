@@ -18,6 +18,7 @@ protected:
 	/// Parse a single line
 	bool ParseLine(const FStringView& Line, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseHeaderLine(const FStringView& Line, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool IsCommentLine(const FStringView& TrimmedLine);
 	FStringView TrimLine(const FStringView& Line, int* OutIndentLevel) const;
 
 };
