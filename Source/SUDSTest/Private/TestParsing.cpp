@@ -7,15 +7,29 @@ const FString SimpleParsingInput = R"RAWSUD(===
 
 # A comment in body
 
+[set NPC.Mood "Neutral"]
+[event NPC PlayAnimation "Greet"]
+
 Player: Excuse me?
 NPC: Well, hello there. This is a test.
   * A test?
     NPC: Yes, a test. This is some indented continuation text.
     Player: Oh I see, thank you.
+	[if $polite == 1]
+		NPC: You're welcome.
+    [else]
+		NPC: Too right.
+    [endif]
   * Another option
     NPC: This is another option with an embedded continuation.
     * How far can this go?
       NPC: Theoretically forever but who knows?
+	[if $extraq]
+		* This is an extra question
+		  NPC: That should have been added to the previous choice
+		* Another question?
+		  NPC: Yep, this one too
+	[endif]
 Player: Well, that's all for now. This should appear for all paths as a fall-through.
 NPC: Bye!
 )RAWSUD";
