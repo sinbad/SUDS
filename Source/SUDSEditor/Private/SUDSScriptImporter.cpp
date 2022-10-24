@@ -81,14 +81,14 @@ bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const F
 	if (TrimmedLine.Len() == 0 && !bTextInProgress)
 	{
 		// We will skip any blank lines that aren't inside text
-		UE_LOG(LogSUDSEditor, Log, TEXT("%d: BLANK %s"), LineNo, *FString(Line));
+		UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d: BLANK %s"), LineNo, *FString(Line));
 		return true;
 	}
 
 	if (IsCommentLine(TrimmedLine))
 	{
 		// Skip over comment lines
-		UE_LOG(LogSUDSEditor, Log, TEXT("%d: COMMENT %s"), LineNo, *FString(Line));
+		UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d: COMMENT %s"), LineNo, *FString(Line));
 		return true;
 	}
 
@@ -124,13 +124,15 @@ bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const F
 
 	// Process body
 
-	UE_LOG(LogSUDSEditor, Log, TEXT("%d: BODY  : %s"), LineNo, *FString(Line));
 
 	// Body indenting matters
-	// If less than current indent, pop context from stack
-	// If more than current indent, then a child of previous line
-	// If same as current indent, continuation of current context
+	// If less than "threshold indent", pop contexts from stack until that's no longer the case
+	// If more than threshold indent, may be a child of previous line. Increase threshold indent to this level
+	//   ONLY a new context level IF previous was condition or choice. If previous was text then just a continuation
+	//   This is why "threshold indent" remains as the outermost indent in this context
+	// If same as threshold indent, continuation of current context
 
+	UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d: BODY  : %s"), LineNo, *FString(Line));
 
 	return true;
 	
@@ -140,7 +142,7 @@ bool FSUDSScriptImporter::ParseHeaderLine(const FStringView& Line, int LineNo, c
 {
 	// TODO parse header content
 
-	UE_LOG(LogSUDSEditor, Log, TEXT("%d: HEADER: %s"), LineNo, *FString(Line));
+	UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d: HEADER: %s"), LineNo, *FString(Line));
 	return true;
 }
 

@@ -39,6 +39,9 @@ protected:
 	/// Type of node
 	UPROPERTY()
 	ESUDSScriptNodeType NodeType = ESUDSScriptNodeType::Text;
+	/// Identifier of the speaker for text nodes
+	UPROPERTY()
+	FString SpeakerID;
 	/// Identifier of the text string to use (based on the string table used by parent script
 	UPROPERTY()
 	FString TextID;
