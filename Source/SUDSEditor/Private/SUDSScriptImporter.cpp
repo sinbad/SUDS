@@ -16,6 +16,8 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 	constexpr int32 NumDelims = UE_ARRAY_COUNT(LineEndings);
 
 	int LineNumber = 1;
+	bIsPendingEdge = false;
+	PendingEdge.Reset();
 	bHeaderDone = false;
 	bHeaderInProgress = false;
 	bool bImportedOK = true;
@@ -177,7 +179,7 @@ bool FSUDSScriptImporter::ParseBodyLine(const FStringView& Line,
 	if (IndentLevelStack.IsEmpty())
 	{
 		// Must be the first body line encountered. Add 1 indent level for the root
-		PushIndent(0, 0);
+		PushIndent(-1, 0);
 	}
 
 	if (Line.StartsWith(TEXT('*')))
@@ -219,6 +221,9 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line, int IndentLev
 	if (Line.StartsWith('*'))
 	{
 		// TODO: Implement choice lines
+		// If the current indent context node is NOT a choice, create a choice
+		// Add an edge, currently blank
+		// The next thing to be parsed will fill in the edge details
 		UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: CHOICE: %s"), LineNo, IndentLevel, *FString(Line));
 		return true;
 	}
@@ -312,8 +317,9 @@ bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line, int IndentLeve
 	return false;
 }
 
-bool FSUDSScriptImporter::ParseTextLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& String, bool bSilent)
+bool FSUDSScriptImporter::ParseTextLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent)
 {
+	auto& Ctx = IndentLevelStack.Top();
 
 	const FString LineStr(Line);
 	const FRegexPattern SpeakerPattern(TEXT("^(\\w+)\\:\\s*(.+)$"));
@@ -327,19 +333,55 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& Line, int IndentLevel
 		// to avoid having a speaker ID as the prefix
 		// However, if you didn't define ANY speakers in the header, then we assume EVERY instance of "Something: Blah" is
 		// a new speaker line. So you don't have to define speakers if you don't have this ambiguity or any other reason to.
-		FString Speaker = SpeakerRegex.GetCaptureGroup(1);
+		const FString Speaker = SpeakerRegex.GetCaptureGroup(1);
+		const FString Text = SpeakerRegex.GetCaptureGroup(2);
 		if (DeclaredSpeakers.Num() == 0 || DeclaredSpeakers.Contains(Speaker))
 		{
 			// New text node
 			UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: TEXT  : %s"), LineNo, IndentLevel, *FString(Line));
-			// TODO add text node
+			const int NewIndex = Nodes.Emplace(Speaker, Text);
+			// Text nodes can never introduce another indent context
+			// We've already backed out to the outer indent in caller
+			if (Nodes.IsValidIndex(Ctx.LastNodeIdx))
+			{
+				// Append this node onto the last one
+				auto& PrevNode = Nodes[Ctx.LastNodeIdx];
+				// Use pending edge if present; that could be because this is under a choice node, or a condition
+				if (bIsPendingEdge)
+				{
+					PendingEdge.TargetNodeIdx = NewIndex;
+					PrevNode.Edges.Add(PendingEdge);
+				}
+				else
+				{
+					PrevNode.Edges.Add(FSUDSParsedEdge(NewIndex));
+				}
+				PendingEdge.Reset();
+				bIsPendingEdge = false;
+			}
+
+			
+			Ctx.LastNodeIdx = NewIndex;
+			Ctx.ThresholdIndent = FMath::Min(Ctx.ThresholdIndent, IndentLevel);
 			return true;
 		}
 	}
 
 	// If we fell through, this line is appended to the last text node
-	// TODO: append text to previous text node (must be a text node!)
 	UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: TEXT+ : %s"), LineNo, IndentLevel, *FString(Line));
+	if (Nodes.IsValidIndex(Ctx.LastNodeIdx))
+	{
+		auto& Node = Nodes[Ctx.LastNodeIdx];
+		if (Node.NodeType == ESUDSScriptNodeType::Text)
+		{
+			Node.Text.Appendf(TEXT("\n%s"), *LineStr);
+		}
+		else
+		{
+			UE_LOG(LogSUDSEditor, Warning, TEXT("Error in %s line %d: Text newline continuation is not immediately after a speaker line. Ignoring."), *NameForErrors, LineNo);
+			// We still return true to allow continue	
+		}
+	}
 	
 	return true;
 

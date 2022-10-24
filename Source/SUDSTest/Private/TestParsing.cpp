@@ -8,8 +8,32 @@ const FString SimpleParsingInput = R"RAWSUD(
 
 # A comment in body
 
-[set NPC.Mood "Neutral"]
-[event NPC PlayAnimation "Greet"]
+Player: Excuse me?
+NPC: Well, hello there. This is a test.
+  * A test?
+    NPC: Yes, a test. This is some indented continuation text.
+    Player: Oh I see, thank you.
+	NPC: You're welcome.
+  * Another option
+    NPC: This is another option with an embedded continuation.
+    * How far can this go?
+      NPC: Theoretically forever but who knows?
+	* This is an extra question
+	  NPC: That should have been added to the previous choice
+	* Another question?
+	  NPC: Yep, this one too
+Player: Well, that's all for now. This should appear for all paths as a fall-through.
+	This, in fact, is a multi-line piece of text
+	Which is joined to the previous text node with the line breaks
+NPC: Bye!
+)RAWSUD";
+
+const FString ConditionalParsingInput = R"RAWSUD(
+===
+# Nothing in header but a comment
+===
+
+# A comment in body
 
 Player: Excuse me?
 NPC: Well, hello there. This is a test.

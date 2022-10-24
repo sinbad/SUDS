@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "SUDSScriptNode.h"
 
-
 struct SUDSEDITOR_API FSUDSParsedEdge
 {
 public:
@@ -11,10 +10,22 @@ public:
 	bool bIsJump = false;
 	FString JumpTargetLabel;
 
+	/// Text associated with this edge (if a player choice option)
+	FString Text;
+
 	// TODO: Conditions
 
 	/// If not a jump, direct node index link (since should be created immediately afterward)
-	int TargetNodeIdx;
+	int TargetNodeIdx = -1;
+
+	FSUDSParsedEdge() {}
+	FSUDSParsedEdge(int ToNodeIdx, FString InText = "") : Text(InText), TargetNodeIdx(ToNodeIdx) {}
+	FSUDSParsedEdge(FString JumpLabel) : JumpTargetLabel(JumpLabel) {}
+
+	void Reset()
+	{
+		*this = FSUDSParsedEdge();
+	}
 	
 };
 
@@ -30,6 +41,10 @@ public:
 	TArray<FString> Labels;
 	/// Edges leading to other nodes
 	TArray<FSUDSParsedEdge> Edges;
+	
+	FSUDSParsedNode(ESUDSScriptNodeType InNodeType) : NodeType(InNodeType) {}
+	FSUDSParsedNode(FString InSpeaker, FString InText)
+		:NodeType(ESUDSScriptNodeType::Text), Speaker(InSpeaker), Text(InText) {}
 	
 };
 class SUDSEDITOR_API FSUDSScriptImporter
@@ -61,6 +76,11 @@ protected:
 	/// The indent context stack representing where we are in the indentation tree while parsing
 	/// There must always be 1 level (root)
 	TArray<IndentContext> IndentLevelStack;
+	/// When encountering conditions and choice lines, we are building up details for an edge to another node, but
+	/// we currently don't know the target node. We keep these pending details here, so that we're not adding an edge
+	/// until it's fully coherent
+	bool bIsPendingEdge = false;
+	FSUDSParsedEdge PendingEdge;
 	/// List of all nodes, appended to as parsing progresses
 	TArray<FSUDSParsedNode> Nodes;
 	/// Record of jump labels to node index, built up during parsing (forward refs are OK so not complete until end of parsing)
@@ -84,7 +104,7 @@ protected:
 	bool ParseGotoLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseSetLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseEventLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseTextLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& String, bool bSilent);
+	bool ParseTextLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool IsCommentLine(const FStringView& TrimmedLine);
 	FStringView TrimLine(const FStringView& Line, int& OutIndentLevel) const;
 	void PopIndent();
