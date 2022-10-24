@@ -1,7 +1,8 @@
 ﻿#include "Misc/AutomationTest.h"
 #include "SUDSScriptImporter.h"
 
-const FString SimpleParsingInput = R"RAWSUD(===
+const FString SimpleParsingInput = R"RAWSUD(
+===
 # Nothing in header but a comment
 ===
 
@@ -31,6 +32,8 @@ NPC: Well, hello there. This is a test.
 		  NPC: Yep, this one too
 	[endif]
 Player: Well, that's all for now. This should appear for all paths as a fall-through.
+	This, in fact, is a multi-line piece of text
+	Which is joined to the previous text node with the line breaks
 NPC: Bye!
 )RAWSUD";
 

@@ -144,6 +144,8 @@ bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const F
 bool FSUDSScriptImporter::ParseHeaderLine(const FStringView& Line, int LineNo, const FString& NameForErrors, bool bSilent)
 {
 	// TODO parse header content
+	// DeclaredSpeakers
+	// Variables
 
 	UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:00: HEADER: %s"), LineNo, *FString(Line));
 	return true;
@@ -202,8 +204,7 @@ bool FSUDSScriptImporter::ParseBodyLine(const FStringView& Line,
 	}
 	else
 	{
-		UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: TEXT  : %s"), LineNo, IndentLevel, *FString(Line));
-		// Text line
+		return ParseTextLine(Line, IndentLevel, LineNo, NameForErrors, bSilent);
 	}
 	
 
@@ -248,7 +249,7 @@ bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line, int Inde
 		if (IfRegex.FindNext())
 		{
 			// TODO parse condition
-			UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d:    IF : %s"), LineNo, IndentLevel, *FString(Line));
+			UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: IF    : %s"), LineNo, IndentLevel, *FString(Line));
 			return true;
 		}
 		else
@@ -272,8 +273,8 @@ bool FSUDSScriptImporter::ParseGotoLine(const FStringView& Line, int IndentLevel
 	// Unfortunately FRegexMatcher doesn't support FStringView
 	const FString LineStr(Line);
 	const FRegexPattern GotoPattern(TEXT("^\\[goto\\s+(\\w+)\\]$"));
-	FRegexMatcher IfRegex(GotoPattern, LineStr);
-	if (IfRegex.FindNext())
+	FRegexMatcher GotoRegex(GotoPattern, LineStr);
+	if (GotoRegex.FindNext())
 	{
 		// TODO: Implement jump lines
 		UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: GOTO  : %s"), LineNo, IndentLevel, *FString(Line));
@@ -287,8 +288,8 @@ bool FSUDSScriptImporter::ParseSetLine(const FStringView& Line, int IndentLevel,
 	// Unfortunately FRegexMatcher doesn't support FStringView
 	const FString LineStr(Line);
 	const FRegexPattern SetPattern(TEXT("^\\[set\\s+(\\S+)\\s+(\\S+)\\]$"));
-	FRegexMatcher IfRegex(SetPattern, LineStr);
-	if (IfRegex.FindNext())
+	FRegexMatcher EventRegex(SetPattern, LineStr);
+	if (EventRegex.FindNext())
 	{
 		// TODO: Implement set lines
 		UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: SET   : %s"), LineNo, IndentLevel, *FString(Line));
@@ -301,14 +302,48 @@ bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line, int IndentLeve
 {
 	const FString LineStr(Line);
 	const FRegexPattern EventPattern(TEXT("^\\[event\\s+(\\S+)\\s+(.+)\\]$"));
-	FRegexMatcher IfRegex(EventPattern, LineStr);
-	if (IfRegex.FindNext())
+	FRegexMatcher EventRegex(EventPattern, LineStr);
+	if (EventRegex.FindNext())
 	{
 		// TODO: Implement event lines
 		UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: EVENT : %s"), LineNo, IndentLevel, *FString(Line));
 		return true;
 	}
 	return false;
+}
+
+bool FSUDSScriptImporter::ParseTextLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& String, bool bSilent)
+{
+
+	const FString LineStr(Line);
+	const FRegexPattern SpeakerPattern(TEXT("^(\\w+)\\:\\s*(.+)$"));
+	FRegexMatcher SpeakerRegex(SpeakerPattern, LineStr);
+	if (SpeakerRegex.FindNext())
+	{
+		// OK this might be a speaker line, in which case this is a new text node
+		// However it might also be a new line in the existing speaker text node, if the word before the ":" is not
+		// a recognised speaker
+		// This is to allow cases where your text itself includes the words "Something: something else". You just need
+		// to avoid having a speaker ID as the prefix
+		// However, if you didn't define ANY speakers in the header, then we assume EVERY instance of "Something: Blah" is
+		// a new speaker line. So you don't have to define speakers if you don't have this ambiguity or any other reason to.
+		FString Speaker = SpeakerRegex.GetCaptureGroup(1);
+		if (DeclaredSpeakers.Num() == 0 || DeclaredSpeakers.Contains(Speaker))
+		{
+			// New text node
+			UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: TEXT  : %s"), LineNo, IndentLevel, *FString(Line));
+			// TODO add text node
+			return true;
+		}
+	}
+
+	// If we fell through, this line is appended to the last text node
+	// TODO: append text to previous text node (must be a text node!)
+	UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: TEXT+ : %s"), LineNo, IndentLevel, *FString(Line));
+	
+	return true;
+
+
 }
 
 void FSUDSScriptImporter::PopIndent()

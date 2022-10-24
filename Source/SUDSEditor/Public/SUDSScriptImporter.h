@@ -65,6 +65,10 @@ protected:
 	TArray<FSUDSParsedNode> Nodes;
 	/// Record of jump labels to node index, built up during parsing (forward refs are OK so not complete until end of parsing)
 	TMap<FString, int> JumpList;
+	/// List of speakers, declared in header. Used to disambiguate sometimes
+	TArray<FString> DeclaredSpeakers;
+	/// List of speakers, detected during parsing of lines of text, or events, or get/set variables 
+	TArray<FString> ReferencedSpeakers;
 	
 	const int TabIndentValue = 4;
 	bool bHeaderDone = false;
@@ -80,6 +84,7 @@ protected:
 	bool ParseGotoLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseSetLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseEventLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool ParseTextLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& String, bool bSilent);
 	bool IsCommentLine(const FStringView& TrimmedLine);
 	FStringView TrimLine(const FStringView& Line, int& OutIndentLevel) const;
 	void PopIndent();
