@@ -79,7 +79,7 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 		bImportedOK = ParseLine(Line, LineNumber++, NameForErrors, bSilent);
 	}
 
-	FixupOrphanedNodes();
+	ConnectRemainingNodes(NameForErrors);
 
 	return bImportedOK;
 	
@@ -487,11 +487,86 @@ FStringView FSUDSScriptImporter::TrimLine(const FStringView& Line, int& OutInden
 	
 }
 
-void FSUDSScriptImporter::FixupOrphanedNodes()
+void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors)
 {
-	// Now we go through all nodes, finding any that don't go anywhere, or edges with default jumps, and making
+	// Now we go through all nodes, resolving jumps, and finding links that don't go anywhere * making
 	// them fall through to the next appropriate outdented node (or the end)
-	// TODO
+
+	// We go through top-to-bottom, which is the order of lines in the file as well
+	// We don't need to cascade for this
+	for (int i = 0; i < Nodes.Num(); ++i)
+	{
+		auto Node = Nodes[i];
+		if (Node.Edges.IsEmpty() == 0)
+		{
+			// Find the next node which is at a higher indent level than this
+			const auto FallthroughIdx = FindNextOutdentedNodeIndex(i+1, Node.OriginalIndent);
+			if (Nodes.IsValidIndex(FallthroughIdx))
+			{
+				Node.Edges.Add(FSUDSParsedEdge(FallthroughIdx));
+			}
+			else
+			{
+				// If no node to fallthrough to, jump to end
+				Node.Edges.Add(FSUDSParsedEdge(EndJumpLabel));
+			}
+		}
+		else
+		{
+			for (auto Edge : Node.Edges)
+			{
+				if (Edge.bIsJump)
+				{
+					if (Edge.JumpTargetLabel == DefaultJumpLabel)
+					{
+						// This is a fallthrough jump
+						// Usually this is a choice line without anything under it, or a condition with nothing in it
+						const auto FallthroughIdx = FindNextOutdentedNodeIndex(i+1, Node.OriginalIndent);
+						if (Nodes.IsValidIndex(FallthroughIdx))
+						{
+							Edge.TargetNodeIdx = FallthroughIdx;
+						}
+						else
+						{
+							// If no node to fallthrough to, jump to end
+							Edge.TargetNodeIdx = -1;
+							Edge.JumpTargetLabel = EndJumpLabel;
+						}
+					}
+					else if (!Nodes.IsValidIndex(Edge.TargetNodeIdx))
+					{
+						// Resolve using jump list
+						int *pJumpIdx = JumpList.Find(Edge.JumpTargetLabel);
+						if (pJumpIdx)
+						{
+							Edge.TargetNodeIdx = *pJumpIdx;
+						}
+						else
+						{
+							UE_LOG(LogSUDSEditor, Warning, TEXT("Error in %s: Goto label '%s' was not found, references to it will goto END"), *NameForErrors, *Edge.JumpTargetLabel)
+						}
+						
+					}
+				}
+				
+			}
+		}
+	}
+}
+
+int FSUDSScriptImporter::FindNextOutdentedNodeIndex(int StartNodeIndex, int IndentLessThan)
+{
+	for (int i = StartNodeIndex; i < Nodes.Num(); ++i)
+	{
+		auto N = Nodes[i];
+		if (N.OriginalIndent < IndentLessThan)
+		{
+			return i;
+		}
+		
+	}
+
+	return -1;
 }
 
 const FSUDSParsedNode* FSUDSScriptImporter::GetNode(int Index)

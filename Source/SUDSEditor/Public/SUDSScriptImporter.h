@@ -20,7 +20,7 @@ public:
 
 	FSUDSParsedEdge() {}
 	FSUDSParsedEdge(int ToNodeIdx, FString InText = "") : Text(InText), TargetNodeIdx(ToNodeIdx) {}
-	FSUDSParsedEdge(FString JumpLabel) : JumpTargetLabel(JumpLabel) {}
+	FSUDSParsedEdge(FString JumpLabel) : bIsJump(true), JumpTargetLabel(JumpLabel) {}
 
 	void Reset()
 	{
@@ -115,8 +115,9 @@ protected:
 	void PushIndent(int NodeIdx, int Indent);
 	int AppendNode(const FSUDSParsedNode& NewNode);
 	void MakePendingEdgeDefaultJump();
-	void FixupOrphanedNodes();
-
+	void ConnectRemainingNodes(const FString& NameForErrors);
+	int FindNextOutdentedNodeIndex(int StartNodeIndex, int IndentLessThan);
+	
 public:
 	const FSUDSParsedNode* GetNode(int Index = 0);
 };

@@ -15,7 +15,7 @@ NPC: Well, hello there. This is a test.
     Player: Oh I see, thank you.
 	NPC: You're welcome.
   * Another option
-    NPC: This is another option with an embedded continuation.
+    NPC: This is another option with an embedded choice.
     * How far can this go?
       NPC: Theoretically forever but who knows?
 	* This is an extra question
@@ -46,7 +46,7 @@ NPC: Well, hello there. This is a test.
 		NPC: Too right.
     [endif]
   * Another option
-    NPC: This is another option with an embedded continuation.
+    NPC: This is another option with an embedded choice.
     * How far can this go?
       NPC: Theoretically forever but who knows?
 	[if $extraq]
@@ -75,7 +75,9 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 
 	// Test the content of the parsing
 	auto RootNode = Importer.GetNode(0);
-	TestNotNull("Root node should exist", RootNode);
+	if (!TestNotNull("Root node should exist", RootNode))
+		return false;
+	
 	TestEqual("Root node type", RootNode->NodeType, ESUDSScriptNodeType::Text);
 	TestEqual("Root node speaker", RootNode->Speaker, "Player");
 	TestEqual("Root node text", RootNode->Text, "Excuse me?");
@@ -83,7 +85,8 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 
 	TestFalse("First node edge not jump", RootNode->Edges[0].bIsJump);
 	auto NextNode = Importer.GetNode(RootNode->Edges[0].TargetNodeIdx);
-	TestNotNull("Next node should exist", NextNode);
+	if (!TestNotNull("Next node should exist", NextNode))
+		return false;
 
 	TestEqual("Second node type", NextNode->NodeType, ESUDSScriptNodeType::Text);
 	TestEqual("Second node speaker", NextNode->Speaker, "NPC");
@@ -92,9 +95,133 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 
 	TestFalse("Second node edge not jump", NextNode->Edges[0].bIsJump);
 	NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
-	TestNotNull("Third node should exist", NextNode);
+	if (!TestNotNull("Third node should exist", NextNode))
+		return false;
 	TestEqual("Third node type", NextNode->NodeType, ESUDSScriptNodeType::Choice);
 	TestEqual("Third node edges", NextNode->Edges.Num(), 2);
+
+	auto Choice1Node = NextNode;
+	if (NextNode->Edges.Num() >= 2)
+	{
+		TestFalse("Choice 1 node edge 0 not jump", Choice1Node->Edges[0].bIsJump);
+		TestEqual("Choice 1 node edge 0 text", Choice1Node->Edges[0].Text, "A test?");
+		TestEqual("Choice 1 node edge 1 text", Choice1Node->Edges[1].Text, "Another option");
+		// Follow choice 1
+		NextNode = Importer.GetNode(Choice1Node->Edges[0].TargetNodeIdx);
+		if (TestNotNull("Next node should exist", NextNode))
+		{
+			TestEqual("Choice 1 1st text node type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+			TestEqual("Choice 1 1st text node speaker", NextNode->Speaker, "NPC");
+			TestEqual("Choice 1 1st text node text", NextNode->Text, "Yes, a test. This is some indented continuation text.");
+			TestEqual("Choice 1 1st text node edges", NextNode->Edges.Num(), 1);
+			NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
+			if (TestNotNull("Next node should exist", NextNode))
+			{
+				TestEqual("Choice 1 2nd text node type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+				TestEqual("Choice 1 2nd text node speaker", NextNode->Speaker, "Player");
+				TestEqual("Choice 1 2nd text node text", NextNode->Text, "Oh I see, thank you.");
+				TestEqual("Choice 1 2nd text node edges", NextNode->Edges.Num(), 1);
+				NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
+				if (TestNotNull("Next node should exist", NextNode))
+				{
+					TestEqual("Choice 1 3rd text node type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+					TestEqual("Choice 1 3rd text node speaker", NextNode->Speaker, "NPC");
+					TestEqual("Choice 1 3rd text node text", NextNode->Text, "You're welcome.");
+
+					// Should fall through
+					TestEqual("Choice 1 3rd text node edges", NextNode->Edges.Num(), 1);
+					if (NextNode->Edges.Num() >= 1)
+					{
+						auto LinkedNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
+						if (TestNotNull("Choice 1 3rd text linked node", LinkedNode))
+						{
+							TestTrue("Choice 1 3rd text target node", LinkedNode->Text.StartsWith("Well, that's all for now"));
+						}
+					}
+				}
+			}
+		}
+
+
+		// Follow choice 2
+		NextNode = Importer.GetNode(Choice1Node->Edges[1].TargetNodeIdx);
+		if (!TestNotNull("Next node should exist", NextNode))
+			return false;
+		
+		TestEqual("Choice 2 1st text node type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+		TestEqual("Choice 2 1st text node speaker", NextNode->Speaker, "NPC");
+		TestEqual("Choice 2 1st text node text", NextNode->Text, "This is another option with an embedded choice.");
+		TestEqual("Choice 2 1st text node edges", NextNode->Edges.Num(), 1);
+		NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
+		if (!TestNotNull("Next node should exist", NextNode))
+			return false;
+		// This is nested choice node
+		TestEqual("Choice 2 1st text node type", NextNode->NodeType, ESUDSScriptNodeType::Choice);
+		TestEqual("Choice 2 nested choice edges", NextNode->Edges.Num(), 3);
+
+		auto NestedChoiceNode = NextNode;
+		if (NestedChoiceNode->Edges.Num() >= 3)
+		{
+			TestEqual("Nested choice edge text 0", NestedChoiceNode->Edges[0].Text, "How far can this go?");
+			TestEqual("Nested choice edge text 1", NestedChoiceNode->Edges[1].Text, "This is an extra question");
+			TestEqual("Nested choice edge text 2", NestedChoiceNode->Edges[2].Text, "Another question?");
+			
+			NextNode = Importer.GetNode(NestedChoiceNode->Edges[0].TargetNodeIdx);
+			if (TestNotNull("Next node should exist", NextNode))
+			{
+				TestEqual("Nested Choice 1st text node type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+				TestEqual("Nested Choice 1st text node speaker", NextNode->Speaker, "NPC");
+				TestEqual("Nested Choice 1st text node text", NextNode->Text, "Theoretically forever but who knows?");
+				if (TestEqual("Nested Choice 1st text node edges", NextNode->Edges.Num(), 1))
+				{
+					// Should fall through
+					auto LinkedNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
+					if (TestNotNull("Nested Choice 1st linked node", LinkedNode))
+					{
+						TestTrue("Nested Choice 1st text target node", LinkedNode->Text.StartsWith("Well, that's all for now"));
+					}
+				}
+			}
+
+			NextNode = Importer.GetNode(NestedChoiceNode->Edges[1].TargetNodeIdx);
+			if (TestNotNull("Next node should exist", NextNode))
+			{
+				TestEqual("Nested Choice 2nd text node type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+				TestEqual("Nested Choice 2nd text node speaker", NextNode->Speaker, "NPC");
+				TestEqual("Nested Choice 2nd text node text", NextNode->Text, "That should have been added to the previous choice");
+				TestEqual("Nested Choice 2nd text node edges", NextNode->Edges.Num(), 1);
+				if (TestEqual("Nested Choice 2nd text node edges", NextNode->Edges.Num(), 1))
+				{
+					// Should fall through
+					auto LinkedNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
+					if (TestNotNull("Nested Choice 2nd linked node", LinkedNode))
+					{
+						TestTrue("Nested Choice 2nd text target node", LinkedNode->Text.StartsWith("Well, that's all for now"));
+					}
+				}
+			}
+			
+			NextNode = Importer.GetNode(NestedChoiceNode->Edges[2].TargetNodeIdx);
+			if (TestNotNull("Next node should exist", NextNode))
+			{
+				TestEqual("Nested Choice 3rd text node type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+				TestEqual("Nested Choice 3rd text node speaker", NextNode->Speaker, "NPC");
+				TestEqual("Nested Choice 3rd text node text", NextNode->Text, "Yep, this one too");
+				TestEqual("Nested Choice 3rd node edges", NextNode->Edges.Num(), 1);
+				if (TestEqual("Nested Choice 3rd text node edges", NextNode->Edges.Num(), 1))
+				{
+					// Should fall through
+					auto LinkedNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
+					if (TestNotNull("Nested Choice 3rd linked node", LinkedNode))
+					{
+						TestTrue("Nested Choice 3rd text target node", LinkedNode->Text.StartsWith("Well, that's all for now"));
+					}
+				}
+			}
+			
+		}
+		
+	}		
 
 	return true;
 }
