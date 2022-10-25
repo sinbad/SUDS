@@ -504,8 +504,8 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors)
 	// We don't need to cascade for this
 	for (int i = 0; i < Nodes.Num(); ++i)
 	{
-		auto Node = Nodes[i];
-		if (Node.Edges.IsEmpty() == 0)
+		auto& Node = Nodes[i];
+		if (Node.Edges.IsEmpty())
 		{
 			// Find the next node which is at a higher indent level than this
 			const auto FallthroughIdx = FindNextOutdentedNodeIndex(i+1, Node.OriginalIndent);
@@ -521,7 +521,7 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors)
 		}
 		else
 		{
-			for (auto Edge : Node.Edges)
+			for (auto& Edge : Node.Edges)
 			{
 				if (Edge.bIsJump)
 				{
