@@ -5,6 +5,9 @@
 
 PRAGMA_DISABLE_OPTIMIZATION
 
+const FString FSUDSScriptImporter::DefaultJumpLabel = "::DEFAULT::";
+const FString FSUDSScriptImporter::EndJumpLabel = "END";
+
 bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, const FString& NameForErrors, bool bSilent)
 {
 	static const TCHAR* LineEndings[] =
@@ -75,6 +78,8 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 		FStringView Line = MakeStringView(Start + SubstringBeginIndex, SubstringLength);
 		bImportedOK = ParseLine(Line, LineNumber++, NameForErrors, bSilent);
 	}
+
+	FixupOrphanedNodes();
 
 	return bImportedOK;
 	
@@ -220,11 +225,33 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line, int IndentLev
 {
 	if (Line.StartsWith('*'))
 	{
-		// TODO: Implement choice lines
-		// If the current indent context node is NOT a choice, create a choice
-		// Add an edge, currently blank
-		// The next thing to be parsed will fill in the edge details
 		UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: CHOICE: %s"), LineNo, IndentLevel, *FString(Line));
+		
+		auto& Ctx = IndentLevelStack.Top();
+
+		// If the current indent context node is NOT a choice, create a choice node, and connect to previous node (using pending edge if needed)
+		if (!Nodes.IsValidIndex(Ctx.LastNodeIdx) ||
+			Nodes[Ctx.LastNodeIdx].NodeType != ESUDSScriptNodeType::Choice)
+		{
+			// Last node was not a choice node, so to add edge for this choice we first need to create the choice node
+			AppendNode(FSUDSParsedNode(ESUDSScriptNodeType::Choice, IndentLevel));
+		}
+		if (bIsPendingEdge)
+		{
+			// Must already have been a choice node but previous pending edge wasn't resolved
+			// This means it's a fallthrough, mark it as such
+			MakePendingEdgeDefaultJump();
+		}
+
+		// Inside each choice, everything should be indented at least as much as 1 character inside the *
+		PushIndent(Ctx.LastNodeIdx, IndentLevel + 1);
+		
+		// Add a pending edge, with the choice text
+		// Following things fill in the edge details, the next node to be parsed will finalise the destination
+		bIsPendingEdge = true;
+		FStringView ChoiceText = Line.SubStr(1, Line.Len() - 1).TrimStart();
+		PendingEdge.Text = ChoiceText;
+		
 		return true;
 	}
 	return false;
@@ -254,6 +281,8 @@ bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line, int Inde
 		if (IfRegex.FindNext())
 		{
 			// TODO parse condition
+			// If creates a select node
+			// Remember to connect up pending edges
 			UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: IF    : %s"), LineNo, IndentLevel, *FString(Line));
 			return true;
 		}
@@ -337,32 +366,12 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& Line, int IndentLevel
 		const FString Text = SpeakerRegex.GetCaptureGroup(2);
 		if (DeclaredSpeakers.Num() == 0 || DeclaredSpeakers.Contains(Speaker))
 		{
-			// New text node
 			UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: TEXT  : %s"), LineNo, IndentLevel, *FString(Line));
-			const int NewIndex = Nodes.Emplace(Speaker, Text);
+			// New text node
 			// Text nodes can never introduce another indent context
 			// We've already backed out to the outer indent in caller
-			if (Nodes.IsValidIndex(Ctx.LastNodeIdx))
-			{
-				// Append this node onto the last one
-				auto& PrevNode = Nodes[Ctx.LastNodeIdx];
-				// Use pending edge if present; that could be because this is under a choice node, or a condition
-				if (bIsPendingEdge)
-				{
-					PendingEdge.TargetNodeIdx = NewIndex;
-					PrevNode.Edges.Add(PendingEdge);
-				}
-				else
-				{
-					PrevNode.Edges.Add(FSUDSParsedEdge(NewIndex));
-				}
-				PendingEdge.Reset();
-				bIsPendingEdge = false;
-			}
-
+			AppendNode(FSUDSParsedNode(Speaker, Text, IndentLevel));
 			
-			Ctx.LastNodeIdx = NewIndex;
-			Ctx.ThresholdIndent = FMath::Min(Ctx.ThresholdIndent, IndentLevel);
 			return true;
 		}
 	}
@@ -387,6 +396,58 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& Line, int IndentLevel
 
 
 }
+
+int FSUDSScriptImporter::AppendNode(const FSUDSParsedNode& NewNode)
+{
+	auto& Ctx = IndentLevelStack.Top();
+	
+	const int NewIndex = Nodes.Add(NewNode);
+	if (Nodes.IsValidIndex(Ctx.LastNodeIdx))
+	{
+		// Append this node onto the last one
+		auto& PrevNode = Nodes[Ctx.LastNodeIdx];
+		// Use pending edge if present; that could be because this is under a choice node, or a condition
+		if (bIsPendingEdge)
+		{
+			PendingEdge.TargetNodeIdx = NewIndex;
+			PrevNode.Edges.Add(PendingEdge);
+		}
+		else
+		{
+			PrevNode.Edges.Add(FSUDSParsedEdge(NewIndex));
+		}
+		PendingEdge.Reset();
+		bIsPendingEdge = false;
+	}
+
+	Ctx.LastNodeIdx = NewIndex;
+	Ctx.ThresholdIndent = FMath::Min(Ctx.ThresholdIndent, NewNode.OriginalIndent);
+	
+
+	return NewIndex;
+}
+
+void FSUDSScriptImporter::MakePendingEdgeDefaultJump()
+{
+	// Used to close off pending edges that don't get finished, will be checked to fall through later
+	if (bIsPendingEdge)
+	{
+		PendingEdge.bIsJump = true;
+		PendingEdge.JumpTargetLabel = DefaultJumpLabel;
+	}
+
+	auto& Ctx = IndentLevelStack.Top();
+	if (Nodes.IsValidIndex(Ctx.LastNodeIdx))
+	{
+		// Append this node onto the last one
+		auto& PrevNode = Nodes[Ctx.LastNodeIdx];
+		PrevNode.Edges.Add(PendingEdge);
+	}
+	
+	PendingEdge.Reset();
+	bIsPendingEdge = false;
+}
+
 
 void FSUDSScriptImporter::PopIndent()
 {
@@ -424,6 +485,23 @@ FStringView FSUDSScriptImporter::TrimLine(const FStringView& Line, int& OutInden
 	// Trim end, don't need to know how much it was
 	return LeftTrimmed.TrimEnd();
 	
+}
+
+void FSUDSScriptImporter::FixupOrphanedNodes()
+{
+	// Now we go through all nodes, finding any that don't go anywhere, or edges with default jumps, and making
+	// them fall through to the next appropriate outdented node (or the end)
+	// TODO
+}
+
+const FSUDSParsedNode* FSUDSScriptImporter::GetNode(int Index)
+{
+	if (Nodes.IsValidIndex(Index))
+	{
+		return &Nodes[Index];
+	}
+
+	return nullptr;
 }
 
 PRAGMA_ENABLE_OPTIMIZATION

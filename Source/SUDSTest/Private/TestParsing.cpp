@@ -73,6 +73,28 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 	FSUDSScriptImporter Importer;
 	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SimpleParsingInput), SimpleParsingInput.Len(), "SimpleParsingInput", true));
 
+	// Test the content of the parsing
+	auto RootNode = Importer.GetNode(0);
+	TestNotNull("Root node should exist", RootNode);
+	TestEqual("Root node type", RootNode->NodeType, ESUDSScriptNodeType::Text);
+	TestEqual("Root node speaker", RootNode->Speaker, "Player");
+	TestEqual("Root node text", RootNode->Text, "Excuse me?");
+	TestEqual("Root node edges", RootNode->Edges.Num(), 1);
+
+	TestFalse("First node edge not jump", RootNode->Edges[0].bIsJump);
+	auto NextNode = Importer.GetNode(RootNode->Edges[0].TargetNodeIdx);
+	TestNotNull("Next node should exist", NextNode);
+
+	TestEqual("Second node type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+	TestEqual("Second node speaker", NextNode->Speaker, "NPC");
+	TestEqual("Second node text", NextNode->Text, "Well, hello there. This is a test.");
+	TestEqual("Second node edges", NextNode->Edges.Num(), 1);
+
+	TestFalse("Second node edge not jump", NextNode->Edges[0].bIsJump);
+	NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
+	TestNotNull("Third node should exist", NextNode);
+	TestEqual("Third node type", NextNode->NodeType, ESUDSScriptNodeType::Choice);
+	TestEqual("Third node edges", NextNode->Edges.Num(), 2);
 
 	return true;
 }

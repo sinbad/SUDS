@@ -35,6 +35,7 @@ struct SUDSEDITOR_API FSUDSParsedNode
 {
 public:
 	ESUDSScriptNodeType NodeType;
+	int OriginalIndent;
 	FString Speaker;
 	FString Text;
 	/// Labels which lead to this node
@@ -42,9 +43,9 @@ public:
 	/// Edges leading to other nodes
 	TArray<FSUDSParsedEdge> Edges;
 	
-	FSUDSParsedNode(ESUDSScriptNodeType InNodeType) : NodeType(InNodeType) {}
-	FSUDSParsedNode(FString InSpeaker, FString InText)
-		:NodeType(ESUDSScriptNodeType::Text), Speaker(InSpeaker), Text(InText) {}
+	FSUDSParsedNode(ESUDSScriptNodeType InNodeType, int Indent) : NodeType(InNodeType), OriginalIndent(Indent) {}
+	FSUDSParsedNode(FString InSpeaker, FString InText, int Indent)
+		:NodeType(ESUDSScriptNodeType::Text), OriginalIndent(Indent), Speaker(InSpeaker), Text(InText) {}
 	
 };
 class SUDSEDITOR_API FSUDSScriptImporter
@@ -52,6 +53,8 @@ class SUDSEDITOR_API FSUDSScriptImporter
 public:
 	bool ImportFromBuffer(const TCHAR* Buffer, int32 Len, const FString& NameForErrors, bool bSilent);
 protected:
+	static const FString DefaultJumpLabel;
+	static const FString EndJumpLabel;
 	/// Struct for tracking indents
 	struct IndentContext
 	{
@@ -82,6 +85,7 @@ protected:
 	bool bIsPendingEdge = false;
 	FSUDSParsedEdge PendingEdge;
 	/// List of all nodes, appended to as parsing progresses
+	/// Ordering is important, these nodes must be in the order encountered in the file 
 	TArray<FSUDSParsedNode> Nodes;
 	/// Record of jump labels to node index, built up during parsing (forward refs are OK so not complete until end of parsing)
 	TMap<FString, int> JumpList;
@@ -109,4 +113,10 @@ protected:
 	FStringView TrimLine(const FStringView& Line, int& OutIndentLevel) const;
 	void PopIndent();
 	void PushIndent(int NodeIdx, int Indent);
+	int AppendNode(const FSUDSParsedNode& NewNode);
+	void MakePendingEdgeDefaultJump();
+	void FixupOrphanedNodes();
+
+public:
+	const FSUDSParsedNode* GetNode(int Index = 0);
 };
