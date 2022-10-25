@@ -414,7 +414,15 @@ int FSUDSScriptImporter::AppendNode(const FSUDSParsedNode& NewNode)
 		}
 		else
 		{
-			PrevNode.Edges.Add(FSUDSParsedEdge(NewIndex));
+			// We only auto-connect new nodes to text nodes
+			// Otherwise, we should be doing it via pending edges
+			// E.g. choice nodes get edges created for choice options, select nodes for conditions
+			// A new node with no pending edge following any other type may be connected via fallthrough at
+			// the end of parsing
+			if (PrevNode.NodeType == ESUDSScriptNodeType::Text)
+			{
+				PrevNode.Edges.Add(FSUDSParsedEdge(NewIndex));
+			}
 		}
 		PendingEdge.Reset();
 		bIsPendingEdge = false;
