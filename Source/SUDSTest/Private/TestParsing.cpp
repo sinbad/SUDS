@@ -1,6 +1,8 @@
 ﻿#include "Misc/AutomationTest.h"
 #include "SUDSScriptImporter.h"
 
+PRAGMA_DISABLE_OPTIMIZATION
+
 const FString SimpleParsingInput = R"RAWSUD(
 ===
 # Nothing in header but a comment
@@ -22,6 +24,11 @@ NPC: Well, hello there. This is a test.
 	  NPC: That should have been added to the previous choice
 	* Another question?
 	  NPC: Yep, this one too
+		* A third level of questions?
+		  NPC: Yes, really!
+		* Wow
+          NPC: IKR
+        * Continuation with no response, just fallthrough
 Player: Well, that's all for now. This should appear for all paths as a fall-through.
 	This, in fact, is a multi-line piece of text
 	Which is joined to the previous text node with the line breaks
@@ -163,8 +170,6 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 		if (NestedChoiceNode->Edges.Num() >= 3)
 		{
 			TestEqual("Nested choice edge text 0", NestedChoiceNode->Edges[0].Text, "How far can this go?");
-			TestEqual("Nested choice edge text 1", NestedChoiceNode->Edges[1].Text, "This is an extra question");
-			TestEqual("Nested choice edge text 2", NestedChoiceNode->Edges[2].Text, "Another question?");
 			
 			NextNode = Importer.GetNode(NestedChoiceNode->Edges[0].TargetNodeIdx);
 			if (TestNotNull("Next node should exist", NextNode))
@@ -183,6 +188,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 				}
 			}
 
+			TestEqual("Nested choice edge text 1", NestedChoiceNode->Edges[1].Text, "This is an extra question");
 			NextNode = Importer.GetNode(NestedChoiceNode->Edges[1].TargetNodeIdx);
 			if (TestNotNull("Next node should exist", NextNode))
 			{
@@ -201,21 +207,70 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 				}
 			}
 			
+			TestEqual("Nested choice edge text 2", NestedChoiceNode->Edges[2].Text, "Another question?");
 			NextNode = Importer.GetNode(NestedChoiceNode->Edges[2].TargetNodeIdx);
 			if (TestNotNull("Next node should exist", NextNode))
 			{
 				TestEqual("Nested Choice 3rd text node type", NextNode->NodeType, ESUDSScriptNodeType::Text);
 				TestEqual("Nested Choice 3rd text node speaker", NextNode->Speaker, "NPC");
 				TestEqual("Nested Choice 3rd text node text", NextNode->Text, "Yep, this one too");
-				TestEqual("Nested Choice 3rd node edges", NextNode->Edges.Num(), 1);
 				if (TestEqual("Nested Choice 3rd text node edges", NextNode->Edges.Num(), 1))
 				{
-					// Should fall through
-					auto LinkedNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
-					if (TestNotNull("Nested Choice 3rd linked node", LinkedNode))
+					// Double nested
+					auto DoubleChoiceNode  = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
+					if (TestNotNull("Double Nested Choice node", DoubleChoiceNode))
 					{
-						TestTrue("Nested Choice 3rd text target node", LinkedNode->Text.StartsWith("Well, that's all for now"));
+						TestEqual("Double Nested Choice node type", DoubleChoiceNode->NodeType, ESUDSScriptNodeType::Choice);
+						if (TestEqual("Double Nested Choice node edges", DoubleChoiceNode->Edges.Num(), 3))
+						{
+							
+							TestEqual("Double Nested choice edge text 0", DoubleChoiceNode->Edges[0].Text, "A third level of questions?");
+							NextNode = Importer.GetNode(DoubleChoiceNode->Edges[0].TargetNodeIdx);
+							if (TestNotNull("Double Nested Choice node option 0", NextNode))
+							{
+								TestEqual("Double Nested Choice option 0 text node type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+								TestEqual("Double Nested Choice option 0 text node speaker", NextNode->Speaker, "NPC");
+								TestEqual("Double Nested Choice option 0 text node text", NextNode->Text, "Yes, really!");
+								// Should fall through
+								if (TestEqual("Double Nested Choice option 0 text edge", NextNode->Edges.Num(), 1))
+								NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
+								if (TestNotNull("Double Nested Choice option 0 text linked node", NextNode))
+								{
+									TestTrue("Double Nested Choice option 0 text linked node", NextNode->Text.StartsWith("Well, that's all for now"));
+								}
+							}
+							
+							TestEqual("Double Nested choice edge text 1", DoubleChoiceNode->Edges[1].Text, "Wow");
+							NextNode = Importer.GetNode(DoubleChoiceNode->Edges[1].TargetNodeIdx);
+							if (TestNotNull("Double Nested Choice node option 1", NextNode))
+							{
+								TestEqual("Double Nested Choice option 1 text node type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+								TestEqual("Double Nested Choice option 1 text node speaker", NextNode->Speaker, "NPC");
+								TestEqual("Double Nested Choice option 1 text node text", NextNode->Text, "IKR");
+								// Should fall through
+								if (TestEqual("Double Nested Choice option 1 text edge", NextNode->Edges.Num(), 1))
+									NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
+								if (TestNotNull("Double Nested Choice option 0 text linked node", NextNode))
+								{
+									TestTrue("Double Nested Choice option 0 text linked node", NextNode->Text.StartsWith("Well, that's all for now"));
+								}
+							}
+							
+							// Last Should fall through
+							TestEqual("Double Nested choice edge text 2", DoubleChoiceNode->Edges[2].Text, "Continuation with no response, just fallthrough");
+							auto LinkedNode = Importer.GetNode(DoubleChoiceNode->Edges[2].TargetNodeIdx);
+							if (TestNotNull("Nested Choice 3rd linked node", LinkedNode))
+							{
+								TestTrue("Nested Choice 3rd text target node", LinkedNode->Text.StartsWith("Well, that's all for now"));
+							}
+						}
+						
 					}
+					
+
+
+
+					
 				}
 			}
 			
@@ -225,3 +280,6 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 
 	return true;
 }
+
+
+PRAGMA_ENABLE_OPTIMIZATION
