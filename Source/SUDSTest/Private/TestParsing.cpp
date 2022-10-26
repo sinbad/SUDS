@@ -39,28 +39,28 @@ const FString GotoParsingInput = R"RAWSUD(
 :start
 :alsostart
 Player: This is the start
-:choice
-  * Go to end
-    NPC: How rude, bye then
-	[goto end]
-  * Nested option
-    NPC: Some nesting
-    * Go to goodbye
-      Player: Gotta go!
-	  [go to goodbye] 
-	* This is a mistake
-	  NPC: Oh no
-	  [goto this_is_an_error]
-	* Double nesting
-	  NPC: Yep, this one too
-		* Go back to choice
-		  NPC: Okay!
-		  [goto choice]
-		* Return to the start
-          NPC: Gotcha
-		  [goto start]
-        * Alternative start, also with no text before
-          [goto alsostart]
+	:choice
+	* Go to end
+		NPC: How rude, bye then
+		[goto end]
+	* Nested option
+		NPC: Some nesting
+		* Go to goodbye
+			Player: Gotta go!
+			[go to goodbye] 
+		* Double nesting
+			NPC: Yep, this one too
+				* Go back to choice
+					NPC: Okay!
+					[goto choice]
+				* Return to the start
+					NPC: Gotcha
+					[goto start]
+				* Alternative start, also with no text before
+					[goto alsostart]
+		* This is a mistake
+			NPC: Oh no
+			[goto this_is_an_error]
 :goodbye
 NPC: Bye!
 )RAWSUD";
