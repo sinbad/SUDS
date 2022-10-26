@@ -35,6 +35,38 @@ Player: Well, that's all for now. This should appear for all paths as a fall-thr
 NPC: Bye!
 )RAWSUD";
 
+const FString GotoParsingInput = R"RAWSUD(
+:start
+:alsostart
+Player: This is the start
+:choice
+  * Go to end
+    NPC: How rude, bye then
+	[goto end]
+  * Nested option
+    NPC: Some nesting
+    * Go to goodbye
+      Player: Gotta go!
+	  [go to goodbye] 
+	* This is a mistake
+	  NPC: Oh no
+	  [goto this_is_an_error]
+	* Double nesting
+	  NPC: Yep, this one too
+		* Go back to choice
+		  NPC: Okay!
+		  [goto choice]
+		* Return to the start
+          NPC: Gotcha
+		  [goto start]
+        * Alternative start, also with no text before
+          [goto alsostart]
+:goodbye
+NPC: Bye!
+)RAWSUD";
+
+
+
 const FString ConditionalParsingInput = R"RAWSUD(
 ===
 # Nothing in header but a comment
@@ -298,5 +330,60 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 	return true;
 }
 
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestGotoParsing,
+								 "SUDSTest.TestGotoParsing",
+								 EAutomationTestFlags::EditorContext |
+								 EAutomationTestFlags::ClientContext |
+								 EAutomationTestFlags::ProductFilter)
+
+
+bool FTestGotoParsing::RunTest(const FString& Parameters)
+{
+	FSUDSScriptImporter Importer;
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(GotoParsingInput), GotoParsingInput.Len(), "GotoParsingInput", true));
+
+	// Test the content of the parsing
+	auto RootNode = Importer.GetNode(0);
+	if (!TestNotNull("Root node should exist", RootNode))
+		return false;
+
+	TestEqual("Root node type", RootNode->NodeType, ESUDSScriptNodeType::Text);
+	TestEqual("Root node speaker", RootNode->SpeakerOrGotoLabel, "Player");
+	TestEqual("Root node text", RootNode->Text, "This is the start");
+	TestEqual("Root node edges", RootNode->Edges.Num(), 1);
+
+	auto NextNode = Importer.GetNode(RootNode->Edges[0].TargetNodeIdx);
+	if (!TestNotNull("Next node should exist", NextNode))
+		return false;
+
+	TestEqual("Choice node type", NextNode->NodeType, ESUDSScriptNodeType::Choice);
+	if (TestEqual("Choice node edges", NextNode->Edges.Num(), 2))
+	{
+		auto ChoiceNode = NextNode;
+		TestEqual("Choice 1 text", ChoiceNode->Edges[0].Text, "Go to end");
+		NextNode = Importer.GetNode(ChoiceNode->Edges[0].TargetNodeIdx);
+		if (TestNotNull("Next node should not be null", NextNode))
+		{
+			TestEqual("Goto End node text type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+			TestEqual("Goto End node text speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+			TestEqual("Goto End node text text", NextNode->Text, "How rude, bye then");
+			if (TestEqual("Goto End node text edges", NextNode->Edges.Num(), 1))
+			{
+				NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
+				if (TestNotNull("Goto node should not be null", NextNode))
+				{
+					TestEqual("Goto End node type", NextNode->NodeType, ESUDSScriptNodeType::Goto);
+					TestEqual("Goto End node label", NextNode->SpeakerOrGotoLabel, FSUDSScriptImporter::EndGotoLabel);
+					TestEqual("Goto End node edges", NextNode->Edges.Num(), 0);
+				}
+				
+			}
+			
+		}
+	}
+	
+	return true;
+}
 
 PRAGMA_ENABLE_OPTIMIZATION
