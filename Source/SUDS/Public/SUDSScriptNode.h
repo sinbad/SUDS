@@ -15,7 +15,9 @@ enum class ESUDSScriptNodeType : uint8
 	/// Choice node, displaying a series of user choices which navigate to other nodes
 	Choice,
 	/// Select node, automatically selecting one which navigates to another node based on state
-	Select
+	Select,
+	/// Goto node, redirects execution somewhere else
+	Goto
 };
 /**
  * A node in the script graph.
@@ -39,9 +41,9 @@ protected:
 	/// Type of node
 	UPROPERTY()
 	ESUDSScriptNodeType NodeType = ESUDSScriptNodeType::Text;
-	/// Identifier of the speaker for text nodes
+	/// Identifier of the speaker for text nodes, the goto target for goto nodes
 	UPROPERTY()
-	FString SpeakerID;
+	FString LabelID;
 	/// Identifier of the text string to use (based on the string table used by parent script
 	UPROPERTY()
 	FString TextID;

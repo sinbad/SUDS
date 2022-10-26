@@ -1,12 +1,11 @@
 ﻿#include "SUDSScriptImporter.h"
-
-#include "SUDSEditor.h"
 #include "Internationalization/Regex.h"
 
 PRAGMA_DISABLE_OPTIMIZATION
 
-const FString FSUDSScriptImporter::DefaultGotoLabel = "::DEFAULT::";
-const FString FSUDSScriptImporter::EndGotoLabel = "End";
+const FString FSUDSScriptImporter::EndGotoLabel = "end";
+
+DEFINE_LOG_CATEGORY(LogSUDSImporter)
 
 bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, const FString& NameForErrors, bool bSilent)
 {
@@ -20,6 +19,8 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 
 	int LineNumber = 1;
 	EdgeInProgress = nullptr;
+	PendingGotoLabels.Empty();
+	AliasedGotoLabels.Empty();
 	bHeaderDone = false;
 	bHeaderInProgress = false;
 	bool bImportedOK = true;
@@ -93,14 +94,14 @@ bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const F
 	if (TrimmedLine.Len() == 0 && !bTextInProgress)
 	{
 		// We will skip any blank lines that aren't inside text
-		UE_LOG(LogSUDSEditor, VeryVerbose, TEXT("%3d:00: BLANK %s"), LineNo, *FString(Line));
+		UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:00: BLANK %s"), LineNo, *FString(Line));
 		return true;
 	}
 
 	if (IsCommentLine(TrimmedLine))
 	{
 		// Skip over comment lines
-		UE_LOG(LogSUDSEditor, VeryVerbose, TEXT("%3d:%2d: COMMENT %s"), LineNo, IndentLevel, *FString(Line));
+		UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: COMMENT %s"), LineNo, IndentLevel, *FString(Line));
 		return true;
 	}
 
@@ -112,7 +113,7 @@ bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const F
 		{
 			if (!bSilent)
 			{
-				UE_LOG(LogSUDSEditor, Error, TEXT("Failed to parse %s Line %d: Duplicate header section"), *NameForErrors, LineNo);
+				UE_LOG(LogSUDSImporter, Error, TEXT("Failed to parse %s Line %d: Duplicate header section"), *NameForErrors, LineNo);
 			}
 			return false;
 		}
@@ -120,7 +121,7 @@ bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const F
 		{
 			if (!bSilent)
 			{
-				UE_LOG(LogSUDSEditor, Error, TEXT("Failed to parse %s Line %d: Header section must be at start"), *NameForErrors, LineNo);
+				UE_LOG(LogSUDSImporter, Error, TEXT("Failed to parse %s Line %d: Header section must be at start"), *NameForErrors, LineNo);
 			}
 			return false;
 		}
@@ -153,7 +154,7 @@ bool FSUDSScriptImporter::ParseHeaderLine(const FStringView& Line, int LineNo, c
 	// DeclaredSpeakers
 	// Variables
 
-	UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:00: HEADER: %s"), LineNo, *FString(Line));
+	UE_LOG(LogSUDSImporter, Verbose, TEXT("%3d:00: HEADER: %s"), LineNo, *FString(Line));
 	return true;
 }
 
@@ -190,6 +191,10 @@ bool FSUDSScriptImporter::ParseBodyLine(const FStringView& Line,
 	{
 		return ParseChoiceLine(Line, IndentLevel, LineNo, NameForErrors, bSilent);
 	}
+	else if (Line.StartsWith(TEXT(':')))
+	{
+		return ParseGotoLabelLine(Line, IndentLevel, LineNo, NameForErrors, bSilent);
+	}
 	else if (Line.StartsWith(TEXT('[')))
 	{
 		bool bParsed = ParseConditionalLine(Line, IndentLevel, LineNo, NameForErrors, bSilent);
@@ -202,8 +207,8 @@ bool FSUDSScriptImporter::ParseBodyLine(const FStringView& Line,
 
 		if (!bParsed)
 		{
-			UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: CMD  : %s"), LineNo, IndentLevel, *FString(Line));
-			UE_LOG(LogSUDSEditor, Warning, TEXT("%s Line %d: Unrecognised command. Ignoring!"), *NameForErrors, LineNo);
+			UE_LOG(LogSUDSImporter, Verbose, TEXT("%3d:%2d: CMD  : %s"), LineNo, IndentLevel, *FString(Line));
+			UE_LOG(LogSUDSImporter, Warning, TEXT("%s Line %d: Unrecognised command. Ignoring!"), *NameForErrors, LineNo);
 			// We still return true because we don't want to fail the entire import
 		}
 		return true;
@@ -224,7 +229,7 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line, int IndentLev
 {
 	if (Line.StartsWith('*'))
 	{
-		UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: CHOICE: %s"), LineNo, IndentLevel, *FString(Line));
+		UE_LOG(LogSUDSImporter, Verbose, TEXT("%3d:%2d: CHOICE: %s"), LineNo, IndentLevel, *FString(Line));
 		
 		auto& Ctx = IndentLevelStack.Top();
 
@@ -238,8 +243,8 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line, int IndentLev
 		if (EdgeInProgress)
 		{
 			// Must already have been a choice node but previous pending edge wasn't resolved
-			// This means it's a fallthrough, mark it as such
-			MakeEdgeInProgressDefaultGoto();
+			// This means it's a fallthrough, will be resolved at end
+			EdgeInProgress = nullptr;			
 		}
 
 		// Inside each choice, everything should be indented at least as much as 1 character inside the *
@@ -261,7 +266,7 @@ bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line, int Inde
 {
 	if (Line.Equals(TEXT("[else]")))
 	{
-		UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: ELSE  : %s"), LineNo, IndentLevel, *FString(Line));
+		UE_LOG(LogSUDSImporter, Verbose, TEXT("%3d:%2d: ELSE  : %s"), LineNo, IndentLevel, *FString(Line));
 		// TODO create else condition edge
 		return true;
 		
@@ -269,7 +274,7 @@ bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line, int Inde
 	else if (Line.Equals(TEXT("[endif]")))
 	{
 		// TODO finish conditional
-		UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: ENDIF : %s"), LineNo, IndentLevel, *FString(Line));
+		UE_LOG(LogSUDSImporter, Verbose, TEXT("%3d:%2d: ENDIF : %s"), LineNo, IndentLevel, *FString(Line));
 		return true;
 	}
 	else
@@ -283,7 +288,7 @@ bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line, int Inde
 			// TODO parse condition
 			// If creates a select node
 			// Remember to connect up pending edges
-			UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: IF    : %s"), LineNo, IndentLevel, *FString(Line));
+			UE_LOG(LogSUDSImporter, Verbose, TEXT("%3d:%2d: IF    : %s"), LineNo, IndentLevel, *FString(Line));
 			return true;
 		}
 		else
@@ -293,7 +298,7 @@ bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line, int Inde
 			if (ElseIfRegex.FindNext())
 			{
 				// TODO parse condition
-				UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: ELSEIF: %s"), LineNo, IndentLevel, *FString(Line));
+				UE_LOG(LogSUDSImporter, Verbose, TEXT("%3d:%2d: ELSEIF: %s"), LineNo, IndentLevel, *FString(Line));
 				return true;
 			}
 		}
@@ -302,18 +307,62 @@ bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line, int Inde
 	return false;
 }
 
+bool FSUDSScriptImporter::ParseGotoLabelLine(const FStringView& Line, int IndentLevel, int LineNo,	const FString& NameForErrors, bool bSilent)
+{
+	UE_LOG(LogSUDSImporter, Verbose, TEXT("%3d:%2d: LABEL : %s"), LineNo, IndentLevel, *FString(Line));
+	// We've already established that line starts with ':'
+	// There should not be any spaces in the label
+	const FString LineStr(Line);
+	const FRegexPattern LabelPattern(TEXT("^\\:\\s*(\\w+)$"));
+	FRegexMatcher LabelRegex(LabelPattern, LineStr);
+	if (LabelRegex.FindNext())
+	{
+		// lowercase goto labels so case insensitive
+		FString Label = LabelRegex.GetCaptureGroup(1).ToLower();
+		if (Label == EndGotoLabel)
+		{
+			UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: Label 'end' is reserved and cannot be used in the script, ignoring"), *NameForErrors, LineNo);
+		}
+		else
+		{
+			PendingGotoLabels.Add(Label);
+			// This will be connected to the next node created
+			// Is a list since multiple labels may resolve to the same place
+		}
+	}
+	else
+	{
+		UE_LOG(LogSUDSImporter, Warning, TEXT("Error in %s line %d: Badly formed goto label"), *NameForErrors, LineNo);
+	}
+	// Always return true to carry on, may not be used
+	return true;
+}
+
 bool FSUDSScriptImporter::ParseGotoLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent)
 {
+	UE_LOG(LogSUDSImporter, Verbose, TEXT("%3d:%2d: GOTO  : %s"), LineNo, IndentLevel, *FString(Line));
 	// Unfortunately FRegexMatcher doesn't support FStringView
 	const FString LineStr(Line);
-	const FRegexPattern GotoPattern(TEXT("^\\[goto\\s+(\\w+)\\]$"));
+	// Allow both 'goto' and 'go to'
+	const FRegexPattern GotoPattern(TEXT("^\\[go[ ]?to\\s+(\\w+)\\s*\\]$"));
 	FRegexMatcher GotoRegex(GotoPattern, LineStr);
 	if (GotoRegex.FindNext())
 	{
-		// TODO: Implement goto lines
-		UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: GOTO  : %s"), LineNo, IndentLevel, *FString(Line));
+		// lower case label so case insensitive
+		const FString Label = GotoRegex.GetCaptureGroup(1).ToLower();
+		// note that we do NOT try to resolve the goto label here, to allow forward jumps.
+		const auto& Ctx = IndentLevelStack.Top();
+		// A goto is an edge from the current node to another node
+		// That means if we had pending labels that didn't hit a node before now, they're just aliases to THIS label
+		for (auto PendingLabel : PendingGotoLabels)
+		{
+			AliasedGotoLabels.Add(PendingLabel, Label);
+		}
+		PendingGotoLabels.Reset();
+		AppendNode(FSUDSParsedNode(Label, IndentLevel));
 		return true;
 	}
+	UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: malformed goto line"), *NameForErrors, LineNo);
 	return false;
 }
 
@@ -326,7 +375,7 @@ bool FSUDSScriptImporter::ParseSetLine(const FStringView& Line, int IndentLevel,
 	if (EventRegex.FindNext())
 	{
 		// TODO: Implement set lines
-		UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: SET   : %s"), LineNo, IndentLevel, *FString(Line));
+		UE_LOG(LogSUDSImporter, Verbose, TEXT("%3d:%2d: SET   : %s"), LineNo, IndentLevel, *FString(Line));
 		return true;
 	}
 	return false;
@@ -340,7 +389,7 @@ bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line, int IndentLeve
 	if (EventRegex.FindNext())
 	{
 		// TODO: Implement event lines
-		UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: EVENT : %s"), LineNo, IndentLevel, *FString(Line));
+		UE_LOG(LogSUDSImporter, Verbose, TEXT("%3d:%2d: EVENT : %s"), LineNo, IndentLevel, *FString(Line));
 		return true;
 	}
 	return false;
@@ -366,7 +415,7 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& Line, int IndentLevel
 		const FString Text = SpeakerRegex.GetCaptureGroup(2);
 		if (DeclaredSpeakers.Num() == 0 || DeclaredSpeakers.Contains(Speaker))
 		{
-			UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: TEXT  : %s"), LineNo, IndentLevel, *FString(Line));
+			UE_LOG(LogSUDSImporter, Verbose, TEXT("%3d:%2d: TEXT  : %s"), LineNo, IndentLevel, *FString(Line));
 			// New text node
 			// Text nodes can never introduce another indent context
 			// We've already backed out to the outer indent in caller
@@ -377,7 +426,7 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& Line, int IndentLevel
 	}
 
 	// If we fell through, this line is appended to the last text node
-	UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: TEXT+ : %s"), LineNo, IndentLevel, *FString(Line));
+	UE_LOG(LogSUDSImporter, Verbose, TEXT("%3d:%2d: TEXT+ : %s"), LineNo, IndentLevel, *FString(Line));
 	if (Nodes.IsValidIndex(Ctx.LastNodeIdx))
 	{
 		auto& Node = Nodes[Ctx.LastNodeIdx];
@@ -387,7 +436,7 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& Line, int IndentLevel
 		}
 		else
 		{
-			UE_LOG(LogSUDSEditor, Warning, TEXT("Error in %s line %d: Text newline continuation is not immediately after a speaker line. Ignoring."), *NameForErrors, LineNo);
+			UE_LOG(LogSUDSImporter, Warning, TEXT("Error in %s line %d: Text newline continuation is not immediately after a speaker line. Ignoring."), *NameForErrors, LineNo);
 			// We still return true to allow continue	
 		}
 	}
@@ -426,6 +475,13 @@ int FSUDSScriptImporter::AppendNode(const FSUDSParsedNode& NewNode)
 		EdgeInProgress = nullptr;
 	}
 
+	// All goto labels in scope at this point now point to this node
+	for (auto Label : PendingGotoLabels)
+	{
+		GotoLabelList.Add(Label, NewIndex);
+	}
+	PendingGotoLabels.Reset();
+
 	Ctx.LastNodeIdx = NewIndex;
 	Ctx.ThresholdIndent = FMath::Min(Ctx.ThresholdIndent, NewNode.OriginalIndent);
 	
@@ -433,23 +489,11 @@ int FSUDSScriptImporter::AppendNode(const FSUDSParsedNode& NewNode)
 	return NewIndex;
 }
 
-void FSUDSScriptImporter::MakeEdgeInProgressDefaultGoto()
-{
-	// Used to close off pending edges that don't get finished, will be checked to fall through later
-	if (EdgeInProgress)
-	{
-		EdgeInProgress->bIsGoto = true;
-		EdgeInProgress->GotoTargetLabel = DefaultGotoLabel;
-	}
-
-	EdgeInProgress = nullptr;
-
-}
-
-
 void FSUDSScriptImporter::PopIndent()
 {
 	IndentLevelStack.Pop();
+	// We *could* reset the pending goto list if there are labels at higher indents than current that never resolved to a node
+	// but I'm choosing not to right now and letting them fall through
 }
 
 void FSUDSScriptImporter::PushIndent(int NodeIdx, int Indent)
@@ -497,56 +541,64 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors)
 		auto& Node = Nodes[i];
 		if (Node.Edges.IsEmpty())
 		{
-			// Find the next node which is at a higher indent level than this
-			const auto FallthroughIdx = FindNextOutdentedNodeIndex(i+1, Node.OriginalIndent);
-			if (Nodes.IsValidIndex(FallthroughIdx))
+			if (Node.NodeType == ESUDSScriptNodeType::Goto)
 			{
-				Node.Edges.Add(FSUDSParsedEdge(FallthroughIdx));
+				// Try to resolve goto now that we've parsed all labels
+				// Check aliases first
+				FString Label = Node.SpeakerOrGotoLabel;
+				// Special case 'end' which needs no further changes
+				if (Label != EndGotoLabel)
+				{
+					if (FString* AliasLabel = AliasedGotoLabels.Find(Label))
+					{
+						Label = *AliasLabel;
+						UE_LOG(LogSUDSImporter, Verbose, TEXT("INFO: Goto label %s was an alias for %"), *Node.SpeakerOrGotoLabel, *Label);
+					}
+							
+					// Resolve using goto list
+					if (const int *pGotoIdx = GotoLabelList.Find(Label))
+					{
+						Node.Edges.Add(FSUDSParsedEdge(*pGotoIdx, Node.SpeakerOrGotoLabel));
+					}
+					else
+					{
+						UE_LOG(LogSUDSImporter, Warning, TEXT("Error in %s: Goto label '%s' was not found, references to it will goto End"), *NameForErrors, *Node.SpeakerOrGotoLabel)
+						// Lack of edges in a Goto node will mean go to end
+					}
+				}
 			}
 			else
 			{
-				// If no node to fallthrough to, goto end
-				Node.Edges.Add(FSUDSParsedEdge(EndGotoLabel));
+				// Find the next node which is at a higher indent level than this
+				const auto FallthroughIdx = FindNextOutdentedNodeIndex(i+1, Node.OriginalIndent);
+				if (Nodes.IsValidIndex(FallthroughIdx))
+				{
+					Node.Edges.Add(FSUDSParsedEdge(FallthroughIdx));
+				}
+				else
+				{
+					// If no node to fallthrough to, default will be to end
+				}
 			}
 		}
 		else
 		{
 			for (auto& Edge : Node.Edges)
 			{
-				if (Edge.bIsGoto)
+				if (!Nodes.IsValidIndex(Edge.TargetNodeIdx))
 				{
-					if (Edge.GotoTargetLabel == DefaultGotoLabel)
+					// Usually this is a choice line without anything under it, or a condition with nothing in it
+					const auto FallthroughIdx = FindNextOutdentedNodeIndex(i+1, Node.OriginalIndent);
+					if (Nodes.IsValidIndex(FallthroughIdx))
 					{
-						// This is a fallthrough goto
-						// Usually this is a choice line without anything under it, or a condition with nothing in it
-						const auto FallthroughIdx = FindNextOutdentedNodeIndex(i+1, Node.OriginalIndent);
-						if (Nodes.IsValidIndex(FallthroughIdx))
-						{
-							Edge.TargetNodeIdx = FallthroughIdx;
-						}
-						else
-						{
-							// If no node to fallthrough to, goto end
-							Edge.TargetNodeIdx = -1;
-							Edge.GotoTargetLabel = EndGotoLabel;
-						}
+						Edge.TargetNodeIdx = FallthroughIdx;
 					}
-					else if (!Nodes.IsValidIndex(Edge.TargetNodeIdx))
+					else
 					{
-						// Resolve using goto list
-						int *pGotoIdx = GotoLabelList.Find(Edge.GotoTargetLabel);
-						if (pGotoIdx)
-						{
-							Edge.TargetNodeIdx = *pGotoIdx;
-						}
-						else
-						{
-							UE_LOG(LogSUDSEditor, Warning, TEXT("Error in %s: Goto label '%s' was not found, references to it will goto End"), *NameForErrors, *Edge.GotoTargetLabel)
-						}
-						
+						// If no node to fallthrough to, goto end
+						Edge.TargetNodeIdx = -1;
 					}
 				}
-				
 			}
 		}
 	}
