@@ -80,10 +80,8 @@ protected:
 	/// There must always be 1 level (root)
 	TArray<IndentContext> IndentLevelStack;
 	/// When encountering conditions and choice lines, we are building up details for an edge to another node, but
-	/// we currently don't know the target node. We keep these pending details here, so that we're not adding an edge
-	/// until it's fully coherent
-	bool bIsPendingEdge = false;
-	FSUDSParsedEdge PendingEdge;
+	/// we currently don't know the target node. We keep these pending details here
+	FSUDSParsedEdge* EdgeInProgress = nullptr;
 	/// List of all nodes, appended to as parsing progresses
 	/// Ordering is important, these nodes must be in the order encountered in the file 
 	TArray<FSUDSParsedNode> Nodes;
@@ -114,7 +112,7 @@ protected:
 	void PopIndent();
 	void PushIndent(int NodeIdx, int Indent);
 	int AppendNode(const FSUDSParsedNode& NewNode);
-	void MakePendingEdgeDefaultJump();
+	void MakeEdgeInProgressDefaultJump();
 	void ConnectRemainingNodes(const FString& NameForErrors);
 	int FindNextOutdentedNodeIndex(int StartNodeIndex, int IndentLessThan);
 	

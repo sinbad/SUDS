@@ -19,8 +19,7 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 	constexpr int32 NumDelims = UE_ARRAY_COUNT(LineEndings);
 
 	int LineNumber = 1;
-	bIsPendingEdge = false;
-	PendingEdge.Reset();
+	EdgeInProgress = nullptr;
 	bHeaderDone = false;
 	bHeaderInProgress = false;
 	bool bImportedOK = true;
@@ -236,11 +235,11 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line, int IndentLev
 			// Last node was not a choice node, so to add edge for this choice we first need to create the choice node
 			AppendNode(FSUDSParsedNode(ESUDSScriptNodeType::Choice, IndentLevel));
 		}
-		if (bIsPendingEdge)
+		if (EdgeInProgress)
 		{
 			// Must already have been a choice node but previous pending edge wasn't resolved
 			// This means it's a fallthrough, mark it as such
-			MakePendingEdgeDefaultJump();
+			MakeEdgeInProgressDefaultJump();
 		}
 
 		// Inside each choice, everything should be indented at least as much as 1 character inside the *
@@ -248,9 +247,10 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line, int IndentLev
 		
 		// Add a pending edge, with the choice text
 		// Following things fill in the edge details, the next node to be parsed will finalise the destination
-		bIsPendingEdge = true;
-		FStringView ChoiceText = Line.SubStr(1, Line.Len() - 1).TrimStart();
-		PendingEdge.Text = ChoiceText;
+		const FString ChoiceText(Line.SubStr(1, Line.Len() - 1).TrimStart());
+		auto& ChoiceNode = Nodes[Ctx.LastNodeIdx];
+		const int EdgeIdx = ChoiceNode.Edges.Add(FSUDSParsedEdge(-1, ChoiceText));
+		EdgeInProgress = &ChoiceNode.Edges[EdgeIdx];
 		
 		return true;
 	}
@@ -407,10 +407,9 @@ int FSUDSScriptImporter::AppendNode(const FSUDSParsedNode& NewNode)
 		// Append this node onto the last one
 		auto& PrevNode = Nodes[Ctx.LastNodeIdx];
 		// Use pending edge if present; that could be because this is under a choice node, or a condition
-		if (bIsPendingEdge)
+		if (EdgeInProgress)
 		{
-			PendingEdge.TargetNodeIdx = NewIndex;
-			PrevNode.Edges.Add(PendingEdge);
+			EdgeInProgress->TargetNodeIdx = NewIndex;
 		}
 		else
 		{
@@ -424,8 +423,7 @@ int FSUDSScriptImporter::AppendNode(const FSUDSParsedNode& NewNode)
 				PrevNode.Edges.Add(FSUDSParsedEdge(NewIndex));
 			}
 		}
-		PendingEdge.Reset();
-		bIsPendingEdge = false;
+		EdgeInProgress = nullptr;
 	}
 
 	Ctx.LastNodeIdx = NewIndex;
@@ -435,25 +433,17 @@ int FSUDSScriptImporter::AppendNode(const FSUDSParsedNode& NewNode)
 	return NewIndex;
 }
 
-void FSUDSScriptImporter::MakePendingEdgeDefaultJump()
+void FSUDSScriptImporter::MakeEdgeInProgressDefaultJump()
 {
 	// Used to close off pending edges that don't get finished, will be checked to fall through later
-	if (bIsPendingEdge)
+	if (EdgeInProgress)
 	{
-		PendingEdge.bIsJump = true;
-		PendingEdge.JumpTargetLabel = DefaultJumpLabel;
+		EdgeInProgress->bIsJump = true;
+		EdgeInProgress->JumpTargetLabel = DefaultJumpLabel;
 	}
 
-	auto& Ctx = IndentLevelStack.Top();
-	if (Nodes.IsValidIndex(Ctx.LastNodeIdx))
-	{
-		// Append this node onto the last one
-		auto& PrevNode = Nodes[Ctx.LastNodeIdx];
-		PrevNode.Edges.Add(PendingEdge);
-	}
-	
-	PendingEdge.Reset();
-	bIsPendingEdge = false;
+	EdgeInProgress = nullptr;
+
 }
 
 
