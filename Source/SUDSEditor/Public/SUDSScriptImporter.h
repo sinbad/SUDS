@@ -52,9 +52,9 @@ class SUDSEDITOR_API FSUDSScriptImporter
 {
 public:
 	bool ImportFromBuffer(const TCHAR* Buffer, int32 Len, const FString& NameForErrors, bool bSilent);
-protected:
 	static const FString DefaultJumpLabel;
 	static const FString EndJumpLabel;
+protected:
 	/// Struct for tracking indents
 	struct IndentContext
 	{

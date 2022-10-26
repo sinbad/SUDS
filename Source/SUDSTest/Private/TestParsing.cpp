@@ -108,6 +108,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 	TestEqual("Third node edges", NextNode->Edges.Num(), 2);
 
 	auto Choice1Node = NextNode;
+	const FSUDSParsedNode* FallthroughNode = nullptr;
 	if (NextNode->Edges.Num() >= 2)
 	{
 		TestFalse("Choice 1 node edge 0 not jump", Choice1Node->Edges[0].bIsJump);
@@ -143,6 +144,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 						if (TestNotNull("Choice 1 3rd text linked node", LinkedNode))
 						{
 							TestTrue("Choice 1 3rd text target node", LinkedNode->Text.StartsWith("Well, that's all for now"));
+							FallthroughNode = LinkedNode;
 						}
 					}
 				}
@@ -267,12 +269,34 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 						
 					}
 					
-
-
-
-					
 				}
 			}
+			
+		}
+
+		if (TestNotNull("Should have found fallthrough node", FallthroughNode))
+		{
+			// Test the final fallthrough
+			TestEqual("Fallthrough node type", FallthroughNode->NodeType, ESUDSScriptNodeType::Text);
+			TestEqual("Fallthrough node speaker", FallthroughNode->Speaker, "Player");
+			TestEqual("Fallthrough node text", FallthroughNode->Text, "Well, that's all for now. This should appear for all paths as a fall-through.\nThis, in fact, is a multi-line piece of text\nWhich is joined to the previous text node with the line breaks");
+			if (TestEqual("Fallthrough node edge count", FallthroughNode->Edges.Num(), 1))
+			{
+				NextNode = Importer.GetNode(FallthroughNode->Edges[0].TargetNodeIdx);
+				if (TestNotNull("Fallthrough node next node not null", NextNode))
+				{
+					TestEqual("Fallthrough node 2 type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+					TestEqual("Fallthrough node 2 speaker", NextNode->Speaker, "NPC");
+					TestEqual("Fallthrough node 2 text", NextNode->Text, "Bye!");
+					if (TestEqual("Fallthrough node 2 edge count", NextNode->Edges.Num(), 1))
+					{
+						// Should point to end
+						TestTrue("Fallthrough node 2 edge should be a jump", NextNode->Edges[0].bIsJump);
+						TestEqual("Fallthrough node 2 edge should lead to end", NextNode->Edges[0].JumpTargetLabel, FSUDSScriptImporter::EndJumpLabel);
+					}
+				}
+			}
+			
 			
 		}
 		
