@@ -115,7 +115,7 @@ protected:
 	void PopIndent();
 	void PushIndent(int NodeIdx, int Indent);
 	int AppendNode(const FSUDSParsedNode& NewNode);
-	void ConnectRemainingNodes(const FString& NameForErrors);
+	void ConnectRemainingNodes(const FString& NameForErrors, bool bSilent);
 	int FindNextOutdentedNodeIndex(int StartNodeIndex, int IndentLessThan);
 	
 public:
