@@ -6,21 +6,21 @@
 struct SUDSEDITOR_API FSUDSParsedEdge
 {
 public:
-	/// If an edge is a jump to a label, store the jump target & resolve later
-	bool bIsJump = false;
-	FString JumpTargetLabel;
+	/// If an edge is a goto to a label, store the goto target & resolve later
+	bool bIsGoto = false;
+	FString GotoTargetLabel;
 
 	/// Text associated with this edge (if a player choice option)
 	FString Text;
 
 	// TODO: Conditions
 
-	/// If not a jump, direct node index link (since should be created immediately afterward)
+	/// If not a goto, direct node index link (since should be created immediately afterward)
 	int TargetNodeIdx = -1;
 
 	FSUDSParsedEdge() {}
 	FSUDSParsedEdge(int ToNodeIdx, FString InText = "") : Text(InText), TargetNodeIdx(ToNodeIdx) {}
-	FSUDSParsedEdge(FString JumpLabel) : bIsJump(true), JumpTargetLabel(JumpLabel) {}
+	FSUDSParsedEdge(FString GotoLabel) : bIsGoto(true), GotoTargetLabel(GotoLabel) {}
 
 	void Reset()
 	{
@@ -52,8 +52,8 @@ class SUDSEDITOR_API FSUDSScriptImporter
 {
 public:
 	bool ImportFromBuffer(const TCHAR* Buffer, int32 Len, const FString& NameForErrors, bool bSilent);
-	static const FString DefaultJumpLabel;
-	static const FString EndJumpLabel;
+	static const FString DefaultGotoLabel;
+	static const FString EndGotoLabel;
 protected:
 	/// Struct for tracking indents
 	struct IndentContext
@@ -85,8 +85,8 @@ protected:
 	/// List of all nodes, appended to as parsing progresses
 	/// Ordering is important, these nodes must be in the order encountered in the file 
 	TArray<FSUDSParsedNode> Nodes;
-	/// Record of jump labels to node index, built up during parsing (forward refs are OK so not complete until end of parsing)
-	TMap<FString, int> JumpList;
+	/// Record of goto labels to node index, built up during parsing (forward refs are OK so not complete until end of parsing)
+	TMap<FString, int> GotoLabelList;
 	/// List of speakers, declared in header. Used to disambiguate sometimes
 	TArray<FString> DeclaredSpeakers;
 	/// List of speakers, detected during parsing of lines of text, or events, or get/set variables 
@@ -112,7 +112,7 @@ protected:
 	void PopIndent();
 	void PushIndent(int NodeIdx, int Indent);
 	int AppendNode(const FSUDSParsedNode& NewNode);
-	void MakeEdgeInProgressDefaultJump();
+	void MakeEdgeInProgressDefaultGoto();
 	void ConnectRemainingNodes(const FString& NameForErrors);
 	int FindNextOutdentedNodeIndex(int StartNodeIndex, int IndentLessThan);
 	

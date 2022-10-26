@@ -5,8 +5,8 @@
 
 PRAGMA_DISABLE_OPTIMIZATION
 
-const FString FSUDSScriptImporter::DefaultJumpLabel = "::DEFAULT::";
-const FString FSUDSScriptImporter::EndJumpLabel = "END";
+const FString FSUDSScriptImporter::DefaultGotoLabel = "::DEFAULT::";
+const FString FSUDSScriptImporter::EndGotoLabel = "End";
 
 bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, const FString& NameForErrors, bool bSilent)
 {
@@ -25,7 +25,7 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 	bool bImportedOK = true;
 	IndentLevelStack.Empty();
 	Nodes.Empty();
-	JumpList.Empty();
+	GotoLabelList.Empty();
 	if (Start)
 	{
 		int32 SubstringBeginIndex = 0;
@@ -239,7 +239,7 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line, int IndentLev
 		{
 			// Must already have been a choice node but previous pending edge wasn't resolved
 			// This means it's a fallthrough, mark it as such
-			MakeEdgeInProgressDefaultJump();
+			MakeEdgeInProgressDefaultGoto();
 		}
 
 		// Inside each choice, everything should be indented at least as much as 1 character inside the *
@@ -310,7 +310,7 @@ bool FSUDSScriptImporter::ParseGotoLine(const FStringView& Line, int IndentLevel
 	FRegexMatcher GotoRegex(GotoPattern, LineStr);
 	if (GotoRegex.FindNext())
 	{
-		// TODO: Implement jump lines
+		// TODO: Implement goto lines
 		UE_LOG(LogSUDSEditor, Verbose, TEXT("%3d:%2d: GOTO  : %s"), LineNo, IndentLevel, *FString(Line));
 		return true;
 	}
@@ -433,13 +433,13 @@ int FSUDSScriptImporter::AppendNode(const FSUDSParsedNode& NewNode)
 	return NewIndex;
 }
 
-void FSUDSScriptImporter::MakeEdgeInProgressDefaultJump()
+void FSUDSScriptImporter::MakeEdgeInProgressDefaultGoto()
 {
 	// Used to close off pending edges that don't get finished, will be checked to fall through later
 	if (EdgeInProgress)
 	{
-		EdgeInProgress->bIsJump = true;
-		EdgeInProgress->JumpTargetLabel = DefaultJumpLabel;
+		EdgeInProgress->bIsGoto = true;
+		EdgeInProgress->GotoTargetLabel = DefaultGotoLabel;
 	}
 
 	EdgeInProgress = nullptr;
@@ -487,7 +487,7 @@ FStringView FSUDSScriptImporter::TrimLine(const FStringView& Line, int& OutInden
 
 void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors)
 {
-	// Now we go through all nodes, resolving jumps, and finding links that don't go anywhere * making
+	// Now we go through all nodes, resolving gotos, and finding links that don't go anywhere * making
 	// them fall through to the next appropriate outdented node (or the end)
 
 	// We go through top-to-bottom, which is the order of lines in the file as well
@@ -505,19 +505,19 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors)
 			}
 			else
 			{
-				// If no node to fallthrough to, jump to end
-				Node.Edges.Add(FSUDSParsedEdge(EndJumpLabel));
+				// If no node to fallthrough to, goto end
+				Node.Edges.Add(FSUDSParsedEdge(EndGotoLabel));
 			}
 		}
 		else
 		{
 			for (auto& Edge : Node.Edges)
 			{
-				if (Edge.bIsJump)
+				if (Edge.bIsGoto)
 				{
-					if (Edge.JumpTargetLabel == DefaultJumpLabel)
+					if (Edge.GotoTargetLabel == DefaultGotoLabel)
 					{
-						// This is a fallthrough jump
+						// This is a fallthrough goto
 						// Usually this is a choice line without anything under it, or a condition with nothing in it
 						const auto FallthroughIdx = FindNextOutdentedNodeIndex(i+1, Node.OriginalIndent);
 						if (Nodes.IsValidIndex(FallthroughIdx))
@@ -526,22 +526,22 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors)
 						}
 						else
 						{
-							// If no node to fallthrough to, jump to end
+							// If no node to fallthrough to, goto end
 							Edge.TargetNodeIdx = -1;
-							Edge.JumpTargetLabel = EndJumpLabel;
+							Edge.GotoTargetLabel = EndGotoLabel;
 						}
 					}
 					else if (!Nodes.IsValidIndex(Edge.TargetNodeIdx))
 					{
-						// Resolve using jump list
-						int *pJumpIdx = JumpList.Find(Edge.JumpTargetLabel);
-						if (pJumpIdx)
+						// Resolve using goto list
+						int *pGotoIdx = GotoLabelList.Find(Edge.GotoTargetLabel);
+						if (pGotoIdx)
 						{
-							Edge.TargetNodeIdx = *pJumpIdx;
+							Edge.TargetNodeIdx = *pGotoIdx;
 						}
 						else
 						{
-							UE_LOG(LogSUDSEditor, Warning, TEXT("Error in %s: Goto label '%s' was not found, references to it will goto END"), *NameForErrors, *Edge.JumpTargetLabel)
+							UE_LOG(LogSUDSEditor, Warning, TEXT("Error in %s: Goto label '%s' was not found, references to it will goto End"), *NameForErrors, *Edge.GotoTargetLabel)
 						}
 						
 					}

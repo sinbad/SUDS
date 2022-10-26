@@ -90,7 +90,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 	TestEqual("Root node text", RootNode->Text, "Excuse me?");
 	TestEqual("Root node edges", RootNode->Edges.Num(), 1);
 
-	TestFalse("First node edge not jump", RootNode->Edges[0].bIsJump);
+	TestFalse("First node edge not jump", RootNode->Edges[0].bIsGoto);
 	auto NextNode = Importer.GetNode(RootNode->Edges[0].TargetNodeIdx);
 	if (!TestNotNull("Next node should exist", NextNode))
 		return false;
@@ -100,7 +100,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 	TestEqual("Second node text", NextNode->Text, "Well, hello there. This is a test.");
 	TestEqual("Second node edges", NextNode->Edges.Num(), 1);
 
-	TestFalse("Second node edge not jump", NextNode->Edges[0].bIsJump);
+	TestFalse("Second node edge not jump", NextNode->Edges[0].bIsGoto);
 	NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
 	if (!TestNotNull("Third node should exist", NextNode))
 		return false;
@@ -111,7 +111,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 	const FSUDSParsedNode* FallthroughNode = nullptr;
 	if (NextNode->Edges.Num() >= 2)
 	{
-		TestFalse("Choice 1 node edge 0 not jump", Choice1Node->Edges[0].bIsJump);
+		TestFalse("Choice 1 node edge 0 not goto", Choice1Node->Edges[0].bIsGoto);
 		TestEqual("Choice 1 node edge 0 text", Choice1Node->Edges[0].Text, "A test?");
 		TestEqual("Choice 1 node edge 1 text", Choice1Node->Edges[1].Text, "Another option");
 		// Follow choice 1
@@ -291,8 +291,8 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 					if (TestEqual("Fallthrough node 2 edge count", NextNode->Edges.Num(), 1))
 					{
 						// Should point to end
-						TestTrue("Fallthrough node 2 edge should be a jump", NextNode->Edges[0].bIsJump);
-						TestEqual("Fallthrough node 2 edge should lead to end", NextNode->Edges[0].JumpTargetLabel, FSUDSScriptImporter::EndJumpLabel);
+						TestTrue("Fallthrough node 2 edge should be a goto", NextNode->Edges[0].bIsGoto);
+						TestEqual("Fallthrough node 2 edge should lead to end", NextNode->Edges[0].GotoTargetLabel, FSUDSScriptImporter::EndGotoLabel);
 					}
 				}
 			}
