@@ -561,21 +561,17 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors, bo
 			if (Node.NodeType == ESUDSParsedNodeType::Goto)
 			{
 				// Try to resolve goto now that we've parsed all labels
+				// We don't actually create edges here, the label is enough so long as it leads somewhere
 				// Check aliases first
 				FString Label = Node.SpeakerOrGotoLabel;
-				// Special case 'end' which needs no further changes
+				// Special case 'end' which needs no further checking
 				if (Label != EndGotoLabel)
 				{
 					const int GotoNodeIdx = GetGotoTargetNodeIndex(Node.SpeakerOrGotoLabel);
-					if (GotoNodeIdx != -1)
-					{
-						Node.Edges.Add(FSUDSParsedEdge(GotoNodeIdx, Node.SpeakerOrGotoLabel));
-					}
-					else
+					if (GotoNodeIdx == -1)
 					{
 						if (!bSilent)
 							UE_LOG(LogSUDSImporter, Warning, TEXT("Error in %s: Goto label '%s' was not found, references to it will goto End"), *NameForErrors, *Node.SpeakerOrGotoLabel)
-						// Lack of edges in a Goto node will mean go to end
 					}
 				}
 			}
