@@ -16,8 +16,6 @@ enum class ESUDSScriptNodeType : uint8
 	Choice,
 	/// Select node, automatically selecting one which navigates to another node based on state
 	Select,
-	/// Goto node, redirects execution somewhere else
-	Goto
 };
 /**
  * A node in the script graph.

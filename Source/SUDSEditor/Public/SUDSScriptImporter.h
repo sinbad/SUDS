@@ -25,12 +25,26 @@ public:
 	
 };
 
+enum class ESUDSParsedNodeType : uint8
+{
+	/// Text node, displaying a line of dialogue
+	Text,
+	/// Choice node, displaying a series of user choices which navigate to other nodes
+	Choice,
+	/// Select node, automatically selecting one which navigates to another node based on state
+	Select,
+	/// Goto node, redirects execution somewhere else
+	/// Gotos are only nodes in the parsing structure, because they need to be discoverable as a fallthrough destination
+	/// When converting to runtime use they just become edges
+	Goto
+};
+
 /// Intermediate parsed node from script text
 /// This will be converted into a final asset later
 struct SUDSEDITOR_API FSUDSParsedNode
 {
 public:
-	ESUDSScriptNodeType NodeType;
+	ESUDSParsedNodeType NodeType;
 	int OriginalIndent;
 	FString SpeakerOrGotoLabel;
 	FString Text;
@@ -39,11 +53,11 @@ public:
 	/// Edges leading to other nodes
 	TArray<FSUDSParsedEdge> Edges;
 	
-	FSUDSParsedNode(ESUDSScriptNodeType InNodeType, int Indent) : NodeType(InNodeType), OriginalIndent(Indent) {}
+	FSUDSParsedNode(ESUDSParsedNodeType InNodeType, int Indent) : NodeType(InNodeType), OriginalIndent(Indent) {}
 	FSUDSParsedNode(FString InSpeaker, FString InText, int Indent)
-		:NodeType(ESUDSScriptNodeType::Text), OriginalIndent(Indent), SpeakerOrGotoLabel(InSpeaker), Text(InText) {}
+		:NodeType(ESUDSParsedNodeType::Text), OriginalIndent(Indent), SpeakerOrGotoLabel(InSpeaker), Text(InText) {}
 	FSUDSParsedNode(FString GotoLabel, int Indent)
-		:NodeType(ESUDSScriptNodeType::Goto), OriginalIndent(Indent), SpeakerOrGotoLabel(GotoLabel) {}
+		:NodeType(ESUDSParsedNodeType::Goto), OriginalIndent(Indent), SpeakerOrGotoLabel(GotoLabel) {}
 	
 };
 class SUDSEDITOR_API FSUDSScriptImporter
@@ -120,4 +134,6 @@ protected:
 	
 public:
 	const FSUDSParsedNode* GetNode(int Index = 0);
+	/// Resolve a goto label to a target index (after import), or -1 if not resolvable
+	int GetGotoTargetNodeIndex(const FString& Label);
 };

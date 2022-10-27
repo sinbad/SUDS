@@ -238,10 +238,10 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line, int IndentLev
 
 		// If the current indent context node is NOT a choice, create a choice node, and connect to previous node (using pending edge if needed)
 		if (!Nodes.IsValidIndex(Ctx.LastNodeIdx) ||
-			Nodes[Ctx.LastNodeIdx].NodeType != ESUDSScriptNodeType::Choice)
+			Nodes[Ctx.LastNodeIdx].NodeType != ESUDSParsedNodeType::Choice)
 		{
 			// Last node was not a choice node, so to add edge for this choice we first need to create the choice node
-			AppendNode(FSUDSParsedNode(ESUDSScriptNodeType::Choice, IndentLevel));
+			AppendNode(FSUDSParsedNode(ESUDSParsedNodeType::Choice, IndentLevel));
 		}
 		if (EdgeInProgress)
 		{
@@ -446,7 +446,7 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& Line, int IndentLevel
 	if (Nodes.IsValidIndex(Ctx.LastNodeIdx))
 	{
 		auto& Node = Nodes[Ctx.LastNodeIdx];
-		if (Node.NodeType == ESUDSScriptNodeType::Text)
+		if (Node.NodeType == ESUDSParsedNodeType::Text)
 		{
 			Node.Text.Appendf(TEXT("\n%s"), *LineStr);
 		}
@@ -484,7 +484,7 @@ int FSUDSScriptImporter::AppendNode(const FSUDSParsedNode& NewNode)
 			// E.g. choice nodes get edges created for choice options, select nodes for conditions
 			// A new node with no pending edge following any other type may be connected via fallthrough at
 			// the end of parsing
-			if (PrevNode.NodeType == ESUDSScriptNodeType::Text)
+			if (PrevNode.NodeType == ESUDSParsedNodeType::Text)
 			{
 				PrevNode.Edges.Add(FSUDSParsedEdge(NewIndex));
 			}
@@ -558,7 +558,7 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors, bo
 		auto& Node = Nodes[i];
 		if (Node.Edges.IsEmpty())
 		{
-			if (Node.NodeType == ESUDSScriptNodeType::Goto)
+			if (Node.NodeType == ESUDSParsedNodeType::Goto)
 			{
 				// Try to resolve goto now that we've parsed all labels
 				// Check aliases first
@@ -566,17 +566,10 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors, bo
 				// Special case 'end' which needs no further changes
 				if (Label != EndGotoLabel)
 				{
-					if (FString* AliasLabel = AliasedGotoLabels.Find(Label))
+					const int GotoNodeIdx = GetGotoTargetNodeIndex(Node.SpeakerOrGotoLabel);
+					if (GotoNodeIdx != -1)
 					{
-						Label = *AliasLabel;
-						if (!bSilent)
-							UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("INFO: Goto label %s was an alias for %"), *Node.SpeakerOrGotoLabel, *Label);
-					}
-							
-					// Resolve using goto list
-					if (const int *pGotoIdx = GotoLabelList.Find(Label))
-					{
-						Node.Edges.Add(FSUDSParsedEdge(*pGotoIdx, Node.SpeakerOrGotoLabel));
+						Node.Edges.Add(FSUDSParsedEdge(GotoNodeIdx, Node.SpeakerOrGotoLabel));
 					}
 					else
 					{
@@ -646,6 +639,24 @@ const FSUDSParsedNode* FSUDSScriptImporter::GetNode(int Index)
 	}
 
 	return nullptr;
+}
+
+int FSUDSScriptImporter::GetGotoTargetNodeIndex(const FString& InLabel)
+{
+	FString Label = InLabel;
+	if (FString* AliasLabel = AliasedGotoLabels.Find(Label))
+	{
+		Label = *AliasLabel;
+	}
+							
+	// Resolve using goto list
+	if (const int *pGotoIdx = GotoLabelList.Find(Label))
+	{
+		return *pGotoIdx;
+	}
+
+	return -1;
+	
 }
 
 PRAGMA_ENABLE_OPTIMIZATION
