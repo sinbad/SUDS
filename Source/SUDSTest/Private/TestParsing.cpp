@@ -29,6 +29,7 @@ NPC: Well, hello there. This is a test.
 		* Wow
           NPC: IKR
         * Continuation with no response, just fallthrough
+	Player: This is a level 2 fallthrough 
 Player: Well, that's all for now. This should appear for all paths as a fall-through.
 	This, in fact, is a multi-line piece of text
 	Which is joined to the previous text node with the line breaks
@@ -167,7 +168,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 					TestEqual("Choice 1 3rd text node speaker", NextNode->SpeakerOrGotoLabel, "NPC");
 					TestEqual("Choice 1 3rd text node text", NextNode->Text, "You're welcome.");
 
-					// Should fall through
+					// Should fall through, all the way to the end and not to "level 2 fallthrough" since that's deeper level
 					TestEqual("Choice 1 3rd text node edges", NextNode->Edges.Num(), 1);
 					if (NextNode->Edges.Num() >= 1)
 					{
@@ -216,7 +217,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 					auto LinkedNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
 					if (TestNotNull("Nested Choice 1st linked node", LinkedNode))
 					{
-						TestTrue("Nested Choice 1st text target node", LinkedNode->Text.StartsWith("Well, that's all for now"));
+						TestEqual("Nested Choice 1st text target node", LinkedNode->Text, "This is a level 2 fallthrough");
 					}
 				}
 			}
@@ -235,7 +236,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 					auto LinkedNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
 					if (TestNotNull("Nested Choice 2nd linked node", LinkedNode))
 					{
-						TestTrue("Nested Choice 2nd text target node", LinkedNode->Text.StartsWith("Well, that's all for now"));
+						TestEqual("Nested Choice 2nd text target node", LinkedNode->Text, "This is a level 2 fallthrough");
 					}
 				}
 			}
@@ -269,7 +270,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 								NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
 								if (TestNotNull("Double Nested Choice option 0 text linked node", NextNode))
 								{
-									TestTrue("Double Nested Choice option 0 text linked node", NextNode->Text.StartsWith("Well, that's all for now"));
+									TestEqual("Double Nested Choice option 0 text linked node", NextNode->Text, "This is a level 2 fallthrough");
 								}
 							}
 							
@@ -285,7 +286,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 									NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
 								if (TestNotNull("Double Nested Choice option 0 text linked node", NextNode))
 								{
-									TestTrue("Double Nested Choice option 0 text linked node", NextNode->Text.StartsWith("Well, that's all for now"));
+									TestEqual("Double Nested Choice option 0 text linked node", NextNode->Text, "This is a level 2 fallthrough");
 								}
 							}
 							
@@ -294,7 +295,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 							auto LinkedNode = Importer.GetNode(DoubleChoiceNode->Edges[2].TargetNodeIdx);
 							if (TestNotNull("Nested Choice 3rd linked node", LinkedNode))
 							{
-								TestTrue("Nested Choice 3rd text target node", LinkedNode->Text.StartsWith("Well, that's all for now"));
+								TestEqual("Nested Choice 3rd text target node", LinkedNode->Text, "This is a level 2 fallthrough");
 							}
 						}
 						
