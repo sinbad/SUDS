@@ -4,6 +4,7 @@
 #include "UObject/Object.h"
 #include "SUDSScript.generated.h"
 
+class USUDSScriptNode;
 /**
  * A single SUDS script asset.
  */
@@ -12,14 +13,34 @@ class SUDS_API USUDSScript : public UObject
 {
 	GENERATED_BODY()
 
+protected:
+
+	/// Array of nodes (static after import)
+	UPROPERTY(BlueprintReadOnly)
+	TArray<USUDSScriptNode*> Nodes;
+
+	/// Map of labels to nodes
+	UPROPERTY(BlueprintReadOnly)
+	TMap<FString, int> LabelList;
+	
 public:
+
+	void StartImport(TArray<USUDSScriptNode*> **Nodes, TMap<FString, int> **LabelList);
+	void FinishImport();
+
+	/// Get the first node of the script, if starting from the beginning
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	USUDSScriptNode* GetFirstNode() const;
+
+	/// Get the first node of the script following a label, or null if the label wasn't found
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	USUDSScriptNode* GetNodeByLabel(const FString& Label) const;
+
 
 #if WITH_EDITORONLY_DATA
 	// Import data for this 
 	UPROPERTY(VisibleAnywhere, Instanced, Category=ImportSettings)
 	TObjectPtr<class UAssetImportData> AssetImportData;
-
-	// Array of nodes (static after import)
 	
 	// UObject interface
 	virtual void PostInitProperties() override;

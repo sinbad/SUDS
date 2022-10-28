@@ -1,4 +1,6 @@
 ﻿#include "SUDSScriptImporter.h"
+
+#include "SUDSScript.h"
 #include "Internationalization/Regex.h"
 
 PRAGMA_DISABLE_OPTIMIZATION
@@ -551,6 +553,17 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors, bo
 	// Now we go through all nodes, resolving gotos, and finding links that don't go anywhere * making
 	// them fall through to the next appropriate outdented node (or the end)
 
+	// Firstly turn all the alias gotos into final gotos
+	for (auto& Alias : AliasedGotoLabels)
+	{
+		if (int* pIdx = GotoLabelList.Find(Alias.Value))
+		{
+			GotoLabelList.Add(Alias.Key, *pIdx);
+		}
+	}
+	AliasedGotoLabels.Reset();
+	
+
 	// We go through top-to-bottom, which is the order of lines in the file as well
 	// We don't need to cascade for this
 	for (int i = 0; i < Nodes.Num(); ++i)
@@ -652,6 +665,119 @@ int FSUDSScriptImporter::GetGotoTargetNodeIndex(const FString& InLabel)
 	}
 
 	return -1;
+	
+}
+
+void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset)
+{
+	// This is only called if the parsing was successful
+	// Populate the runtime asset
+	TArray<USUDSScriptNode*> *pOutNodes = nullptr;
+	TMap<FString, int> *pOutLabels = nullptr;
+	Asset->StartImport(&pOutNodes, &pOutLabels);
+
+	if (pOutNodes && pOutLabels)
+	{
+		TArray<int> IndexRemap;
+		int OutIndex = 0;
+		// First pass, create all the nodes
+		for (const auto& InNode : Nodes)
+		{
+			// Gotos are dealt with in the node that references them, so ignore them
+			// We're going to be removing Goto nodes in the parse structure, because they were useful while parsing
+			// (letting you fallthrough to a goto node) but in the final runtime we just want them to be edges
+			// So firstly we need to figure out what the indexes of other nodes are going to be with them removed
+			if (InNode.NodeType == ESUDSParsedNodeType::Goto)
+			{
+				// note that this one goes nowhere, and don't increment dest index
+				IndexRemap.Add(-1);
+			}
+			else
+			{
+				IndexRemap.Add(OutIndex++);
+				
+				USUDSScriptNode* Node = NewObject<USUDSScriptNode>(Asset);
+				switch (InNode.NodeType)
+				{
+				case ESUDSParsedNodeType::Text:
+					// TODO: localise text
+					Node->InitText(InNode.SpeakerOrGotoLabel, InNode.Text);
+					break;
+				case ESUDSParsedNodeType::Choice:
+					Node->InitChoice();
+					break;
+				case ESUDSParsedNodeType::Select:
+					Node->InitSelect();
+					break;
+				case ESUDSParsedNodeType::Goto:
+				default: ;
+				}
+
+				pOutNodes->Add(Node);
+
+			}
+		}
+
+		// Second pass, create edges between nodes now that we know where everything is
+		for (int i = 0; i < Nodes.Num(); ++i)
+		{
+			const FSUDSParsedNode& InNode = Nodes[i];
+			if (InNode.NodeType != ESUDSParsedNodeType::Goto)
+			{
+				USUDSScriptNode* Node = (*pOutNodes)[IndexRemap[i]];
+				// Edges
+				for (auto& InEdge : InNode.Edges)
+				{
+					if (const FSUDSParsedNode *InTargetNode = GetNode(InEdge.TargetNodeIdx))
+					{
+						FSUDSScriptEdge NewEdge;
+						
+						if (InTargetNode->NodeType == ESUDSParsedNodeType::Goto)
+						{
+							// Resolve GOTOs immediately, point them directly at node goto points to
+							int Idx = GetGotoTargetNodeIndex(InTargetNode->SpeakerOrGotoLabel);
+							// -1 means "Goto end", leave target null in that case
+							if (Idx != -1)
+							{
+								int NewTargetIndex = IndexRemap[Idx];
+								NewEdge.TargetNode = (*pOutNodes)[NewTargetIndex];
+							}
+						}
+						else
+						{
+							int NewTargetIndex = IndexRemap[InEdge.TargetNodeIdx];
+							NewEdge.TargetNode = (*pOutNodes)[NewTargetIndex];
+							// TODO: localise edge text
+							NewEdge.TempText = InEdge.Text;
+						}
+
+						if (InTargetNode->NodeType == ESUDSParsedNodeType::Choice)
+						{
+							NewEdge.Navigation = ESUDSScriptEdgeNavigation::Combine;
+						}
+						else
+						{
+							// TODO: support other navigation types like auto, timer based
+							NewEdge.Navigation = ESUDSScriptEdgeNavigation::Explicit;
+						}
+
+						Node->AddEdge(NewEdge);
+					}
+					
+				}
+			}
+		}
+
+		// Add labels, so that dialogue can be entered at any label
+		// Aliases have already been resolved
+		for (auto& Elem : GotoLabelList)
+		{
+			int NewIndex = IndexRemap[Elem.Value];
+			pOutLabels->Add(Elem.Key, NewIndex);
+		}
+
+		Asset->FinishImport();
+	}
 	
 }
 

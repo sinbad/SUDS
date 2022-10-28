@@ -2,7 +2,34 @@
 
 #include "EditorFramework/AssetImportData.h"
 
+void USUDSScript::StartImport(TArray<USUDSScriptNode*>** ppNodes, TMap<FString, int>** ppLabelList)
+{
+	*ppNodes = &Nodes;
+	*ppLabelList = &LabelList;
+}
 
+void USUDSScript::FinishImport()
+{
+}
+
+USUDSScriptNode* USUDSScript::GetFirstNode() const
+{
+	if (Nodes.Num() > 0)
+		return Nodes[0];
+
+	return nullptr;
+}
+
+USUDSScriptNode* USUDSScript::GetNodeByLabel(const FString& Label) const
+{
+	if (const int* pIdx = LabelList.Find(Label))
+	{
+		return Nodes[*pIdx];
+	}
+
+	return nullptr;
+	
+}
 #if WITH_EDITORONLY_DATA
 
 void USUDSScript::PostInitProperties()

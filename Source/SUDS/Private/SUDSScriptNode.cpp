@@ -7,19 +7,24 @@ USUDSScriptNode::USUDSScriptNode()
 {
 }
 
-USUDSScriptNode::USUDSScriptNode(ESUDSScriptNodeType Typ)
-	: NodeType(Typ)
+void USUDSScriptNode::InitText(const FString& InSpeaker, const FString& InText)
 {
+	NodeType = ESUDSScriptNodeType::Text;
+	Speaker = InSpeaker;
+	TempText = InText;
 }
 
-USUDSScriptNode::USUDSScriptNode(const FString& InTextID)
-	: NodeType(ESUDSScriptNodeType::Text), TextID(InTextID)
-
+void USUDSScriptNode::InitChoice()
 {
+	NodeType = ESUDSScriptNodeType::Choice;
+}
+
+void USUDSScriptNode::InitSelect()
+{
+	NodeType = ESUDSScriptNodeType::Select;
 }
 
 void USUDSScriptNode::AddEdge(const FSUDSScriptEdge& NewEdge)
 {
 	Edges.Add(NewEdge);
-	MarkPackageDirty();
 }

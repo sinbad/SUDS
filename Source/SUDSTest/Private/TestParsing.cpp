@@ -1,4 +1,5 @@
-﻿#include "Misc/AutomationTest.h"
+﻿#include "SUDSScript.h"
+#include "Misc/AutomationTest.h"
 #include "SUDSScriptImporter.h"
 
 PRAGMA_DISABLE_OPTIMIZATION
@@ -601,4 +602,299 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 	return true;
 }
 
+
+bool TestTextNode(FAutomationTestBase* T, const FString& NameForTest, const USUDSScriptNode* Node, const FString& Speaker, const FString& Text)
+{
+	if (T->TestNotNull(NameForTest, Node))
+	{
+		T->TestEqual(NameForTest, Node->GetNodeType(), ESUDSScriptNodeType::Text);
+		T->TestEqual(NameForTest, Node->GetSpeaker(), Speaker);
+		T->TestEqual(NameForTest, Node->GetText(), Text);
+		return true;
+	}
+	return false;
+}
+bool TestEdge(FAutomationTestBase* T, const FString& NameForTest, USUDSScriptNode* Node, int EdgeIndex, USUDSScriptNode** OutNode)
+{
+	*OutNode = nullptr;
+	if (Node && Node->GetEdgeCount() > EdgeIndex)
+	{
+		if (auto Edge = Node->GetEdge(EdgeIndex))
+		{
+			*OutNode = Edge->TargetNode.Get();
+			return T->TestNotNull(NameForTest, *OutNode);
+		}
+	}
+	
+	return false;
+	
+}
+
+bool TestChoiceNode(FAutomationTestBase* T, const FString& NameForTest, const USUDSScriptNode* Node, int NumChoices)
+{
+	if (T->TestNotNull(NameForTest, Node))
+	{
+		T->TestEqual(NameForTest, Node->GetNodeType(), ESUDSScriptNodeType::Choice);
+		return T->TestEqual(NameForTest, Node->GetEdgeCount(), NumChoices);
+	}
+	return false;
+}
+
+bool TestChoiceEdge(FAutomationTestBase* T, const FString& NameForTest, USUDSScriptNode* Node, int EdgeIndex, const FString& Text, USUDSScriptNode** OutNode)
+{
+	*OutNode = nullptr;
+	if (Node && Node->GetEdgeCount() > EdgeIndex)
+	{
+		if (auto Edge = Node->GetEdge(EdgeIndex))
+		{
+			T->TestEqual(NameForTest, Edge->Navigation, ESUDSScriptEdgeNavigation::Explicit);
+			T->TestEqual(NameForTest, Edge->TempText, Text);
+			*OutNode = Edge->TargetNode.Get();
+			return T->TestNotNull(NameForTest, *OutNode);
+		}
+	}
+	
+	return false;
+	
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestConversionToRuntime,
+								 "SUDSTest.TestConversionToRuntime",
+								 EAutomationTestFlags::EditorContext |
+								 EAutomationTestFlags::ClientContext |
+								 EAutomationTestFlags::ProductFilter)
+
+
+bool FTestConversionToRuntime::RunTest(const FString& Parameters)
+{
+	FSUDSScriptImporter Importer;
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(GotoParsingInput), GotoParsingInput.Len(), "GotoParsingInput", true));
+
+	auto Asset = NewObject<USUDSScript>();
+	Importer.PopulateAsset(Asset);
+
+	auto StartNode = Asset->GetFirstNode();
+	if (!TestNotNull("Start node should be true", StartNode))
+		return false;
+
+	TestTextNode(this, "Start node", StartNode, "Player", "This is the start");
+
+	auto NextNode = StartNode;
+	if (!TestEqual("Start node edges", NextNode->GetEdgeCount(), 1))
+		return false;
+	
+	auto pEdge = NextNode->GetEdge(0);
+	if (!TestNotNull("Start node edge", pEdge))
+		return false;
+	
+	TestEqual("Start node edge", pEdge->Navigation, ESUDSScriptEdgeNavigation::Combine);
+	NextNode = pEdge->TargetNode.Get();
+	if (!TestChoiceNode(this, "Start node next", NextNode, 2))
+	{
+		auto ChoiceNode = NextNode;
+		if (TestChoiceEdge(this, "Choice 1 text", ChoiceNode, 0, "Go to end", &NextNode))
+		{
+			TestTextNode(this, "Goto End node text type", NextNode, "NPC", "How rude, bye then");
+			// This is a goto end so should just have one edge
+			auto GotoEdge = NextNode->GetEdge(0);
+			if (TestNotNull("Goto end node", GotoEdge))
+			{
+				TestFalse("Goto end should be null", GotoEdge->TargetNode.IsValid());
+			}
+		}
+		
+		if (TestChoiceEdge(this, "Choice 2 text", ChoiceNode, 1, "Nested option", &NextNode))
+		{
+			TestTextNode(this, "Choice 2 node text type", NextNode, "NPC", "Some nesting");
+			if (TestEdge(this, "Choice 2 node text edges", NextNode, 0, &NextNode))
+			{
+				if (TestChoiceNode(this, "Goto End node type", NextNode, 3))
+				{
+					auto NestedChoice = NextNode;
+					if (TestChoiceEdge(this, "Nested choice 0 text", NestedChoice, 0, "Go to goodbye", &NextNode))
+					{
+						TestTextNode(this, "Nested choice 0 text type", NextNode, "Player", "Gotta go!");
+						if (TestEdge(this, "Nested Choice textnode edges", NextNode, 0, &NextNode))
+						{
+							// This was the goto which should have led to goodbye
+							TestTextNode(this, "Check goto goodbye", NextNode, "NPC", "Bye!");
+						}
+					}
+					/* CONVERT ALL THIS TO NEW STYLE ABOVE, AND RUNTIME CHECK 
+					TestEqual("Nested choice 1 text", NestedChoice->Edges[1].Text, "Skip");
+					NextNode = Importer.GetNode(NestedChoice->Edges[1].TargetNodeIdx);
+					if (TestNotNull("Should not be null", NextNode))
+					{
+						// This one goes straight to goto
+						TestEqual("Nested choice 1 goto type", NextNode->NodeType, ESUDSScriptNodeType::Goto);
+						TestEqual("Nested choice 1 goto label", NextNode->SpeakerOrGotoLabel, "secondchoice");
+
+						const int DestIdx = Importer.GetGotoTargetNodeIndex(NextNode->SpeakerOrGotoLabel);
+						TestNotEqual("Label should be valid", DestIdx, -1);
+						NextNode = Importer.GetNode(DestIdx);
+						if (TestNotNull("Goto dest node", NextNode))
+						{
+							TestEqual("Goto dest text type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+							TestEqual("Goto dest text speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+							TestEqual("Goto dest text text", NextNode->Text, "Yep, this one too");
+									
+						}
+					}
+					TestEqual("Nested choice 2 text", NestedChoice->Edges[2].Text, "This is a mistake");
+					NextNode = Importer.GetNode(NestedChoice->Edges[2].TargetNodeIdx);
+					if (TestNotNull("Should not be null", NextNode))
+					{
+						TestEqual("Nested choice 2 text type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+						TestEqual("Nested choice 2 text speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+						TestEqual("Nested choice 2 text text", NextNode->Text, "Oh no");
+
+						if (TestEqual("Nested Choice text node edges", NextNode->Edges.Num(), 1))
+						{
+							NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
+							if (TestNotNull("Should not be null", NextNode))
+							{
+								// This is the goto
+								TestEqual("Nested choice 0 goto type", NextNode->NodeType, ESUDSScriptNodeType::Goto);
+								TestEqual("Nested choice 0 goto label", NextNode->SpeakerOrGotoLabel, "this_is_an_error");
+								TestEqual("Label should go nowhere", Importer.GetGotoTargetNodeIndex(NextNode->SpeakerOrGotoLabel), -1);
+							}
+						}
+						
+					}
+					
+				}
+				
+			}
+			
+		}
+
+		// Pick up the latter part (only reachable by goto)
+		NextNode = Importer.GetNode(Importer.GetGotoTargetNodeIndex("secondchoice"));
+		if (TestNotNull("End choice node should not be null", NextNode))
+		{
+			TestEqual("End choice node text type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+			TestEqual("End choice node text speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+			TestEqual("End choice node text text", NextNode->Text, "Yep, this one too");
+			if (TestEqual("End choice node text edges", NextNode->Edges.Num(), 1))
+			{
+				NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
+				if (TestNotNull("", NextNode))
+				{
+					TestEqual("End choice node text type", NextNode->NodeType, ESUDSScriptNodeType::Choice);
+								
+					if (TestEqual("End choice node edges", NextNode->Edges.Num(), 3))
+					{
+						auto EndChoiceNode = NextNode;
+						TestEqual("End choice 0 text", EndChoiceNode->Edges[0].Text, "Go back to choice");
+						NextNode = Importer.GetNode(EndChoiceNode->Edges[0].TargetNodeIdx);
+						if (TestNotNull("", NextNode))
+						{
+							TestEqual("Node text type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+							TestEqual("Node text speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+							TestEqual("Node text text", NextNode->Text, "Okay!");
+							if (TestEqual("Next node edges", NextNode->Edges.Num(), 1))
+							{
+								NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
+								if (TestNotNull("", NextNode))
+								{
+									TestEqual("Should be goto node", NextNode->NodeType, ESUDSScriptNodeType::Goto);
+									TestEqual("Goto label", NextNode->SpeakerOrGotoLabel, "choice");
+									
+									// This should lead back to a choice node, ie letting the previous text node use the same choices
+									// without repeating the text (loop with context)
+									const int DestIdx = Importer.GetGotoTargetNodeIndex(NextNode->SpeakerOrGotoLabel);
+									TestNotEqual("Label should be valid", DestIdx, -1);
+									NextNode = Importer.GetNode(DestIdx);
+									if (TestNotNull("Goto dest node", NextNode))
+									{
+										TestEqual("Goto dest choice type", NextNode->NodeType, ESUDSScriptNodeType::Choice);
+										// Just make sure it's the right choice node
+										if (TestEqual("Goto dest choice edges", NextNode->Edges.Num(), 2))
+										{
+											TestEqual("Goto dest choice check edge", NextNode->Edges[0].Text, "Go to end");
+										}
+									}
+									
+								}
+							}
+
+							NextNode = Importer.GetNode(EndChoiceNode->Edges[1].TargetNodeIdx);
+							if (TestNotNull("", NextNode))
+							{
+								TestEqual("Node text type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+								TestEqual("Node text speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+								TestEqual("Node text text", NextNode->Text, "Gotcha");
+								if (TestEqual("Next node edges", NextNode->Edges.Num(), 1))
+								{
+									NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
+									if (TestNotNull("", NextNode))
+									{
+										TestEqual("Should be goto node", NextNode->NodeType, ESUDSScriptNodeType::Goto);
+										TestEqual("Goto label", NextNode->SpeakerOrGotoLabel, "start");
+									
+										// This should lead back to a choice node, ie letting the previous text node use the same choices
+										// without repeating the text (loop with context)
+										const int DestIdx = Importer.GetGotoTargetNodeIndex(NextNode->SpeakerOrGotoLabel);
+										TestNotEqual("Label should be valid", DestIdx, -1);
+										NextNode = Importer.GetNode(DestIdx);
+										if (TestNotNull("Goto dest node", NextNode))
+										{
+											// Just make sure it's the right node
+											TestEqual("Goto dest text type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+											TestEqual("Node text speaker", NextNode->SpeakerOrGotoLabel, "Player");
+											TestEqual("Node text text", NextNode->Text, "This is the start");
+										}
+									
+									}
+								}
+							}
+							NextNode = Importer.GetNode(EndChoiceNode->Edges[2].TargetNodeIdx);
+							if (TestNotNull("", NextNode))
+							{
+								// Straight to goto
+								TestEqual("Should be goto node", NextNode->NodeType, ESUDSScriptNodeType::Goto);
+								TestEqual("Goto label", NextNode->SpeakerOrGotoLabel, "alsostart");
+							
+								// This should lead back to a choice node, ie letting the previous text node use the same choices
+								// without repeating the text (loop with context)
+								const int DestIdx = Importer.GetGotoTargetNodeIndex(NextNode->SpeakerOrGotoLabel);
+								TestNotEqual("Label should be valid", DestIdx, -1);
+								NextNode = Importer.GetNode(DestIdx);
+								if (TestNotNull("Goto dest node", NextNode))
+								{
+									// Just make sure it's the right node
+									TestEqual("Goto dest text type", NextNode->NodeType, ESUDSScriptNodeType::Text);
+									TestEqual("Node text speaker", NextNode->SpeakerOrGotoLabel, "Player");
+									TestEqual("Node text text", NextNode->Text, "This is the start");
+								}
+							}
+						}
+					}
+*/
+				}
+			}
+			
+			
+		}
+	}
+
+
+	
+
+	// check goto labels
+	auto GotoNode = Asset->GetNodeByLabel("start");
+	TestTextNode(this, "Goto Start", GotoNode, "Player", "This is the start");
+	GotoNode = Asset->GetNodeByLabel("alsostart");
+	TestTextNode(this, "Goto alsostart", GotoNode, "Player", "This is the start");
+	GotoNode = Asset->GetNodeByLabel("choice");
+	TestChoiceNode(this, "Goto choice", GotoNode, 2);
+	GotoNode = Asset->GetNodeByLabel("secondchoice");
+	TestTextNode(this, "Goto secondchoice", GotoNode, "NPC", "Yep, this one too");
+	GotoNode = Asset->GetNodeByLabel("goodbye");
+	TestTextNode(this, "Goto goodbye", GotoNode, "NPC", "Bye!");
+	
+	
+	return true;
+}
 PRAGMA_ENABLE_OPTIMIZATION

@@ -39,26 +39,41 @@ protected:
 	/// Type of node
 	UPROPERTY()
 	ESUDSScriptNodeType NodeType = ESUDSScriptNodeType::Text;
-	/// Identifier of the speaker for text nodes, the goto target for goto nodes
-	UPROPERTY()
-	FString LabelID;
+	/// Identifier of the speaker for text nodes
+	UPROPERTY(BlueprintReadOnly)
+	FString Speaker;
+protected:
+	/// TODO: Replace with TextID when localisation done
+	UPROPERTY(BlueprintReadOnly)
+	FString TempText;
 	/// Identifier of the text string to use (based on the string table used by parent script
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	FString TextID;
 	/// Links to other nodes
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TArray<FSUDSScriptEdge> Edges;
 
 public:
 	USUDSScriptNode();
-	USUDSScriptNode(ESUDSScriptNodeType Typ);
-	USUDSScriptNode(const FString& InTextID);
 	
 	[[nodiscard]] ESUDSScriptNodeType GetNodeType() const { return NodeType; }
+	[[nodiscard]] FString GetSpeaker() const { return Speaker; }
 	[[nodiscard]] FString GetTextID() const { return TextID; }
+	[[nodiscard]] FString GetText() const { return TempText; }
 	[[nodiscard]] TArray<FSUDSScriptEdge> GetEdges() const { return Edges; }
 
 	void AddEdge(const FSUDSScriptEdge& NewEdge);
-	
-	
+	void InitText(const FString& Speaker, const FString& Text);
+	void InitChoice();
+	void InitSelect();
+
+	int GetEdgeCount() const { return Edges.Num(); }
+	const FSUDSScriptEdge* GetEdge(int Index) const
+	{
+		if (Edges.IsValidIndex(Index))
+		{
+			return &Edges[Index];			
+		}
+		return nullptr;
+	}
 };

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "SUDSScriptNode.h"
 
+class USUDSScript;
 DECLARE_LOG_CATEGORY_EXTERN(LogSUDSImporter, Verbose, All);
 
 struct SUDSEDITOR_API FSUDSParsedEdge
@@ -64,6 +65,7 @@ class SUDSEDITOR_API FSUDSScriptImporter
 {
 public:
 	bool ImportFromBuffer(const TCHAR* Buffer, int32 Len, const FString& NameForErrors, bool bSilent);
+	void PopulateAsset(USUDSScript* Asset);
 	static const FString EndGotoLabel;
 protected:
 	/// Struct for tracking indents
