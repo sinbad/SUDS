@@ -1,6 +1,4 @@
-﻿// Copyright 2020 Old Doorways Ltd
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "SUDSScriptEdge.h"
@@ -41,11 +39,11 @@ protected:
 	ESUDSScriptNodeType NodeType = ESUDSScriptNodeType::Text;
 	/// Identifier of the speaker for text nodes
 	UPROPERTY(BlueprintReadOnly)
-	FString Speaker;
+	FString SpeakerID;
 protected:
 	/// TODO: Replace with TextID when localisation done
 	UPROPERTY(BlueprintReadOnly)
-	FString TempText;
+	FText TempText;
 	/// Identifier of the text string to use (based on the string table used by parent script
 	UPROPERTY(BlueprintReadOnly)
 	FString TextID;
@@ -57,13 +55,13 @@ public:
 	USUDSScriptNode();
 	
 	[[nodiscard]] ESUDSScriptNodeType GetNodeType() const { return NodeType; }
-	[[nodiscard]] FString GetSpeaker() const { return Speaker; }
-	[[nodiscard]] FString GetTextID() const { return TextID; }
-	[[nodiscard]] FString GetText() const { return TempText; }
+	[[nodiscard]] const FString& GetSpeakerID() const { return SpeakerID; }
+	[[nodiscard]] const FString& GetTextID() const { return TextID; }
+	[[nodiscard]] const FText& GetTempText() const { return TempText; }
 	[[nodiscard]] TArray<FSUDSScriptEdge> GetEdges() const { return Edges; }
 
 	void AddEdge(const FSUDSScriptEdge& NewEdge);
-	void InitText(const FString& Speaker, const FString& Text);
+	void InitText(const FString& SpeakerID, const FString& TextID);
 	void InitChoice();
 	void InitSelect();
 

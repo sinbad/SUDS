@@ -2,7 +2,7 @@
 
 #include "EditorFramework/AssetImportData.h"
 
-void USUDSScript::StartImport(TArray<USUDSScriptNode*>** ppNodes, TMap<FString, int>** ppLabelList)
+void USUDSScript::StartImport(TArray<USUDSScriptNode*>** ppNodes, TMap<FName, int>** ppLabelList)
 {
 	*ppNodes = &Nodes;
 	*ppLabelList = &LabelList;
@@ -20,7 +20,7 @@ USUDSScriptNode* USUDSScript::GetFirstNode() const
 	return nullptr;
 }
 
-USUDSScriptNode* USUDSScript::GetNodeByLabel(const FString& Label) const
+USUDSScriptNode* USUDSScript::GetNodeByLabel(const FName& Label) const
 {
 	if (const int* pIdx = LabelList.Find(Label))
 	{

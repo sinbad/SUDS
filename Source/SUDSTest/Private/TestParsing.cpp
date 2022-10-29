@@ -608,8 +608,8 @@ bool TestTextNode(FAutomationTestBase* T, const FString& NameForTest, const USUD
 	if (T->TestNotNull(NameForTest, Node))
 	{
 		T->TestEqual(NameForTest, Node->GetNodeType(), ESUDSScriptNodeType::Text);
-		T->TestEqual(NameForTest, Node->GetSpeaker(), Speaker);
-		T->TestEqual(NameForTest, Node->GetText(), Text);
+		T->TestEqual(NameForTest, Node->GetSpeakerID(), Speaker);
+		T->TestEqual(NameForTest, Node->GetTextID(), Text);
 		return true;
 	}
 	return false;

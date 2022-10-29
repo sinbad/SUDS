@@ -1,17 +1,16 @@
-﻿// Copyright 2020 Old Doorways Ltd
-
-
-#include "SUDSScriptNode.h"
+﻿#include "SUDSScriptNode.h"
 
 USUDSScriptNode::USUDSScriptNode()
 {
 }
 
-void USUDSScriptNode::InitText(const FString& InSpeaker, const FString& InText)
+void USUDSScriptNode::InitText(const FString& InSpeakerID, const FString& InTextID)
 {
 	NodeType = ESUDSScriptNodeType::Text;
-	Speaker = InSpeaker;
-	TempText = InText;
+	SpeakerID = InSpeakerID;
+	TextID = InTextID;
+	// TODO: localisation will remove this
+	TempText = FText::FromString(InTextID);
 }
 
 void USUDSScriptNode::InitChoice()

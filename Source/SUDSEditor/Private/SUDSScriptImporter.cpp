@@ -673,7 +673,7 @@ void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset)
 	// This is only called if the parsing was successful
 	// Populate the runtime asset
 	TArray<USUDSScriptNode*> *pOutNodes = nullptr;
-	TMap<FString, int> *pOutLabels = nullptr;
+	TMap<FName, int> *pOutLabels = nullptr;
 	Asset->StartImport(&pOutNodes, &pOutLabels);
 
 	if (pOutNodes && pOutLabels)
@@ -774,7 +774,7 @@ void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset)
 		for (auto& Elem : GotoLabelList)
 		{
 			int NewIndex = IndexRemap[Elem.Value];
-			pOutLabels->Add(Elem.Key, NewIndex);
+			pOutLabels->Add(FName(Elem.Key), NewIndex);
 		}
 
 		Asset->FinishImport();

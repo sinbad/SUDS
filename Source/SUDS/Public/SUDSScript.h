@@ -21,11 +21,11 @@ protected:
 
 	/// Map of labels to nodes
 	UPROPERTY(BlueprintReadOnly)
-	TMap<FString, int> LabelList;
+	TMap<FName, int> LabelList;
 	
 public:
 
-	void StartImport(TArray<USUDSScriptNode*> **Nodes, TMap<FString, int> **LabelList);
+	void StartImport(TArray<USUDSScriptNode*> **Nodes, TMap<FName, int> **LabelList);
 	void FinishImport();
 
 	/// Get the first node of the script, if starting from the beginning
@@ -34,7 +34,7 @@ public:
 
 	/// Get the first node of the script following a label, or null if the label wasn't found
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	USUDSScriptNode* GetNodeByLabel(const FString& Label) const;
+	USUDSScriptNode* GetNodeByLabel(const FName& Label) const;
 
 
 #if WITH_EDITORONLY_DATA
