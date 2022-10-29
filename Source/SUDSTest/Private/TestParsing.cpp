@@ -690,7 +690,7 @@ bool FTestConversionToRuntime::RunTest(const FString& Parameters)
 	
 	TestEqual("Start node edge", pEdge->Navigation, ESUDSScriptEdgeNavigation::Combine);
 	NextNode = pEdge->TargetNode.Get();
-	if (!TestChoiceNode(this, "Start node next", NextNode, 2))
+	if (TestChoiceNode(this, "Start node next", NextNode, 2))
 	{
 		auto ChoiceNode = NextNode;
 		if (TestChoiceEdge(this, "Choice 1 text", ChoiceNode, 0, "Go to end", &NextNode))
