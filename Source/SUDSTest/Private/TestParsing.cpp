@@ -671,7 +671,7 @@ bool FTestConversionToRuntime::RunTest(const FString& Parameters)
 	FSUDSScriptImporter Importer;
 	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(GotoParsingInput), GotoParsingInput.Len(), "GotoParsingInput", true));
 
-	auto Asset = NewObject<USUDSScript>();
+	auto Asset = NewObject<USUDSScript>(GetTransientPackage(), "Test");
 	Importer.PopulateAsset(Asset);
 
 	auto StartNode = Asset->GetFirstNode();
