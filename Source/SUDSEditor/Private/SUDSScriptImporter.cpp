@@ -732,6 +732,9 @@ void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset)
 					{
 						FSUDSScriptEdge NewEdge;
 						
+						// TODO: localise edge text
+						NewEdge.TempText = InEdge.Text;
+						
 						if (InTargetNode->NodeType == ESUDSParsedNodeType::Goto)
 						{
 							// Resolve GOTOs immediately, point them directly at node goto points to
@@ -747,8 +750,6 @@ void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset)
 						{
 							int NewTargetIndex = IndexRemap[InEdge.TargetNodeIdx];
 							NewEdge.TargetNode = (*pOutNodes)[NewTargetIndex];
-							// TODO: localise edge text
-							NewEdge.TempText = InEdge.Text;
 						}
 
 						if (InTargetNode->NodeType == ESUDSParsedNodeType::Choice)
