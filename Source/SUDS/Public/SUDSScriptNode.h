@@ -58,7 +58,7 @@ public:
 	[[nodiscard]] const FString& GetSpeakerID() const { return SpeakerID; }
 	[[nodiscard]] const FString& GetTextID() const { return TextID; }
 	[[nodiscard]] const FText& GetTempText() const { return TempText; }
-	[[nodiscard]] TArray<FSUDSScriptEdge> GetEdges() const { return Edges; }
+	[[nodiscard]] const TArray<FSUDSScriptEdge>& GetEdges() const { return Edges; }
 
 	void AddEdge(const FSUDSScriptEdge& NewEdge);
 	void InitText(const FString& SpeakerID, const FString& TextID);

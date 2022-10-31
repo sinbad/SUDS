@@ -4,8 +4,11 @@
 #include "UObject/Object.h"
 #include "SUDSDialogue.generated.h"
 
+struct FSUDSScriptEdge;
 class USUDSScriptNode;
 class USUDSScript;
+
+DECLARE_LOG_CATEGORY_EXTERN(LogSUDSDialogue, Verbose, All);
 /**
  * A Dialogue is a runtime instance of a Script (the asset on which the dialogue is based)
  * An Dialogue instance involves specific parties taking the Roles, which may be Speakers in the Dialogue
@@ -26,10 +29,17 @@ protected:
 	FString CurrentTextID;
 	FString CurrentSpeakerID;
 
-	FText CurrentText;
-	FText CurrentSpeakerDisplayName;
-
+	/// Cached derived info
+	mutable FText CurrentText;
+	mutable FText CurrentSpeakerDisplayName;
+	/// All choices available from the current node (via a linked Choice node)
+	mutable const TArray<FSUDSScriptEdge>* AllCurrentChoices;
+	/// All valid choices
+	mutable TArray<FSUDSScriptEdge> ValidCurrentChoices;
+	static const FText DummyText;
+	
 	void SetCurrentNode(USUDSScriptNode* Node);
+	const TArray<FSUDSScriptEdge>* GetChoices(bool bOnlyValidChoices) const;
 public:
 	USUDSDialogue();
 	void Initialise(const USUDSScript* Script, FName StartLabel = NAME_None);
@@ -37,7 +47,7 @@ public:
 
 	/// Get the speech text for the current dialogue node
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	const FText& GetCurrentText() const;
+	FText GetCurrentText() const;
 
 	/// Get the ID of the current speaker
 	UFUNCTION(BlueprintCallable, BlueprintPure)
@@ -45,18 +55,31 @@ public:
 
 	/// Get the display name of the current speaker
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	const FText& GetCurrentSpeakerDisplayName() const;
+	FText GetCurrentSpeakerDisplayName() const;
 
-	/// Get the number of choices available to advance the dialogue
+	/**
+	 * Get the number of choices available from this node.
+	 * Note, this will return 1 in the case of just linear text progression. The difference between just linked text
+	 * lines and a choice with only 1 option is whether the choice text is blank or not.
+	 * @param bOnlyValidChoices If true, only count choices which are valid given current conditions 
+	 * @return The number of choices available
+	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	int GetNumberOfChoices() const;
+	int GetNumberOfChoices(bool bOnlyValidChoices = true) const;
 
-	/// Get the text associated with a choice
+	/**
+	 * Get the text associated with a choice.
+	 * @param Index The index of the choice
+	 * @param bOnlyValidChoices If true, use the valid choices list not the full list
+	 * @return The text. This may be blank if this represents just a link between 2 nodes and not a choice at all.
+	 *    Note that if you want to have only 1 choice but with associated text, this is fine and should be a choice
+	 *    line just like any other.
+	 */
 	UFUNCTION(BlueprintCallable)
-	const FText& GetChoiceText(int Index) const;
+	FText GetChoiceText(int Index, bool bOnlyValidChoices = true) const;
 	
 	/**
-	 * Continues the dialogue if (and ONLY if) there is only one path/choice out of the current node.
+	 * Continues the dialogue if (and ONLY if) there is only one valid path/choice out of the current node.
 	 * @return True if the dialogue continues after this, false if the dialogue is now at an end.
 	 */
 	UFUNCTION(BlueprintCallable)
