@@ -726,45 +726,54 @@ void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset)
 			{
 				USUDSScriptNode* Node = (*pOutNodes)[IndexRemap[i]];
 				// Edges
-				for (auto& InEdge : InNode.Edges)
+				if (InNode.Edges.Num() == 0)
 				{
-					if (const FSUDSParsedNode *InTargetNode = GetNode(InEdge.TargetNodeIdx))
+					// This normally happens with the final node in the script
+					// Make it an edge to nullptr for consistency
+					Node->AddEdge(FSUDSScriptEdge(nullptr, ESUDSScriptEdgeNavigation::Explicit));
+				}
+				else
+				{
+					for (auto& InEdge : InNode.Edges)
 					{
-						FSUDSScriptEdge NewEdge;
-						
-						// TODO: localise edge text
-						NewEdge.TempText = InEdge.Text;
-						
-						if (InTargetNode->NodeType == ESUDSParsedNodeType::Goto)
+						if (const FSUDSParsedNode *InTargetNode = GetNode(InEdge.TargetNodeIdx))
 						{
-							// Resolve GOTOs immediately, point them directly at node goto points to
-							int Idx = GetGotoTargetNodeIndex(InTargetNode->SpeakerOrGotoLabel);
-							// -1 means "Goto end", leave target null in that case
-							if (Idx != -1)
+							FSUDSScriptEdge NewEdge;
+							
+							// TODO: localise edge text
+							NewEdge.TempText = InEdge.Text;
+							
+							if (InTargetNode->NodeType == ESUDSParsedNodeType::Goto)
 							{
-								int NewTargetIndex = IndexRemap[Idx];
+								// Resolve GOTOs immediately, point them directly at node goto points to
+								int Idx = GetGotoTargetNodeIndex(InTargetNode->SpeakerOrGotoLabel);
+								// -1 means "Goto end", leave target null in that case
+								if (Idx != -1)
+								{
+									int NewTargetIndex = IndexRemap[Idx];
+									NewEdge.TargetNode = (*pOutNodes)[NewTargetIndex];
+								}
+							}
+							else
+							{
+								int NewTargetIndex = IndexRemap[InEdge.TargetNodeIdx];
 								NewEdge.TargetNode = (*pOutNodes)[NewTargetIndex];
 							}
-						}
-						else
-						{
-							int NewTargetIndex = IndexRemap[InEdge.TargetNodeIdx];
-							NewEdge.TargetNode = (*pOutNodes)[NewTargetIndex];
-						}
 
-						if (InTargetNode->NodeType == ESUDSParsedNodeType::Choice)
-						{
-							NewEdge.Navigation = ESUDSScriptEdgeNavigation::Combine;
-						}
-						else
-						{
-							// TODO: support other navigation types like auto, timer based
-							NewEdge.Navigation = ESUDSScriptEdgeNavigation::Explicit;
-						}
+							if (InTargetNode->NodeType == ESUDSParsedNodeType::Choice)
+							{
+								NewEdge.Navigation = ESUDSScriptEdgeNavigation::Combine;
+							}
+							else
+							{
+								// TODO: support other navigation types like auto, timer based
+								NewEdge.Navigation = ESUDSScriptEdgeNavigation::Explicit;
+							}
 
-						Node->AddEdge(NewEdge);
+							Node->AddEdge(NewEdge);
+						}
+						
 					}
-					
 				}
 			}
 		}
