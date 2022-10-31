@@ -17,14 +17,7 @@ USUDSDialogue::USUDSDialogue()
 void USUDSDialogue::Initialise(const USUDSScript* Script, FName StartLabel)
 {
 	BaseScript = Script;
-	if (StartLabel != NAME_None)
-	{
-		SetCurrentNode(BaseScript->GetNodeByLabel(StartLabel));
-	}
-	else
-	{
-		SetCurrentNode(BaseScript->GetFirstNode());
-	}
+	Restart(true, StartLabel);
 }
 
 void USUDSDialogue::SetCurrentNode(USUDSScriptNode* Node)
@@ -179,6 +172,41 @@ bool USUDSDialogue::Choose(int Index)
 bool USUDSDialogue::IsEnded() const
 {
 	return CurrentNode == nullptr;
+}
+
+void USUDSDialogue::Restart(bool bResetState, FName StartLabel)
+{
+	if (bResetState)
+	{
+		// TODO: reset state
+	}
+
+	if (StartLabel != NAME_None)
+	{
+		// Check that StartLabel leads to a text node
+		// Labels can lead to choices or select nodes for looping, but there has to be a text node to start with.
+		auto StartNode = BaseScript->GetNodeByLabel(StartLabel);
+		if (!StartNode)
+		{
+			UE_LOG(LogSUDSDialogue, Error, TEXT("No start label called %s in dialogue %s"), *StartLabel.ToString(), *BaseScript->GetName());
+			StartNode = BaseScript->GetFirstNode();
+		}
+		else if (StartNode->GetNodeType() != ESUDSScriptNodeType::Text)
+		{
+			UE_LOG(LogSUDSDialogue,
+			       Error,
+			       TEXT("Label %s in dialogue %s cannot be used as a start point, does not point to a text line."),
+			       *StartLabel.ToString(),
+			       *BaseScript->GetName());
+			StartNode = BaseScript->GetFirstNode();
+		}
+		SetCurrentNode(StartNode);
+	}
+	else
+	{
+		SetCurrentNode(BaseScript->GetFirstNode());
+	}
+	
 }
 
 PRAGMA_ENABLE_OPTIMIZATION

@@ -98,4 +98,12 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	bool IsEnded() const;
 
+	/**
+	 * Restart the dialogue, either from the start or from a named label.
+	 * @param bResetState Reset all dialogue local state, as if the dialogue had been created anew
+	 * @param StartLabel Label to start running from; if None start from the beginning.
+	 */
+	UFUNCTION(BlueprintCallable)
+	void Restart(bool bResetState = true, FName StartLabel = NAME_None);
+
 };
