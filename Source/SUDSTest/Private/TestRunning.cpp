@@ -15,6 +15,7 @@ NPC: Salutations fellow human
 		NPC: How rude, bye then
 		[goto end]
 	* Nested option
+		:nestedstart
 		NPC: Some nesting
 		* Actually bye
 			Player: Gotta go!
@@ -52,7 +53,7 @@ void TestText(FAutomationTestBase* T, const FString& NameForTest, USUDSDialogue*
 
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestSimpleRunning,
-								 "SUDSTest.TestConversionToRuntime",
+								 "SUDSTest.TestSimpleRunning",
 								 EAutomationTestFlags::EditorContext |
 								 EAutomationTestFlags::ClientContext |
 								 EAutomationTestFlags::ProductFilter)
@@ -82,6 +83,47 @@ bool FTestSimpleRunning::RunTest(const FString& Parameters)
 	TestEqual("Node 2 choice text 1", Dlg->GetChoiceText(1).ToString(), "Nested option");
 	TestEqual("Node 2 choice text 2", Dlg->GetChoiceText(2).ToString(), "Another option");
 
+	TestTrue("Choice 1", Dlg->Choose(0));
+	TestText(this, "Choice 1 Text", Dlg, "NPC", "How rude, bye then");
+	// Goes straight to end
+	TestFalse("Choice 1 Follow On", Dlg->Continue());
+	TestTrue("Should be at end", Dlg->IsEnded());
+
+	// Start again
+	Dlg->Restart();
+	TestText(this, "First node", Dlg, "Player", "Hello there");
+	TestEqual("First node choices", Dlg->GetNumberOfChoices(), 1);
+	TestTrue("First node choice text", Dlg->GetChoiceText(0).IsEmpty());
+	TestTrue("Continue", Dlg->Continue());
+	TestText(this, "Node 2", Dlg, "NPC", "Salutations fellow human");
+
+	TestTrue("Choice 2", Dlg->Choose(1));
+	TestText(this, "Choice 2 Text", Dlg, "NPC", "Some nesting");
+	TestEqual("Choice 2 nested choices", Dlg->GetNumberOfChoices(), 3);
+	TestEqual("Choice 2 nested choice text 0", Dlg->GetChoiceText(0).ToString(), "Actually bye");
+	TestEqual("Choice 2 nested choice text 1", Dlg->GetChoiceText(1).ToString(), "A fallthrough choice");
+	TestEqual("Choice 2 nested choice text 2", Dlg->GetChoiceText(2).ToString(), "A goto choice");
+	
+	TestTrue("Nested choice made", Dlg->Choose(0));
+	TestText(this, "Nested choice made text", Dlg, "Player", "Gotta go!");
+	TestTrue("Nested choice follow On", Dlg->Continue());
+	TestText(this, "Nested choice follow on text", Dlg, "NPC", "Bye!");
+	TestFalse("Nested choice follow On 2", Dlg->Continue());
+	TestTrue("Should be at end", Dlg->IsEnded());
+
+	// Start again, this time from nested choice
+	Dlg->Restart(true, "nestedstart");
+	TestText(this, "nestedchoice restart Text", Dlg, "NPC", "Some nesting");
+	TestTrue("Nested choice made", Dlg->Choose(1));
+	TestText(this, "Nested choice 2 Text", Dlg, "NPC", "This should fall through to latterhalf");
+	TestTrue("Nested choice 2 follow On", Dlg->Continue());
+	// Should have fallen through
+	TestText(this, "Fallthrough Text", Dlg, "Player", "This is the latter half of the discussion");
+
+
+	
+	
+	
 
 	return true;
 }
