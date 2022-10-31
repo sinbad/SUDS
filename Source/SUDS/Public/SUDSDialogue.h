@@ -27,7 +27,6 @@ protected:
 	USUDSScriptNode* CurrentNode;
 
 	FString CurrentTextID;
-	FString CurrentSpeakerID;
 
 	/// Cached derived info
 	mutable FText CurrentText;
@@ -37,6 +36,7 @@ protected:
 	/// All valid choices
 	mutable TArray<FSUDSScriptEdge> ValidCurrentChoices;
 	static const FText DummyText;
+	static const FString DummyString;
 	
 	void SetCurrentNode(USUDSScriptNode* Node);
 	const TArray<FSUDSScriptEdge>* GetChoices(bool bOnlyValidChoices) const;

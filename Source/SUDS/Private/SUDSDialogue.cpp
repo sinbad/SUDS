@@ -5,7 +5,10 @@
 
 DEFINE_LOG_CATEGORY(LogSUDSDialogue)
 
+PRAGMA_DISABLE_OPTIMIZATION
+
 const FText USUDSDialogue::DummyText = FText::FromString("INVALID");
+const FString USUDSDialogue::DummyString = "INVALID";
 
 USUDSDialogue::USUDSDialogue()
 {
@@ -47,7 +50,10 @@ FText USUDSDialogue::GetCurrentText() const
 
 const FString& USUDSDialogue::GetCurrentSpeakerID() const
 {
-	return CurrentSpeakerID;
+	if (CurrentNode)
+		return CurrentNode->GetSpeakerID();
+	
+	return DummyString;
 }
 
 FText USUDSDialogue::GetCurrentSpeakerDisplayName() const
@@ -61,13 +67,16 @@ FText USUDSDialogue::GetCurrentSpeakerDisplayName() const
 
 const TArray<FSUDSScriptEdge>* USUDSDialogue::GetChoices(bool bOnlyValidChoices) const
 {
+	// "CurrentNode" is always a text node in practice
+	// other nodes are passed through but not alighted on
 	// Cache choices
 	if (!AllCurrentChoices)
 	{
-		// Choice nodes are combinatorial, but still separate so you can link to them multiple text nodes (e.g. loops)
+		ValidCurrentChoices.Reset();
 		if (CurrentNode && CurrentNode->GetEdgeCount() == 1)
 		{
 			auto Edge = CurrentNode->GetEdge(0);
+			// Choice nodes are combinatorial, but still separate so you can link to them multiple text nodes (e.g. loops)
 			if (Edge->Navigation == ESUDSScriptEdgeNavigation::Combine && Edge->TargetNode.IsValid())
 			{
 				check(Edge->TargetNode->GetNodeType() == ESUDSScriptNodeType::Choice);
@@ -79,13 +88,17 @@ const TArray<FSUDSScriptEdge>* USUDSDialogue::GetChoices(bool bOnlyValidChoices)
 					// Note that we only re-evaluate conditions once per node change, for stability between counts / indexes
 					// Even if conditions are dependent on external data we only sample them once when node changes so everything is consistent
 					// TODO: evaluate conditions
-					ValidCurrentChoices.Reset();
 					for (auto& Choice : *AllCurrentChoices)
 					{
 						// Copy happens here
 						ValidCurrentChoices.Add(Choice);
 					}
 				}
+			}
+			else
+			{
+				// Simple no-choice progression (text->text)
+				ValidCurrentChoices.Add(*Edge);			
 			}
 		}
 	}
@@ -167,3 +180,5 @@ bool USUDSDialogue::IsEnded() const
 {
 	return CurrentNode == nullptr;
 }
+
+PRAGMA_ENABLE_OPTIMIZATION
