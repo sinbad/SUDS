@@ -90,7 +90,10 @@ protected:
 		/// when you do in fact need to pop the current context off the stack.
 		int ThresholdIndent;
 
-		IndentContext(int NodeIdx, int Indent) : LastNodeIdx(NodeIdx), ThresholdIndent(Indent) {}
+		/// The path entry for this indent, to be combined with all previous levels to provide full path context
+		FString PathEntry;
+
+		IndentContext(int NodeIdx, int Indent, const FString& Path) : LastNodeIdx(NodeIdx), ThresholdIndent(Indent), PathEntry(Path) {}
 
 	};
 	/// The indent context stack representing where we are in the indentation tree while parsing
@@ -119,6 +122,7 @@ protected:
 	bool bTooLateForHeader = false;
 	bool bHeaderInProgress = false;
 	bool bTextInProgress = false;
+	int ChoiceUniqueId = 0;
 	/// Parse a single line
 	bool ParseLine(const FStringView& Line, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseHeaderLine(const FStringView& Line, int LineNo, const FString& NameForErrors, bool bSilent);
@@ -133,8 +137,8 @@ protected:
 	bool IsCommentLine(const FStringView& TrimmedLine);
 	FStringView TrimLine(const FStringView& Line, int& OutIndentLevel) const;
 	void PopIndent();
-	void PushIndent(int NodeIdx, int Indent);
-	FString GetNodeTreePath(ESUDSParsedNodeType NodeType, int NewIndex, int LastNodeIdx);
+	void PushIndent(int NodeIdx, int Indent, const FString& Path);
+	FString GetCurrentTreePath();
 	int AppendNode(const FSUDSParsedNode& NewNode);
 	void ConnectRemainingNodes(const FString& NameForErrors, bool bSilent);
 	int FindNextOutdentedNodeIndex(int StartNodeIndex, int IndentLessThan, const FString& FromPath);

@@ -31,6 +31,7 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 	IndentLevelStack.Empty();
 	Nodes.Empty();
 	GotoLabelList.Empty();
+	ChoiceUniqueId = 0;
 	if (Start)
 	{
 		int32 SubstringBeginIndex = 0;
@@ -187,7 +188,7 @@ bool FSUDSScriptImporter::ParseBodyLine(const FStringView& Line,
 	if (IndentLevelStack.IsEmpty())
 	{
 		// Must be the first body line encountered. Add 1 indent level for the root
-		PushIndent(-1, 0);
+		PushIndent(-1, 0, "");
 	}
 
 	if (Line.StartsWith(TEXT('*')))
@@ -254,13 +255,15 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line, int IndentLev
 			EdgeInProgress = nullptr;			
 		}
 
+		auto& ChoiceNode = Nodes[Ctx.LastNodeIdx];
+		
 		// Inside each choice, everything should be indented at least as much as 1 character inside the *
-		PushIndent(Ctx.LastNodeIdx, IndentLevel + 1);
+		// We provide the edge with context C001, C002 etc for fallthrough
+		PushIndent(Ctx.LastNodeIdx, IndentLevel + 1, FString::Printf(TEXT("C%03d"), ++ChoiceUniqueId));
 		
 		// Add a pending edge, with the choice text
 		// Following things fill in the edge details, the next node to be parsed will finalise the destination
 		const FString ChoiceText(Line.SubStr(1, Line.Len() - 1).TrimStart());
-		auto& ChoiceNode = Nodes[Ctx.LastNodeIdx];
 		const int EdgeIdx = ChoiceNode.Edges.Add(FSUDSParsedEdge(-1, ChoiceText));
 		EdgeInProgress = &ChoiceNode.Edges[EdgeIdx];
 		
@@ -467,38 +470,22 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& Line, int IndentLevel
 
 }
 
-FString FSUDSScriptImporter::GetNodeTreePath(ESUDSParsedNodeType NodeType, int NewIndex, int LastNodeIdx)
+FString FSUDSScriptImporter::GetCurrentTreePath()
 {
 	// This is just a path of all the choice / select nodes AND their edges leading to this point, for fallthrough
-	// * Choice (/C001/E001/)
-	//		* Nested choice (/C001/E001/C002/E001/)
+	// * Choice (/C000/)
+	//		* Nested choice (/C000/C001/)
 	//			Fallthrough from here
-	// * Choice (/C001/E002/)
+	// * Choice (/C002/C003/)
 	//		Do NOT fallthrough to here
 	// Fallthrough to here instead (/)
-	
-	FString BasePath;
-	if (Nodes.IsValidIndex(LastNodeIdx))
-	{
-		// Either a sibling or parent, copy their path
-		BasePath = Nodes[LastNodeIdx].TreePath;
-	}
-	else
-	{
-		BasePath = TreePathSeparator;
-	}
 
-	if (NodeType == ESUDSParsedNodeType::Choice || NodeType == ESUDSParsedNodeType::Select)
+	FStringBuilderBase B;
+	for (auto Indent : IndentLevelStack)
 	{
-		// This is a split path so must be added to the context
-		return FString::Printf(TEXT("%s%03d/"), *BasePath, NewIndex);
+		B.Appendf(TEXT("%s%s"), *Indent.PathEntry, *TreePathSeparator);
 	}
-	else
-	{
-		// For anything else, just same base path
-		return BasePath;
-	}
-	
+	return B.ToString();
 }
 
 int FSUDSScriptImporter::AppendNode(const FSUDSParsedNode& NewNode)
@@ -510,7 +497,7 @@ int FSUDSScriptImporter::AppendNode(const FSUDSParsedNode& NewNode)
 	// Set the tree path of the node (post-add)
 	{
 		auto& N = Nodes[NewIndex];
-		N.TreePath = GetNodeTreePath(N.NodeType, NewIndex, Ctx.LastNodeIdx);
+		N.TreePath = GetCurrentTreePath();
 	}
 	
 	if (Nodes.IsValidIndex(Ctx.LastNodeIdx))
@@ -558,9 +545,9 @@ void FSUDSScriptImporter::PopIndent()
 	// but I'm choosing not to right now and letting them fall through
 }
 
-void FSUDSScriptImporter::PushIndent(int NodeIdx, int Indent)
+void FSUDSScriptImporter::PushIndent(int NodeIdx, int Indent, const FString& Path)
 {
-	IndentLevelStack.Push(IndentContext(NodeIdx, Indent));
+	IndentLevelStack.Push(IndentContext(NodeIdx, Indent, Path));
 
 }
 
