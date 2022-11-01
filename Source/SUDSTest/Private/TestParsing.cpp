@@ -1,6 +1,7 @@
 ﻿#include "SUDSScript.h"
 #include "Misc/AutomationTest.h"
 #include "SUDSScriptImporter.h"
+#include "SUDSScriptNode.h"
 
 PRAGMA_DISABLE_OPTIMIZATION
 

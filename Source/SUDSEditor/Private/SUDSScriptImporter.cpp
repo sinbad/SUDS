@@ -1,6 +1,7 @@
 ﻿#include "SUDSScriptImporter.h"
 
 #include "SUDSScript.h"
+#include "SUDSScriptNode.h"
 #include "Internationalization/Regex.h"
 
 PRAGMA_DISABLE_OPTIMIZATION
@@ -627,6 +628,40 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors, bo
 
 int FSUDSScriptImporter::FindNextOutdentedNodeIndex(int StartNodeIndex, int IndentLessThan)
 {
+	// In order to be a valid fallthrough, also needs to be on the same choice (or select) path
+	// E.g. it's possible to have:
+	// 
+	// * Choice (C1)
+	//		* Nested choice (C1.1)
+	//			Fallthrough from here (F1)
+	// * Choice (C2)
+	//		Do NOT fallthrough to here (T1)
+	// Fallthrough to here instead (T2)
+	//
+	// Just testing the indent would fallthrough to T1 which is incorrect because it's not on the same choice path
+	// We need to check that the fallthrough point is on the same choice path (not just a common parent)
+	// Fallthrough from is on path /C1/C1.1
+	// Point T1 is on /C2 which is NOT a subset of /C1/C1.1 so not OK
+	// Point T2 is on /, which is a subset of /C1/C1/1 so OK
+	//
+	// Also need to deal with this case:
+	//
+	// * Choice (C1)
+	//		* Nested choice (C1.1)
+	//			Fallthrough from here (F1)
+	//		Fallthrough to here (T1) then from here (F2)
+	// * Choice (C2)
+	//		Do NOT fallthrough to here (T2)
+	// Finally fall through to here (T3)
+	//
+	// In this case, fallthrough should first go to T1, then to T3
+	//  - Fallthrough F1 is on path /C1/C1.1
+	//  - Point T1 is on /C1 which IS a subset of /C1/C1.1 so OK
+	//  - Fallthrough F2 is on path /C1
+	//  - Point T2 is on /C2 which is NOT a subset of /C1 so not OK 
+	//  - Point T3 is on / which is a subset of /C1 so OK
+
+	// We'll form these paths just from node indexes rather than C1/C2 etc. Nesting can be for a choice or a select
 	for (int i = StartNodeIndex; i < Nodes.Num(); ++i)
 	{
 		auto N = Nodes[i];

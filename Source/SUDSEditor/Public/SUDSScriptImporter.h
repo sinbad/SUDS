@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "SUDSScriptNode.h"
 
 class USUDSScript;
 DECLARE_LOG_CATEGORY_EXTERN(LogSUDSImporter, Verbose, All);
