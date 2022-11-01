@@ -7,6 +7,7 @@
 PRAGMA_DISABLE_OPTIMIZATION
 
 const FString FSUDSScriptImporter::EndGotoLabel = "end";
+const FString FSUDSScriptImporter::TreePathSeparator = "/";
 
 DEFINE_LOG_CATEGORY(LogSUDSImporter)
 
@@ -466,11 +467,52 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& Line, int IndentLevel
 
 }
 
+FString FSUDSScriptImporter::GetNodeTreePath(ESUDSParsedNodeType NodeType, int NewIndex, int LastNodeIdx)
+{
+	// This is just a path of all the choice / select nodes AND their edges leading to this point, for fallthrough
+	// * Choice (/C001/E001/)
+	//		* Nested choice (/C001/E001/C002/E001/)
+	//			Fallthrough from here
+	// * Choice (/C001/E002/)
+	//		Do NOT fallthrough to here
+	// Fallthrough to here instead (/)
+	
+	FString BasePath;
+	if (Nodes.IsValidIndex(LastNodeIdx))
+	{
+		// Either a sibling or parent, copy their path
+		BasePath = Nodes[LastNodeIdx].TreePath;
+	}
+	else
+	{
+		BasePath = TreePathSeparator;
+	}
+
+	if (NodeType == ESUDSParsedNodeType::Choice || NodeType == ESUDSParsedNodeType::Select)
+	{
+		// This is a split path so must be added to the context
+		return FString::Printf(TEXT("%s%03d/"), *BasePath, NewIndex);
+	}
+	else
+	{
+		// For anything else, just same base path
+		return BasePath;
+	}
+	
+}
+
 int FSUDSScriptImporter::AppendNode(const FSUDSParsedNode& NewNode)
 {
 	auto& Ctx = IndentLevelStack.Top();
-	
+
 	const int NewIndex = Nodes.Add(NewNode);
+
+	// Set the tree path of the node (post-add)
+	{
+		auto& N = Nodes[NewIndex];
+		N.TreePath = GetNodeTreePath(N.NodeType, NewIndex, Ctx.LastNodeIdx);
+	}
+	
 	if (Nodes.IsValidIndex(Ctx.LastNodeIdx))
 	{
 		// Append this node onto the last one
@@ -518,7 +560,7 @@ void FSUDSScriptImporter::PopIndent()
 
 void FSUDSScriptImporter::PushIndent(int NodeIdx, int Indent)
 {
-	IndentLevelStack.Add(IndentContext(NodeIdx, Indent));
+	IndentLevelStack.Push(IndentContext(NodeIdx, Indent));
 
 }
 
@@ -592,7 +634,7 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors, bo
 			else
 			{
 				// Find the next node which is at a higher indent level than this
-				const auto FallthroughIdx = FindNextOutdentedNodeIndex(i+1, Node.OriginalIndent);
+				const auto FallthroughIdx = FindNextOutdentedNodeIndex(i+1, Node.OriginalIndent, Node.TreePath);
 				if (Nodes.IsValidIndex(FallthroughIdx))
 				{
 					Node.Edges.Add(FSUDSParsedEdge(FallthroughIdx));
@@ -610,7 +652,7 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors, bo
 				if (!Nodes.IsValidIndex(Edge.TargetNodeIdx))
 				{
 					// Usually this is a choice line without anything under it, or a condition with nothing in it
-					const auto FallthroughIdx = FindNextOutdentedNodeIndex(i+1, Node.OriginalIndent);
+					const auto FallthroughIdx = FindNextOutdentedNodeIndex(i+1, Node.OriginalIndent, Node.TreePath);
 					if (Nodes.IsValidIndex(FallthroughIdx))
 					{
 						Edge.TargetNodeIdx = FallthroughIdx;
@@ -626,7 +668,7 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors, bo
 	}
 }
 
-int FSUDSScriptImporter::FindNextOutdentedNodeIndex(int StartNodeIndex, int IndentLessThan)
+int FSUDSScriptImporter::FindNextOutdentedNodeIndex(int StartNodeIndex, int IndentLessThan, const FString& FromPath)
 {
 	// In order to be a valid fallthrough, also needs to be on the same choice (or select) path
 	// E.g. it's possible to have:
@@ -665,7 +707,8 @@ int FSUDSScriptImporter::FindNextOutdentedNodeIndex(int StartNodeIndex, int Inde
 	for (int i = StartNodeIndex; i < Nodes.Num(); ++i)
 	{
 		auto N = Nodes[i];
-		if (N.OriginalIndent < IndentLessThan)
+		if (N.OriginalIndent < IndentLessThan &&
+			FromPath.StartsWith(N.TreePath))
 		{
 			return i;
 		}

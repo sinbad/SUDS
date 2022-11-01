@@ -52,6 +52,10 @@ public:
 	TArray<FString> Labels;
 	/// Edges leading to other nodes
 	TArray<FSUDSParsedEdge> Edges;
+
+	// Path hierarchy of choice/selects leading to this node, of the form "/002/006" etc, not including this node index
+	// This helps us identify valid fallthroughs
+	FString TreePath;
 	
 	FSUDSParsedNode(ESUDSParsedNodeType InNodeType, int Indent) : NodeType(InNodeType), OriginalIndent(Indent) {}
 	FSUDSParsedNode(FString InSpeaker, FString InText, int Indent)
@@ -67,6 +71,7 @@ public:
 	void PopulateAsset(USUDSScript* Asset);
 	static const FString EndGotoLabel;
 protected:
+	static const FString TreePathSeparator;
 	/// Struct for tracking indents
 	struct IndentContext
 	{
@@ -129,9 +134,10 @@ protected:
 	FStringView TrimLine(const FStringView& Line, int& OutIndentLevel) const;
 	void PopIndent();
 	void PushIndent(int NodeIdx, int Indent);
+	FString GetNodeTreePath(ESUDSParsedNodeType NodeType, int NewIndex, int LastNodeIdx);
 	int AppendNode(const FSUDSParsedNode& NewNode);
 	void ConnectRemainingNodes(const FString& NameForErrors, bool bSilent);
-	int FindNextOutdentedNodeIndex(int StartNodeIndex, int IndentLessThan);
+	int FindNextOutdentedNodeIndex(int StartNodeIndex, int IndentLessThan, const FString& FromPath);
 	
 public:
 	const FSUDSParsedNode* GetNode(int Index = 0);

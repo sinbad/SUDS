@@ -125,6 +125,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 	TestEqual("Root node type", RootNode->NodeType, ESUDSParsedNodeType::Text);
 	TestEqual("Root node speaker", RootNode->SpeakerOrGotoLabel, "Player");
 	TestEqual("Root node text", RootNode->Text, "Excuse me?");
+	TestEqual("Root node path", RootNode->TreePath, "/");
 	TestEqual("Root node edges", RootNode->Edges.Num(), 1);
 
 	auto NextNode = Importer.GetNode(RootNode->Edges[0].TargetNodeIdx);
@@ -134,12 +135,14 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 	TestEqual("Second node type", NextNode->NodeType, ESUDSParsedNodeType::Text);
 	TestEqual("Second node speaker", NextNode->SpeakerOrGotoLabel, "NPC");
 	TestEqual("Second node text", NextNode->Text, "Well, hello there. This is a test.");
+	TestEqual("Second node path", RootNode->TreePath, "/");
 	TestEqual("Second node edges", NextNode->Edges.Num(), 1);
 
 	NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
 	if (!TestNotNull("Third node should exist", NextNode))
 		return false;
 	TestEqual("Third node type", NextNode->NodeType, ESUDSParsedNodeType::Choice);
+	TestEqual("Third node path", NextNode->TreePath, "/002/");
 	TestEqual("Third node edges", NextNode->Edges.Num(), 2);
 
 	auto Choice1Node = NextNode;
