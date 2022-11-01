@@ -134,16 +134,25 @@ bool FTestSimpleRunning::RunTest(const FString& Parameters)
 	TestEqual("Fallthrough then goto choice text 0", Dlg->GetChoiceText(0).ToString(), "Actually no");
 	TestEqual("Fallthrough then goto choice text 1", Dlg->GetChoiceText(1).ToString(), "Nested option");
 	TestEqual("Fallthrough then goto choice text 2", Dlg->GetChoiceText(2).ToString(), "Another option");
-	
-	
-	
-	
 
-
+	// Restart to test another path
+	Dlg->Restart(true, "nestedstart");
+	TestText(this, "nestedchoice restart Text", Dlg, "NPC", "Some nesting");
+	TestTrue("Nested choice made", Dlg->Choose(2));
+	// This should be a direct goto to latterhalf
+	TestText(this, "Direct goto", Dlg, "Player", "This is the latter half of the discussion");
 	
 	
+	Dlg->Restart(true);
+	TestTrue("Continue", Dlg->Continue());
+	TestTrue("Choice 3", Dlg->Choose(2));
+	TestText(this, "Choice 3 Text", Dlg, "Player", "What now?");
+	TestTrue("Continue", Dlg->Continue());
+	TestText(this, "Choice 3 Text 2", Dlg, "NPC", "This is another fallthrough");
+	TestTrue("Continue", Dlg->Continue());
+	// Should have fallen through
+	TestText(this, "Direct goto", Dlg, "Player", "This is the latter half of the discussion");
 	
-
 	return true;
 }
 
