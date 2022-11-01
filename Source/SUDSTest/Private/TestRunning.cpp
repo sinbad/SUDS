@@ -119,6 +119,25 @@ bool FTestSimpleRunning::RunTest(const FString& Parameters)
 	TestTrue("Nested choice 2 follow On", Dlg->Continue());
 	// Should have fallen through
 	TestText(this, "Fallthrough Text", Dlg, "Player", "This is the latter half of the discussion");
+	TestTrue("Continue", Dlg->Continue());
+	TestText(this, "Fallthrough Text 2", Dlg, "NPC", "Yep, sure is");
+	TestEqual("Fallthrough choices", Dlg->GetNumberOfChoices(), 3);
+	TestEqual("Fallthrough choice text 0", Dlg->GetChoiceText(0).ToString(), "Go back to choice");
+	TestEqual("Fallthrough choice text 1", Dlg->GetChoiceText(1).ToString(), "Return to the start");
+	TestEqual("Fallthrough choice text 2", Dlg->GetChoiceText(2).ToString(), "Continue");
+
+	// Go back to choice
+	TestTrue("Fallthrough choice made", Dlg->Choose(0));
+	TestText(this, "Fallthrough Choice Text", Dlg, "NPC", "Okay!");
+	// The Goto choice should have collapsed the choices such that we can get them immediately
+	TestEqual("Fallthrough then goto choices", Dlg->GetNumberOfChoices(), 3);
+	TestEqual("Fallthrough then goto choice text 0", Dlg->GetChoiceText(0).ToString(), "Actually no");
+	TestEqual("Fallthrough then goto choice text 1", Dlg->GetChoiceText(1).ToString(), "Nested option");
+	TestEqual("Fallthrough then goto choice text 2", Dlg->GetChoiceText(2).ToString(), "Another option");
+	
+	
+	
+	
 
 
 	

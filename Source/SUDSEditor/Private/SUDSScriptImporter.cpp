@@ -825,7 +825,8 @@ void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset)
 								NewEdge.TargetNode = (*pOutNodes)[NewTargetIndex];
 							}
 
-							if (InTargetNode->NodeType == ESUDSParsedNodeType::Choice)
+							if (NewEdge.TargetNode.IsValid() &&
+								NewEdge.TargetNode->GetNodeType() == ESUDSScriptNodeType::Choice)
 							{
 								NewEdge.Navigation = ESUDSScriptEdgeNavigation::Combine;
 							}
