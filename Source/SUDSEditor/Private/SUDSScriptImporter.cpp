@@ -247,7 +247,7 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line, int IndentLev
 			Nodes[Ctx.LastNodeIdx].NodeType != ESUDSParsedNodeType::Choice)
 		{
 			// Last node was not a choice node, so to add edge for this choice we first need to create the choice node
-			AppendNode(FSUDSParsedNode(ESUDSParsedNodeType::Choice, IndentLevel));
+			AppendNode(FSUDSParsedNode(ESUDSParsedNodeType::Choice, IndentLevel, LineNo));
 		}
 		if (EdgeInProgress)
 		{
@@ -267,7 +267,7 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line, int IndentLev
 		FString ChoiceTextID;
 		auto ChoiceTextView = Line.SubStr(1, Line.Len() - 1).TrimStart();
 		RetrieveAndRemoveOrGenerateTextID(ChoiceTextView, ChoiceTextID);
-		const int EdgeIdx = ChoiceNode.Edges.Add(FSUDSParsedEdge(-1, FString(ChoiceTextView), ChoiceTextID));
+		const int EdgeIdx = ChoiceNode.Edges.Add(FSUDSParsedEdge(-1, LineNo, FString(ChoiceTextView), ChoiceTextID));
 		EdgeInProgress = &ChoiceNode.Edges[EdgeIdx];
 		
 		return true;
@@ -380,7 +380,7 @@ bool FSUDSScriptImporter::ParseGotoLine(const FStringView& Line, int IndentLevel
 			AliasedGotoLabels.Add(PendingLabel, Label);
 		}
 		PendingGotoLabels.Reset();
-		AppendNode(FSUDSParsedNode(Label, IndentLevel));
+		AppendNode(FSUDSParsedNode(Label, IndentLevel, LineNo));
 		return true;
 	}
 	if (!bSilent)
@@ -451,7 +451,7 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine, int IndentLev
 			// New text node
 			// Text nodes can never introduce another indent context
 			// We've already backed out to the outer indent in caller
-			AppendNode(FSUDSParsedNode(Speaker, Text, IndentLevel));
+			AppendNode(FSUDSParsedNode(Speaker, Text, TextID, IndentLevel, LineNo));
 			
 			return true;
 		}
@@ -570,7 +570,7 @@ int FSUDSScriptImporter::AppendNode(const FSUDSParsedNode& NewNode)
 			// the end of parsing
 			if (PrevNode.NodeType == ESUDSParsedNodeType::Text)
 			{
-				PrevNode.Edges.Add(FSUDSParsedEdge(NewIndex));
+				PrevNode.Edges.Add(FSUDSParsedEdge(NewIndex, NewNode.SourceLineNo));
 			}
 		}
 		EdgeInProgress = nullptr;
@@ -666,7 +666,7 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors, bo
 					if (GotoNodeIdx == -1)
 					{
 						if (!bSilent)
-							UE_LOG(LogSUDSImporter, Warning, TEXT("Error in %s: Goto label '%s' was not found, references to it will goto End"), *NameForErrors, *Node.SpeakerOrGotoLabel)
+							UE_LOG(LogSUDSImporter, Warning, TEXT("Error in %s line %d: Goto label '%s' was not found, references to it will goto End"), *NameForErrors, Node.SourceLineNo, *Node.SpeakerOrGotoLabel)
 					}
 				}
 			}
@@ -676,7 +676,7 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors, bo
 				const auto FallthroughIdx = FindNextOutdentedNodeIndex(i+1, Node.OriginalIndent, Node.TreePath);
 				if (Nodes.IsValidIndex(FallthroughIdx))
 				{
-					Node.Edges.Add(FSUDSParsedEdge(FallthroughIdx));
+					Node.Edges.Add(FSUDSParsedEdge(FallthroughIdx, Node.SourceLineNo));
 				}
 				else
 				{

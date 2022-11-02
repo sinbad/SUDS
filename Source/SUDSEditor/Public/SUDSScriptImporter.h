@@ -12,23 +12,26 @@ public:
 	FString Text;
 	/// Identifier of the text, for the string table
 	FString TextID;
+	/// The line this edge was created on
+	int SourceLineNo;
 
 	// TODO: Conditions
 
 	int TargetNodeIdx = -1;
 
-	FSUDSParsedEdge() {}
+	FSUDSParsedEdge(int LineNo) : SourceLineNo(LineNo){}
 
-	FSUDSParsedEdge(int ToNodeIdx, const FString& InText = "", const FString& InTextID = "")
+	FSUDSParsedEdge(int ToNodeIdx, int LineNo, const FString& InText = "", const FString& InTextID = "")
 		: Text(InText),
 		  TextID(InTextID),
+		  SourceLineNo(LineNo),
 		  TargetNodeIdx(ToNodeIdx)
 	{
 	}
 
 	void Reset()
 	{
-		*this = FSUDSParsedEdge();
+		*this = FSUDSParsedEdge(-1);
 	}
 	
 };
@@ -63,16 +66,18 @@ public:
 	TArray<FString> Labels;
 	/// Edges leading to other nodes
 	TArray<FSUDSParsedEdge> Edges;
+	/// The line this node was created on
+	int SourceLineNo;
 
 	// Path hierarchy of choice/selects leading to this node, of the form "/002/006" etc, not including this node index
 	// This helps us identify valid fallthroughs
 	FString TreePath;
 	
-	FSUDSParsedNode(ESUDSParsedNodeType InNodeType, int Indent) : NodeType(InNodeType), OriginalIndent(Indent) {}
-	FSUDSParsedNode(FString InSpeaker, FString InText, int Indent)
-		:NodeType(ESUDSParsedNodeType::Text), OriginalIndent(Indent), SpeakerOrGotoLabel(InSpeaker), Text(InText) {}
-	FSUDSParsedNode(FString GotoLabel, int Indent)
-		:NodeType(ESUDSParsedNodeType::Goto), OriginalIndent(Indent), SpeakerOrGotoLabel(GotoLabel) {}
+	FSUDSParsedNode(ESUDSParsedNodeType InNodeType, int Indent, int LineNo) : NodeType(InNodeType), OriginalIndent(Indent), SourceLineNo(LineNo) {}
+	FSUDSParsedNode(const FString& InSpeaker, const FString& InText, const FString& InTextID, int Indent, int LineNo)
+		:NodeType(ESUDSParsedNodeType::Text), OriginalIndent(Indent), SpeakerOrGotoLabel(InSpeaker), Text(InText), TextID(InTextID), SourceLineNo(LineNo) {}
+	FSUDSParsedNode(const FString& GotoLabel, int Indent, int LineNo)
+		:NodeType(ESUDSParsedNodeType::Goto), OriginalIndent(Indent), SpeakerOrGotoLabel(GotoLabel), SourceLineNo(LineNo)  {}
 	
 };
 class SUDSEDITOR_API FSUDSScriptImporter
