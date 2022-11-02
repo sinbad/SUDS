@@ -10,13 +10,21 @@ struct SUDSEDITOR_API FSUDSParsedEdge
 public:
 	/// Text associated with this edge (if a player choice option)
 	FString Text;
+	/// Identifier of the text, for the string table
+	FString TextID;
 
 	// TODO: Conditions
 
 	int TargetNodeIdx = -1;
 
 	FSUDSParsedEdge() {}
-	FSUDSParsedEdge(int ToNodeIdx, FString InText = "") : Text(InText), TargetNodeIdx(ToNodeIdx) {}
+
+	FSUDSParsedEdge(int ToNodeIdx, const FString& InText = "", const FString& InTextID = "")
+		: Text(InText),
+		  TextID(InTextID),
+		  TargetNodeIdx(ToNodeIdx)
+	{
+	}
 
 	void Reset()
 	{
@@ -47,7 +55,10 @@ public:
 	ESUDSParsedNodeType NodeType;
 	int OriginalIndent;
 	FString SpeakerOrGotoLabel;
+	/// Text in native language
 	FString Text;
+	/// Identifier of the text, for the string table
+	FString TextID;
 	/// Labels which lead to this node
 	TArray<FString> Labels;
 	/// Edges leading to other nodes
@@ -68,7 +79,7 @@ class SUDSEDITOR_API FSUDSScriptImporter
 {
 public:
 	bool ImportFromBuffer(const TCHAR* Buffer, int32 Len, const FString& NameForErrors, bool bSilent);
-	void PopulateAsset(USUDSScript* Asset);
+	void PopulateAsset(USUDSScript* Asset, FStringTable& StringTable);
 	static const FString EndGotoLabel;
 protected:
 	static const FString TreePathSeparator;
@@ -123,6 +134,8 @@ protected:
 	bool bHeaderInProgress = false;
 	bool bTextInProgress = false;
 	int ChoiceUniqueId = 0;
+	/// For generating text IDs
+	int TextIDHighestNumber = 0;
 	/// Parse a single line
 	bool ParseLine(const FStringView& Line, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseHeaderLine(const FStringView& Line, int LineNo, const FString& NameForErrors, bool bSilent);
@@ -142,6 +155,9 @@ protected:
 	int AppendNode(const FSUDSParsedNode& NewNode);
 	void ConnectRemainingNodes(const FString& NameForErrors, bool bSilent);
 	int FindNextOutdentedNodeIndex(int StartNodeIndex, int IndentLessThan, const FString& FromPath);
+	void RetrieveAndRemoveOrGenerateTextID(FStringView& InOutLine, FString& OutTextID);
+	bool RetrieveAndRemoveTextID(FStringView& InOutLine, FString& OutTextID);
+	FString GenerateTextID(const FStringView& Line);
 	
 public:
 	const FSUDSParsedNode* GetNode(int Index = 0);

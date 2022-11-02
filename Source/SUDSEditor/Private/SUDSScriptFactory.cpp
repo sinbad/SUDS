@@ -3,7 +3,11 @@
 #include <string>
 
 #include "SUDSScript.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "EditorFramework/AssetImportData.h"
+#include "Internationalization/StringTable.h"
+#include "Internationalization/StringTableCore.h"
+#include "Internationalization/StringTableRegistry.h"
 
 USUDSScriptFactory::USUDSScriptFactory()
 {
@@ -41,8 +45,18 @@ UObject* USUDSScriptFactory::FactoryCreateText(UClass* InClass,
 	// Now parse this using utility
 	if(Importer.ImportFromBuffer(Buffer, BufferEnd - Buffer, NameForErrors, false))
 	{
-		Result = NewObject<USUDSScript>(InParent, InName, Flags);
+		
 		// Populate with data
+		Result = NewObject<USUDSScript>(InParent, InName, Flags);
+		// Build native language string table
+		FString StringTableName = InName.ToString() + "Strings";
+		auto StringTable = NewObject<UStringTable>(InParent, FName(StringTableName), Flags);
+		Importer.PopulateAsset(Result, StringTable->GetMutableStringTable().Get());
+		
+		FAssetRegistryModule::AssetCreated(StringTable);
+
+		// TODO: Do we need to call	FStringTableRegistry::RegisterStringTable ?
+		// Or does the asset system cause that to be loaded?
 
 		// Register source info
 		Result->AssetImportData->Update(FactoryCurrentFilename);

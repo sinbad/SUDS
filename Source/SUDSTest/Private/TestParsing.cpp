@@ -2,6 +2,7 @@
 #include "Misc/AutomationTest.h"
 #include "SUDSScriptImporter.h"
 #include "SUDSScriptNode.h"
+#include "Internationalization/StringTable.h"
 
 PRAGMA_DISABLE_OPTIMIZATION
 
@@ -687,7 +688,8 @@ bool FTestConversionToRuntime::RunTest(const FString& Parameters)
 	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(GotoParsingInput), GotoParsingInput.Len(), "GotoParsingInput", true));
 
 	auto Asset = NewObject<USUDSScript>(GetTransientPackage(), "Test");
-	Importer.PopulateAsset(Asset);
+	auto StringTable = NewObject<UStringTable>(GetTransientPackage(), "TestStrings");
+	Importer.PopulateAsset(Asset, StringTable->GetMutableStringTable().Get());
 
 	auto StartNode = Asset->GetFirstNode();
 	if (!TestNotNull("Start node should be true", StartNode))

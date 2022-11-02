@@ -2,6 +2,7 @@
 #include "SUDSLibrary.h"
 #include "SUDSScript.h"
 #include "SUDSScriptImporter.h"
+#include "Internationalization/StringTable.h"
 #include "Misc/AutomationTest.h"
 
 PRAGMA_DISABLE_OPTIMIZATION
@@ -66,7 +67,8 @@ bool FTestSimpleRunning::RunTest(const FString& Parameters)
 	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SimpleRunnerInput), SimpleRunnerInput.Len(), "SimpleRunnerInput", true));
 
 	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
-	Importer.PopulateAsset(Script);
+	auto StringTable = NewObject<UStringTable>(GetTransientPackage(), "TestStrings");
+	Importer.PopulateAsset(Script, StringTable->GetMutableStringTable().Get());
 
 	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
 	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);

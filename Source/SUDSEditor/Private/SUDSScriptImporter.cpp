@@ -232,6 +232,7 @@ bool FSUDSScriptImporter::ParseBodyLine(const FStringView& Line,
 	
 }
 
+
 bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent)
 {
 	if (Line.StartsWith('*'))
@@ -263,8 +264,10 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line, int IndentLev
 		
 		// Add a pending edge, with the choice text
 		// Following things fill in the edge details, the next node to be parsed will finalise the destination
-		const FString ChoiceText(Line.SubStr(1, Line.Len() - 1).TrimStart());
-		const int EdgeIdx = ChoiceNode.Edges.Add(FSUDSParsedEdge(-1, ChoiceText));
+		FString ChoiceTextID;
+		auto ChoiceTextView = Line.SubStr(1, Line.Len() - 1).TrimStart();
+		RetrieveAndRemoveOrGenerateTextID(ChoiceTextView, ChoiceTextID);
+		const int EdgeIdx = ChoiceNode.Edges.Add(FSUDSParsedEdge(-1, FString(ChoiceTextView), ChoiceTextID));
 		EdgeInProgress = &ChoiceNode.Edges[EdgeIdx];
 		
 		return true;
@@ -468,6 +471,41 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& Line, int IndentLevel
 	return true;
 
 
+}
+
+void FSUDSScriptImporter::RetrieveAndRemoveOrGenerateTextID(FStringView& InOutLine, FString& OutTextID)
+{
+	if (!RetrieveAndRemoveTextID(InOutLine, OutTextID))
+	{
+		OutTextID = GenerateTextID(InOutLine);
+	}
+}
+
+bool FSUDSScriptImporter::RetrieveAndRemoveTextID(FStringView& InOutLine, FString& OutTextID)
+{
+	// Find any TextID in the line, and if found, remove it and move it to OutTextID
+	// Also set the last text ID number from this so we never generate duplicates
+	const FString LineStr(InOutLine);
+	const FRegexPattern TextIDPattern(TEXT("(\\@[0-9a-fA-F]+\\@)"));
+	FRegexMatcher TextIDRegex(TextIDPattern, LineStr);
+	if (TextIDRegex.FindNext())
+	{
+		OutTextID = TextIDRegex.GetCaptureGroup(1);
+		// Chop the incoming string to the left of the TextID
+		InOutLine = InOutLine.Left(TextIDRegex.GetCaptureGroupBeginning(1));
+		return true;
+	}
+
+	return false;
+
+}
+
+FString FSUDSScriptImporter::GenerateTextID(const FStringView& Line)
+{
+	// Generate a new text ID just based on ascending numbers
+	// We don't actually base this on the line but we have it for future possible use
+	// Since it's a string, format exactly as in the sud file 
+	return FString::Printf(TEXT("@%x@"), ++TextIDHighestNumber);
 }
 
 FString FSUDSScriptImporter::GetCurrentTreePath()
@@ -733,7 +771,7 @@ int FSUDSScriptImporter::GetGotoTargetNodeIndex(const FString& InLabel)
 	
 }
 
-void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset)
+void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset, FStringTable& StringTable)
 {
 	// This is only called if the parsing was successful
 	// Populate the runtime asset
