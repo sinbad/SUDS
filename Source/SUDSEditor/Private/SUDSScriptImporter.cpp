@@ -419,10 +419,17 @@ bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line, int IndentLeve
 	return false;
 }
 
-bool FSUDSScriptImporter::ParseTextLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent)
+bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent)
 {
 	auto& Ctx = IndentLevelStack.Top();
 
+	// Attempt to find existing text ID
+	// For multiple lines, may not be present until last line (but in fact can be on any line)
+	// We generate anyway, because it can be overriden by later lines, but makes sure we have one always
+	FString TextID;
+	FStringView Line = InLine;
+	RetrieveAndRemoveOrGenerateTextID(Line, TextID);
+	
 	const FString LineStr(Line);
 	const FRegexPattern SpeakerPattern(TEXT("^(\\w+)\\:\\s*(.+)$"));
 	FRegexMatcher SpeakerRegex(SpeakerPattern, LineStr);
@@ -459,6 +466,13 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& Line, int IndentLevel
 		if (Node.NodeType == ESUDSParsedNodeType::Text)
 		{
 			Node.Text.Appendf(TEXT("\n%s"), *LineStr);
+
+			// TextID may have been found in the line continuation
+			// We override the generated one silently in this case (can cause gaps in auto numbering but that's ok)
+			if (!TextID.IsEmpty())
+			{
+				Node.TextID = TextID;
+			}
 		}
 		else
 		{
