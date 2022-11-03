@@ -3,6 +3,8 @@
 #include "SUDSScript.h"
 #include "SUDSScriptNode.h"
 #include "Internationalization/Regex.h"
+#include "Internationalization/StringTable.h"
+#include "Internationalization/StringTableCore.h"
 
 PRAGMA_DISABLE_OPTIMIZATION
 
@@ -500,13 +502,16 @@ bool FSUDSScriptImporter::RetrieveAndRemoveTextID(FStringView& InOutLine, FStrin
 	// Find any TextID in the line, and if found, remove it and move it to OutTextID
 	// Also set the last text ID number from this so we never generate duplicates
 	const FString LineStr(InOutLine);
-	const FRegexPattern TextIDPattern(TEXT("(\\@[0-9a-fA-F]+\\@)"));
+	const FRegexPattern TextIDPattern(TEXT("(\\@([0-9a-fA-F]+)\\@)"));
 	FRegexMatcher TextIDRegex(TextIDPattern, LineStr);
 	if (TextIDRegex.FindNext())
 	{
 		OutTextID = TextIDRegex.GetCaptureGroup(1);
 		// Chop the incoming string to the left of the TextID
 		InOutLine = InOutLine.Left(TextIDRegex.GetCaptureGroupBeginning(1));
+		// FDefaultValueHelper::ParseInt requires an "0x" prefix but we're not using that
+		// Plus does extra checking we don't need
+		TextIDHighestNumber = FCString::Strtoi(*TextIDRegex.GetCaptureGroup(2), nullptr, 16);
 		return true;
 	}
 
@@ -785,7 +790,7 @@ int FSUDSScriptImporter::GetGotoTargetNodeIndex(const FString& InLabel)
 	
 }
 
-void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset, FStringTable& StringTable)
+void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset, UStringTable* StringTable)
 {
 	// This is only called if the parsing was successful
 	// Populate the runtime asset
@@ -817,8 +822,8 @@ void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset, FStringTable& String
 				switch (InNode.NodeType)
 				{
 				case ESUDSParsedNodeType::Text:
-					// TODO: localise text
-					Node->InitText(InNode.SpeakerOrGotoLabel, InNode.Text);
+					StringTable->GetMutableStringTable()->SetSourceString(InNode.TextID, InNode.Text);
+					Node->InitText(InNode.SpeakerOrGotoLabel, FText::FromStringTable (StringTable->GetStringTableId(), InNode.TextID));
 					break;
 				case ESUDSParsedNodeType::Choice:
 					Node->InitChoice();
@@ -856,9 +861,12 @@ void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset, FStringTable& String
 						if (const FSUDSParsedNode *InTargetNode = GetNode(InEdge.TargetNodeIdx))
 						{
 							FSUDSScriptEdge NewEdge;
-							
-							// TODO: localise edge text
-							NewEdge.TempText = InEdge.Text;
+
+							if (!InEdge.TextID.IsEmpty() && !InEdge.Text.IsEmpty())
+							{
+								StringTable->GetMutableStringTable()->SetSourceString(InEdge.TextID, InEdge.Text);
+								NewEdge.Text = FText::FromStringTable(StringTable->GetStringTableId(), InEdge.TextID);
+							}
 							
 							if (InTargetNode->NodeType == ESUDSParsedNodeType::Goto)
 							{

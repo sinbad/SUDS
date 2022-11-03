@@ -84,7 +84,7 @@ class SUDSEDITOR_API FSUDSScriptImporter
 {
 public:
 	bool ImportFromBuffer(const TCHAR* Buffer, int32 Len, const FString& NameForErrors, bool bSilent);
-	void PopulateAsset(USUDSScript* Asset, FStringTable& StringTable);
+	void PopulateAsset(USUDSScript* Asset, UStringTable* StringTable);
 	static const FString EndGotoLabel;
 protected:
 	static const FString TreePathSeparator;

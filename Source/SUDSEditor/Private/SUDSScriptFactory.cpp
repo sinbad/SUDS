@@ -49,14 +49,12 @@ UObject* USUDSScriptFactory::FactoryCreateText(UClass* InClass,
 		// Populate with data
 		Result = NewObject<USUDSScript>(InParent, InName, Flags);
 		// Build native language string table
-		FString StringTableName = InName.ToString() + "Strings";
-		auto StringTable = NewObject<UStringTable>(InParent, FName(StringTableName), Flags);
-		Importer.PopulateAsset(Result, StringTable->GetMutableStringTable().Get());
+		const FName StringTableName = FName(InName.ToString() + "Strings");
+		// This constructor registers the string table with FStringTableRegistry
+		UStringTable* StringTable = NewObject<UStringTable>(InParent, StringTableName, Flags);
+		Importer.PopulateAsset(Result, StringTable);
 		
 		FAssetRegistryModule::AssetCreated(StringTable);
-
-		// TODO: Do we need to call	FStringTableRegistry::RegisterStringTable ?
-		// Or does the asset system cause that to be loaded?
 
 		// Register source info
 		Result->AssetImportData->Update(FactoryCurrentFilename);

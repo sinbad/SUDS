@@ -4,13 +4,11 @@ USUDSScriptNode::USUDSScriptNode()
 {
 }
 
-void USUDSScriptNode::InitText(const FString& InSpeakerID, const FString& InTextID)
+void USUDSScriptNode::InitText(const FString& InSpeakerID, const FText& InText)
 {
 	NodeType = ESUDSScriptNodeType::Text;
 	SpeakerID = InSpeakerID;
-	TextID = InTextID;
-	// TODO: localisation will remove this
-	TempText = FText::FromString(InTextID);
+	Text = InText;
 }
 
 void USUDSScriptNode::InitChoice()

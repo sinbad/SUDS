@@ -3,6 +3,7 @@
 #include "SUDSScriptImporter.h"
 #include "SUDSScriptNode.h"
 #include "Internationalization/StringTable.h"
+#include "Internationalization/StringTableRegistry.h"
 
 PRAGMA_DISABLE_OPTIMIZATION
 
@@ -625,7 +626,7 @@ bool TestTextNode(FAutomationTestBase* T, const FString& NameForTest, const USUD
 	{
 		T->TestEqual(NameForTest, Node->GetNodeType(), ESUDSScriptNodeType::Text);
 		T->TestEqual(NameForTest, Node->GetSpeakerID(), Speaker);
-		T->TestEqual(NameForTest, Node->GetTextID(), Text);
+		T->TestEqual(NameForTest, Node->GetText().ToString(), Text);
 		return true;
 	}
 	return false;
@@ -664,7 +665,7 @@ bool TestChoiceEdge(FAutomationTestBase* T, const FString& NameForTest, USUDSScr
 		if (auto Edge = Node->GetEdge(EdgeIndex))
 		{
 			T->TestEqual(NameForTest, Edge->Navigation, ESUDSScriptEdgeNavigation::Explicit);
-			T->TestEqual(NameForTest, Edge->TempText, Text);
+			T->TestEqual(NameForTest, Edge->Text.ToString(), Text);
 			*OutNode = Edge->TargetNode.Get();
 			return T->TestNotNull(NameForTest, *OutNode);
 		}
@@ -689,21 +690,31 @@ bool FTestConversionToRuntime::RunTest(const FString& Parameters)
 
 	auto Asset = NewObject<USUDSScript>(GetTransientPackage(), "Test");
 	auto StringTable = NewObject<UStringTable>(GetTransientPackage(), "TestStrings");
-	Importer.PopulateAsset(Asset, StringTable->GetMutableStringTable().Get());
+	Importer.PopulateAsset(Asset, StringTable);
 
 	auto StartNode = Asset->GetFirstNode();
 	if (!TestNotNull("Start node should be true", StartNode))
+	{
+		// Constructor registered this table
+		FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());
 		return false;
+	}
 
 	TestTextNode(this, "Start node", StartNode, "Player", "This is the start");
 
 	auto NextNode = StartNode;
 	if (!TestEqual("Start node edges", NextNode->GetEdgeCount(), 1))
+	{
+		FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());
 		return false;
+	}
 	
 	auto pEdge = NextNode->GetEdge(0);
 	if (!TestNotNull("Start node edge", pEdge))
+	{
+		FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());
 		return false;
+	}
 	
 	TestEqual("Start node edge", pEdge->Navigation, ESUDSScriptEdgeNavigation::Combine);
 	NextNode = pEdge->TargetNode.Get();
@@ -813,7 +824,10 @@ bool FTestConversionToRuntime::RunTest(const FString& Parameters)
 	GotoNode = Asset->GetNodeByLabel("goodbye");
 	TestTextNode(this, "Goto goodbye", GotoNode, "NPC", "Bye!");
 	
-	
+
+	// Tidy up string table
+	FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());
+
 	return true;
 }
 PRAGMA_ENABLE_OPTIMIZATION

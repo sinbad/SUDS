@@ -25,7 +25,6 @@ void USUDSDialogue::SetCurrentNode(USUDSScriptNode* Node)
 	CurrentNode = Node;
 
 	CurrentSpeakerDisplayName = FText::GetEmpty();
-	CurrentText = FText::GetEmpty();
 	AllCurrentChoices = nullptr;
 	ValidCurrentChoices.Reset();
 
@@ -33,12 +32,8 @@ void USUDSDialogue::SetCurrentNode(USUDSScriptNode* Node)
 
 FText USUDSDialogue::GetCurrentText() const
 {
-	if (CurrentText.IsEmpty())
-	{
-		// TODO: localisation
-	}
 	// For now, just use temp text
-	return CurrentNode->GetTempText();
+	return CurrentNode->GetText();
 }
 
 const FString& USUDSDialogue::GetCurrentSpeakerID() const
@@ -121,8 +116,7 @@ FText USUDSDialogue::GetChoiceText(int Index,bool bOnlyValidChoices) const
 	{
 		if (Choices && Choices->IsValidIndex(Index))
 		{
-			// TODO localisation string table
-			return FText::FromString((*Choices)[Index].TempText);
+			return (*Choices)[Index].Text;
 		}
 		else
 		{

@@ -29,7 +29,6 @@ protected:
 	FString CurrentTextID;
 
 	/// Cached derived info
-	mutable FText CurrentText;
 	mutable FText CurrentSpeakerDisplayName;
 	/// All choices available from the current node (via a linked Choice node)
 	mutable const TArray<FSUDSScriptEdge>* AllCurrentChoices;

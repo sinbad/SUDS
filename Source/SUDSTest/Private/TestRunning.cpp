@@ -3,6 +3,7 @@
 #include "SUDSScript.h"
 #include "SUDSScriptImporter.h"
 #include "Internationalization/StringTable.h"
+#include "Internationalization/StringTableRegistry.h"
 #include "Misc/AutomationTest.h"
 
 PRAGMA_DISABLE_OPTIMIZATION
@@ -68,7 +69,7 @@ bool FTestSimpleRunning::RunTest(const FString& Parameters)
 
 	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
 	auto StringTable = NewObject<UStringTable>(GetTransientPackage(), "TestStrings");
-	Importer.PopulateAsset(Script, StringTable->GetMutableStringTable().Get());
+	Importer.PopulateAsset(Script, StringTable);
 
 	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
 	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
@@ -154,6 +155,11 @@ bool FTestSimpleRunning::RunTest(const FString& Parameters)
 	TestTrue("Continue", Dlg->Continue());
 	// Should have fallen through
 	TestText(this, "Direct goto", Dlg, "Player", "This is the latter half of the discussion");
+
+
+	// Tidy up string table
+	// Constructor registered this table
+	FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());
 	
 	return true;
 }

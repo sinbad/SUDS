@@ -41,9 +41,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	FString SpeakerID;
 protected:
-	/// TODO: Replace with TextID when localisation done
+	/// Text, always references a string table
 	UPROPERTY(BlueprintReadOnly)
-	FText TempText;
+	FText Text;
 	/// Identifier of the text string to use (based on the string table used by parent script
 	UPROPERTY(BlueprintReadOnly)
 	FString TextID;
@@ -56,12 +56,11 @@ public:
 	
 	[[nodiscard]] ESUDSScriptNodeType GetNodeType() const { return NodeType; }
 	[[nodiscard]] const FString& GetSpeakerID() const { return SpeakerID; }
-	[[nodiscard]] const FString& GetTextID() const { return TextID; }
-	[[nodiscard]] const FText& GetTempText() const { return TempText; }
+	[[nodiscard]] const FText& GetText() const { return Text; }
 	[[nodiscard]] const TArray<FSUDSScriptEdge>& GetEdges() const { return Edges; }
 
 	void AddEdge(const FSUDSScriptEdge& NewEdge);
-	void InitText(const FString& SpeakerID, const FString& TextID);
+	void InitText(const FString& SpeakerID, const FText& Text);
 	void InitChoice();
 	void InitSelect();
 

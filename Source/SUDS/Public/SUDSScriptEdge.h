@@ -29,9 +29,9 @@ struct SUDS_API FSUDSScriptEdge
 {
 	GENERATED_BODY()
 public:
-	// TODO: Replace in-place text with localised
+	// Text, if a user choice. Always references a string table
 	UPROPERTY()
-	FString TempText;
+	FText Text;
 	
 	UPROPERTY()
 	TWeakObjectPtr<USUDSScriptNode> TargetNode;
@@ -45,6 +45,6 @@ public:
 
 	FSUDSScriptEdge(USUDSScriptNode* ToNode, ESUDSScriptEdgeNavigation Nav) : TargetNode(ToNode), Navigation(Nav) {}
 
-	FSUDSScriptEdge(const FString& InText, USUDSScriptNode* ToNode, ESUDSScriptEdgeNavigation Nav) : TempText(InText), TargetNode(ToNode), Navigation(Nav) {}
+	FSUDSScriptEdge(const FText& InText, USUDSScriptNode* ToNode, ESUDSScriptEdgeNavigation Nav) : Text(InText), TargetNode(ToNode), Navigation(Nav) {}
 
 };
