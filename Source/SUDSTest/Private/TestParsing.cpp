@@ -638,7 +638,7 @@ bool TestEdge(FAutomationTestBase* T, const FString& NameForTest, USUDSScriptNod
 	{
 		if (auto Edge = Node->GetEdge(EdgeIndex))
 		{
-			*OutNode = Edge->TargetNode.Get();
+			*OutNode = Edge->GetTargetNode().Get();
 			return T->TestNotNull(NameForTest, *OutNode);
 		}
 	}
@@ -664,9 +664,9 @@ bool TestChoiceEdge(FAutomationTestBase* T, const FString& NameForTest, USUDSScr
 	{
 		if (auto Edge = Node->GetEdge(EdgeIndex))
 		{
-			T->TestEqual(NameForTest, Edge->Navigation, ESUDSScriptEdgeNavigation::Explicit);
-			T->TestEqual(NameForTest, Edge->Text.ToString(), Text);
-			*OutNode = Edge->TargetNode.Get();
+			T->TestEqual(NameForTest, Edge->GetNavigation(), ESUDSScriptEdgeNavigation::Explicit);
+			T->TestEqual(NameForTest, Edge->GetText().ToString(), Text);
+			*OutNode = Edge->GetTargetNode().Get();
 			return T->TestNotNull(NameForTest, *OutNode);
 		}
 	}
@@ -716,8 +716,8 @@ bool FTestConversionToRuntime::RunTest(const FString& Parameters)
 		return false;
 	}
 	
-	TestEqual("Start node edge", pEdge->Navigation, ESUDSScriptEdgeNavigation::Combine);
-	NextNode = pEdge->TargetNode.Get();
+	TestEqual("Start node edge", pEdge->GetNavigation(), ESUDSScriptEdgeNavigation::Combine);
+	NextNode = pEdge->GetTargetNode().Get();
 	if (TestChoiceNode(this, "Start node next", NextNode, 2))
 	{
 		auto ChoiceNode = NextNode;
@@ -728,7 +728,7 @@ bool FTestConversionToRuntime::RunTest(const FString& Parameters)
 			auto GotoEdge = NextNode->GetEdge(0);
 			if (TestNotNull("Goto end node", GotoEdge))
 			{
-				TestFalse("Goto end should be null", GotoEdge->TargetNode.IsValid());
+				TestFalse("Goto end should be null", GotoEdge->GetTargetNode().IsValid());
 			}
 		}
 		
@@ -763,7 +763,7 @@ bool FTestConversionToRuntime::RunTest(const FString& Parameters)
 						auto GotoEdge = NextNode->GetEdge(0);
 						if (TestNotNull("Nested choice 2 node edge", GotoEdge))
 						{
-							TestFalse("Nested choice 2 node goes nowhere", GotoEdge->TargetNode.IsValid());
+							TestFalse("Nested choice 2 node goes nowhere", GotoEdge->GetTargetNode().IsValid());
 						}
 						
 					}

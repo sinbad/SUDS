@@ -865,7 +865,7 @@ void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset, UStringTable* String
 							if (!InEdge.TextID.IsEmpty() && !InEdge.Text.IsEmpty())
 							{
 								StringTable->GetMutableStringTable()->SetSourceString(InEdge.TextID, InEdge.Text);
-								NewEdge.Text = FText::FromStringTable(StringTable->GetStringTableId(), InEdge.TextID);
+								NewEdge.SetText(FText::FromStringTable(StringTable->GetStringTableId(), InEdge.TextID));
 							}
 							
 							if (InTargetNode->NodeType == ESUDSParsedNodeType::Goto)
@@ -876,24 +876,24 @@ void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset, UStringTable* String
 								if (Idx != -1)
 								{
 									int NewTargetIndex = IndexRemap[Idx];
-									NewEdge.TargetNode = (*pOutNodes)[NewTargetIndex];
+									NewEdge.SetTargetNode((*pOutNodes)[NewTargetIndex]);
 								}
 							}
 							else
 							{
 								int NewTargetIndex = IndexRemap[InEdge.TargetNodeIdx];
-								NewEdge.TargetNode = (*pOutNodes)[NewTargetIndex];
+								NewEdge.SetTargetNode((*pOutNodes)[NewTargetIndex]);
 							}
 
-							if (NewEdge.TargetNode.IsValid() &&
-								NewEdge.TargetNode->GetNodeType() == ESUDSScriptNodeType::Choice)
+							if (NewEdge.GetTargetNode().IsValid() &&
+								NewEdge.GetTargetNode()->GetNodeType() == ESUDSScriptNodeType::Choice)
 							{
-								NewEdge.Navigation = ESUDSScriptEdgeNavigation::Combine;
+								NewEdge.SetNavigation(ESUDSScriptEdgeNavigation::Combine);
 							}
 							else
 							{
 								// TODO: support other navigation types like auto, timer based
-								NewEdge.Navigation = ESUDSScriptEdgeNavigation::Explicit;
+								NewEdge.SetNavigation(ESUDSScriptEdgeNavigation::Explicit);
 							}
 
 							Node->AddEdge(NewEdge);

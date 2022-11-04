@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "SUDSTextParameters.h"
 #include "UObject/Interface.h"
 #include "SUDSParticipant.generated.h"
 
@@ -30,11 +31,12 @@ public:
 	 * a request for a "PlayerName" parameter. Implementations can either fill in the value and return true, or pass
 	 * on this opportunity and return false. All participants will be asked for the parameter value.
 	 * @param ParamName The name of the parameter being requested
-	 * @param Value The parameter value which can be completed by the implementation
-	 * @return True if the parameter was successfully retrieved
+	 * @param Params The parameter collection; if this instance can provide the requested parameter, it should call
+	 *	the appropriate SetParameter method on this object and return true.
+	 * @return True if the parameter was successfully set, false if this instance did not provide it.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="SUDS")
-	UPARAM(DisplayName="Success") bool GetDialogueParameter(const FString& ParamName, FText& Value);	
+	UPARAM(DisplayName="Success") bool GetDialogueParameter(const FString& ParamName, USUDSTextParameters* Params);	
 
 
 	/**

@@ -65,11 +65,11 @@ const TArray<FSUDSScriptEdge>* USUDSDialogue::GetChoices(bool bOnlyValidChoices)
 		{
 			auto Edge = CurrentNode->GetEdge(0);
 			// Choice nodes are combinatorial, but still separate so you can link to them multiple text nodes (e.g. loops)
-			if (Edge->Navigation == ESUDSScriptEdgeNavigation::Combine && Edge->TargetNode.IsValid())
+			if (Edge->GetNavigation() == ESUDSScriptEdgeNavigation::Combine && Edge->GetTargetNode().IsValid())
 			{
-				check(Edge->TargetNode->GetNodeType() == ESUDSScriptNodeType::Choice);
+				check(Edge->GetTargetNode()->GetNodeType() == ESUDSScriptNodeType::Choice);
 				/// Choices are the edges under the choice node
-				AllCurrentChoices = &Edge->TargetNode->GetEdges();
+				AllCurrentChoices = &Edge->GetTargetNode()->GetEdges();
 
 				if (bOnlyValidChoices)
 				{
@@ -116,7 +116,7 @@ FText USUDSDialogue::GetChoiceText(int Index,bool bOnlyValidChoices) const
 	{
 		if (Choices && Choices->IsValidIndex(Index))
 		{
-			return (*Choices)[Index].Text;
+			return (*Choices)[Index].GetText();
 		}
 		else
 		{
@@ -143,9 +143,9 @@ bool USUDSDialogue::Choose(int Index)
 	{
 		if (Choices && Choices->IsValidIndex(Index))
 		{
-			if ((*Choices)[Index].TargetNode.IsValid())
+			if ((*Choices)[Index].GetTargetNode().IsValid())
 			{
-				SetCurrentNode((*Choices)[Index].TargetNode.Get());
+				SetCurrentNode((*Choices)[Index].GetTargetNode().Get());
 				return !IsEnded();
 			}
 			else

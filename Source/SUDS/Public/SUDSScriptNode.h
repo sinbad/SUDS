@@ -41,15 +41,22 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	FString SpeakerID;
 protected:
-	/// Text, always references a string table
+	/// Text, always references a string table. Parameters will not have been completed.
 	UPROPERTY(BlueprintReadOnly)
 	FText Text;
+protected:
 	/// Identifier of the text string to use (based on the string table used by parent script
 	UPROPERTY(BlueprintReadOnly)
 	FString TextID;
 	/// Links to other nodes
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FSUDSScriptEdge> Edges;
+
+	mutable bool bFormatExtracted = false; 
+	mutable TArray<FString> ParameterNames;
+	mutable FTextFormat TextFormat;
+
+	void ExtractFormat() const;
 
 public:
 	USUDSScriptNode();
@@ -73,4 +80,7 @@ public:
 		}
 		return nullptr;
 	}
+
+	const FTextFormat& GetTextFormat() const;
+	const TArray<FString>& GetParameterNames() const;	
 };

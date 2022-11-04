@@ -28,23 +28,41 @@ USTRUCT(BlueprintType)
 struct SUDS_API FSUDSScriptEdge
 {
 	GENERATED_BODY()
-public:
+protected:
 	// Text, if a user choice. Always references a string table
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	FText Text;
 	
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	TWeakObjectPtr<USUDSScriptNode> TargetNode;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	ESUDSScriptEdgeNavigation Navigation;
 	
 	// TODO Add conditions
 
+	mutable bool bFormatExtracted = false; 
+	mutable TArray<FString> ParameterNames;
+	mutable FTextFormat TextFormat;
+
+	void ExtractFormat() const;
+	
+public:
 	FSUDSScriptEdge(): Navigation(ESUDSScriptEdgeNavigation::Explicit) {}
 
 	FSUDSScriptEdge(USUDSScriptNode* ToNode, ESUDSScriptEdgeNavigation Nav) : TargetNode(ToNode), Navigation(Nav) {}
 
 	FSUDSScriptEdge(const FText& InText, USUDSScriptNode* ToNode, ESUDSScriptEdgeNavigation Nav) : Text(InText), TargetNode(ToNode), Navigation(Nav) {}
 
+	[[nodiscard]] FText GetText() const { return Text; }
+	[[nodiscard]] TWeakObjectPtr<USUDSScriptNode> GetTargetNode() const { return TargetNode; }
+	[[nodiscard]] ESUDSScriptEdgeNavigation GetNavigation() const { return Navigation; }
+
+	void SetText(const FText& Text);
+	void SetTargetNode(const TWeakObjectPtr<USUDSScriptNode>& InTargetNode) { TargetNode = InTargetNode; }
+	void SetNavigation(ESUDSScriptEdgeNavigation InNavigation) { Navigation = InNavigation; }
+
+	const FTextFormat& GetTextFormat() const;
+	const TArray<FString>& GetParameterNames() const;	
+	
 };

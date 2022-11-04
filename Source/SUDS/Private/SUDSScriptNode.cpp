@@ -9,6 +9,9 @@ void USUDSScriptNode::InitText(const FString& InSpeakerID, const FText& InText)
 	NodeType = ESUDSScriptNodeType::Text;
 	SpeakerID = InSpeakerID;
 	Text = InText;
+	TextFormat = Text;
+	bFormatExtracted = false;
+	
 }
 
 void USUDSScriptNode::InitChoice()
@@ -24,4 +27,31 @@ void USUDSScriptNode::InitSelect()
 void USUDSScriptNode::AddEdge(const FSUDSScriptEdge& NewEdge)
 {
 	Edges.Add(NewEdge);
+}
+
+const FTextFormat& USUDSScriptNode::GetTextFormat() const
+{
+	if (!bFormatExtracted)
+	{
+		ExtractFormat();
+	}
+	return TextFormat;
+}
+
+const TArray<FString>& USUDSScriptNode::GetParameterNames() const
+{
+	if (!bFormatExtracted)
+	{
+		ExtractFormat();
+	}
+	return ParameterNames;
+}
+
+void USUDSScriptNode::ExtractFormat() const
+{
+	// Only do this on demand, and only once
+	TextFormat = Text;
+	ParameterNames.Empty();
+	TextFormat.GetFormatArgumentNames(ParameterNames);
+	bFormatExtracted = true;
 }
