@@ -30,13 +30,13 @@ void USUDSDialogue::SetCurrentNode(USUDSScriptNode* Node)
 
 }
 
-FText USUDSDialogue::GetCurrentText() const
+FText USUDSDialogue::GetText() const
 {
 	// For now, just use temp text
 	return CurrentNode->GetText();
 }
 
-const FString& USUDSDialogue::GetCurrentSpeakerID() const
+const FString& USUDSDialogue::GetSpeakerID() const
 {
 	if (CurrentNode)
 		return CurrentNode->GetSpeakerID();
@@ -44,7 +44,7 @@ const FString& USUDSDialogue::GetCurrentSpeakerID() const
 	return DummyString;
 }
 
-FText USUDSDialogue::GetCurrentSpeakerDisplayName() const
+FText USUDSDialogue::GetSpeakerDisplayName() const
 {
 	if (CurrentSpeakerDisplayName.IsEmpty())
 	{
@@ -120,7 +120,7 @@ FText USUDSDialogue::GetChoiceText(int Index,bool bOnlyValidChoices) const
 		}
 		else
 		{
-			UE_LOG(LogSUDSDialogue, Error, TEXT("Invalid choice index %d on node %s"), Index, *GetCurrentText().ToString());
+			UE_LOG(LogSUDSDialogue, Error, TEXT("Invalid choice index %d on node %s"), Index, *GetText().ToString());
 		}
 	}
 
@@ -157,7 +157,7 @@ bool USUDSDialogue::Choose(int Index)
 		}
 		else
 		{
-			UE_LOG(LogSUDSDialogue, Error, TEXT("Invalid choice index %d on node %s"), Index, *GetCurrentText().ToString());
+			UE_LOG(LogSUDSDialogue, Error, TEXT("Invalid choice index %d on node %s"), Index, *GetText().ToString());
 		}
 	}
 	return false;

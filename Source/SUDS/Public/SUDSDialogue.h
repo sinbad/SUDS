@@ -26,8 +26,6 @@ protected:
 	UPROPERTY()
 	USUDSScriptNode* CurrentNode;
 
-	FString CurrentTextID;
-
 	/// Cached derived info
 	mutable FText CurrentSpeakerDisplayName;
 	/// All choices available from the current node (via a linked Choice node)
@@ -45,16 +43,17 @@ public:
 	
 
 	/// Get the speech text for the current dialogue node
+	/// Any parameters required will be requested from participants in the dialogue and replaced 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	FText GetCurrentText() const;
+	FText GetText() const;
 
 	/// Get the ID of the current speaker
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	const FString& GetCurrentSpeakerID() const;
+	const FString& GetSpeakerID() const;
 
 	/// Get the display name of the current speaker
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	FText GetCurrentSpeakerDisplayName() const;
+	FText GetSpeakerDisplayName() const;
 
 	/**
 	 * Get the number of choices available from this node.

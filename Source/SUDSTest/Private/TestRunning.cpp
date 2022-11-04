@@ -48,8 +48,8 @@ NPC: Bye!
 
 void TestText(FAutomationTestBase* T, const FString& NameForTest, USUDSDialogue* D, const FString& SpeakerID, const FString& Text)
 {
-	T->TestEqual(NameForTest, D->GetCurrentSpeakerID(), SpeakerID);
-	T->TestEqual(NameForTest, D->GetCurrentText().ToString(), Text);
+	T->TestEqual(NameForTest, D->GetSpeakerID(), SpeakerID);
+	T->TestEqual(NameForTest, D->GetText().ToString(), Text);
 	
 }
 
