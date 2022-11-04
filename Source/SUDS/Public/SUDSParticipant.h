@@ -47,7 +47,17 @@ public:
 	 * @return The speaker display name (localised)
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="SUDS")
-	FText GetDialogueSpeakerDisplayName();	
+	FText GetDialogueSpeakerDisplayName();
+
+	/**
+	 * Return the priority of this participant (default 0).
+	 * When a text parameter is requested for the dialogue, participants are asked to provide it. The first one to
+	 * return true from GetDialogueParameter will get to set the parameter. If for some reason you need to control the order
+	 * of the requests, override this method; higher priorities are called first (and negatives are allowed).
+	 * @return 
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="SUDS")
+	int GetDialogueParticipantPriority() const;
 
 };
 

@@ -34,3 +34,13 @@ const TArray<FString>& FSUDSScriptEdge::GetParameterNames() const
 	return ParameterNames;
 	
 }
+
+bool FSUDSScriptEdge::HasParameters() const
+{
+	if (!bFormatExtracted)
+	{
+		ExtractFormat();
+	}
+	return !ParameterNames.IsEmpty();
+	
+}

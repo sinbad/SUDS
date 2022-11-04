@@ -63,6 +63,6 @@ public:
 	void SetNavigation(ESUDSScriptEdgeNavigation InNavigation) { Navigation = InNavigation; }
 
 	const FTextFormat& GetTextFormat() const;
-	const TArray<FString>& GetParameterNames() const;	
-	
+	const TArray<FString>& GetParameterNames() const;
+	bool HasParameters() const;
 };

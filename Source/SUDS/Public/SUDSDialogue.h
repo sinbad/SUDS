@@ -25,6 +25,9 @@ protected:
 	const USUDSScript* BaseScript;
 	UPROPERTY()
 	USUDSScriptNode* CurrentNode;
+	/// Map of role to participant
+	UPROPERTY()
+	TMap<FString, UObject*> Participants;
 
 	/// Cached derived info
 	mutable FText CurrentSpeakerDisplayName;
@@ -36,10 +39,34 @@ protected:
 	static const FString DummyString;
 	
 	void SetCurrentNode(USUDSScriptNode* Node);
+	void SortParticipants();
 	const TArray<FSUDSScriptEdge>* GetChoices(bool bOnlyValidChoices) const;
 public:
 	USUDSDialogue();
 	void Initialise(const USUDSScript* Script, FName StartLabel = NAME_None);
+
+	/**
+	 * Set the complete list of participants for this dialogue instance.
+	 * Participants provide parameter values, variables, speaker names, and can receive events from the dialogue.
+	 * @param NewParticipants Map of role name referred to in the dialogue script to participant object.
+	 */
+	UFUNCTION(BlueprintCallable)
+	void SetParticipants(const TMap<FString, UObject*> NewParticipants);
+
+	
+	/**
+	 * Add a participant to this dialogue instance.
+	 * Participants provide parameter values, variables, speaker names, and can receive events from the dialogue.
+	 * @param RoleName The role name that this participant fulfils (may be referred to in the dialogue)
+	 * @param Participant The participant object
+	 */
+	UFUNCTION(BlueprintCallable)
+	void AddParticipant(const FString& RoleName, UObject* Participant);
+
+	/// Retrieve a participant from this dialogue
+	UFUNCTION(BlueprintCallable)
+	UObject* GetParticipant(const FString& RoleName);
+	
 	
 
 	/// Get the speech text for the current dialogue node

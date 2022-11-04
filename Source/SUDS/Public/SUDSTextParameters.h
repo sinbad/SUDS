@@ -5,6 +5,7 @@
 #include "SUDSTextParameters.generated.h"
 
 /// Convenience object to hold named parameters for compatibility with Blueprints and C++
+/// Would have been nice to have a USTRUCT but they can't have UFUNCTIONs
 UCLASS(BlueprintType)
 class SUDS_API USUDSTextParameters : public UObject
 {
@@ -36,7 +37,7 @@ public:
 	void SetAllParameters(const USUDSTextParameters* SourceArgs) { NamedArgs.Empty(); NamedArgs.Append(SourceArgs->NamedArgs); }
 
 	void Empty() { NamedArgs.Empty(); }
-	FText Format(const FText& FormatText) const
+	FText Format(const FTextFormat& FormatText) const
 	{
 		return FText::Format(FormatText, NamedArgs);
 	}

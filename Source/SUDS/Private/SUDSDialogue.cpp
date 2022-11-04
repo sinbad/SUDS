@@ -1,5 +1,6 @@
 ﻿#include "SUDSDialogue.h"
 
+#include "SUDSParticipant.h"
 #include "SUDSScript.h"
 #include "SUDSScriptNode.h"
 
@@ -20,6 +21,39 @@ void USUDSDialogue::Initialise(const USUDSScript* Script, FName StartLabel)
 	Restart(true, StartLabel);
 }
 
+void USUDSDialogue::SetParticipants(const TMap<FString, UObject*> InParticipants)
+{
+	Participants = InParticipants;
+	SortParticipants();
+}
+
+void USUDSDialogue::AddParticipant(const FString& RoleName, UObject* Participant)
+{
+	Participants.Add(RoleName, Participant);
+	SortParticipants();
+}
+
+void USUDSDialogue::SortParticipants()
+{
+	if (!Participants.IsEmpty())
+	{
+		Participants.ValueSort([](const UObject& A, const UObject& B)
+		{
+			return ISUDSParticipant::Execute_GetDialogueParticipantPriority(&A) >
+				ISUDSParticipant::Execute_GetDialogueParticipantPriority(&B);
+		});
+	}
+}
+
+UObject* USUDSDialogue::GetParticipant(const FString& RoleName)
+{
+	if (auto pRet = Participants.Find(RoleName))
+	{
+		return *pRet;
+	}
+	return nullptr;
+}
+
 void USUDSDialogue::SetCurrentNode(USUDSScriptNode* Node)
 {
 	CurrentNode = Node;
@@ -32,8 +66,31 @@ void USUDSDialogue::SetCurrentNode(USUDSScriptNode* Node)
 
 FText USUDSDialogue::GetText() const
 {
-	// For now, just use temp text
-	return CurrentNode->GetText();
+	if (CurrentNode->HasParameters())
+	{
+		// Really wish I could make this a USTRUCT but then I'd have no BP-callable UFUNCTIONs :(
+		USUDSTextParameters* Params = NewObject<USUDSTextParameters>();
+		for (auto& ParamName : CurrentNode->GetParameterNames())
+		{
+			// Participant pairs have been pre-sorted by descending priority 
+			for (auto& Pair : Participants)
+			{
+				if (Pair.Value->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
+				{
+					if (ISUDSParticipant::Execute_GetDialogueParameter(Pair.Value, ParamName, Params))
+					{
+						// Param was provided, go to next one
+						continue;
+					}
+				}
+			}
+		}
+		return Params->Format(CurrentNode->GetTextFormat());
+	}
+	else
+	{
+		return CurrentNode->GetText();
+	}
 }
 
 const FString& USUDSDialogue::GetSpeakerID() const
@@ -116,7 +173,33 @@ FText USUDSDialogue::GetChoiceText(int Index,bool bOnlyValidChoices) const
 	{
 		if (Choices && Choices->IsValidIndex(Index))
 		{
-			return (*Choices)[Index].GetText();
+			auto& Choice = (*Choices)[Index];
+			if (Choice.HasParameters())
+			{
+				// Really wish I could make this a USTRUCT but then I'd have no BP-callable UFUNCTIONs :(
+				USUDSTextParameters* Params = NewObject<USUDSTextParameters>();
+				for (auto& ParamName : Choice.GetParameterNames())
+				{
+					// Participant pairs have been pre-sorted by descending priority 
+					for (auto& Pair : Participants)
+					{
+						if (Pair.Value->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
+						{
+							if (ISUDSParticipant::Execute_GetDialogueParameter(Pair.Value, ParamName, Params))
+							{
+								// Param was provided, go to next one
+								continue;
+							}
+						}
+					}
+				}
+				return Params->Format(Choice.GetTextFormat());
+				
+			}
+			else
+			{
+				return Choice.GetText();
+			}
 		}
 		else
 		{

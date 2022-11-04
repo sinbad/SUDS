@@ -47,6 +47,16 @@ const TArray<FString>& USUDSScriptNode::GetParameterNames() const
 	return ParameterNames;
 }
 
+bool USUDSScriptNode::HasParameters() const
+{
+	if (!bFormatExtracted)
+	{
+		ExtractFormat();
+	}
+	return !ParameterNames.IsEmpty();
+	
+}
+
 void USUDSScriptNode::ExtractFormat() const
 {
 	// Only do this on demand, and only once
