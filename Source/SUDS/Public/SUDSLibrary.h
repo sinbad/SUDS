@@ -1,6 +1,7 @@
-﻿
+﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "SUDSTextParameters.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "SUDSLibrary.generated.h"
 
@@ -40,5 +41,68 @@ public:
 	                                                     USUDSScript* Script,
 	                                                     const TMap<FString, UObject*>& Participants,
 	                                                     FName StartAtLabel = NAME_None);
+
+	// Blueprint wrapper functions for setting text parameters
+	
+	/**
+	 * Set a dialogue parameter on the passed in parameters collection.
+	 * @param Params The parameter collection to update
+	 * @param Name The name of the parameter
+	 * @param Value The value of the parameter
+	 */
+	UFUNCTION(BlueprintCallable, Category="SUDS")
+	static void SetDialogueTextParameter(UPARAM(ref) FSUDSTextParameters& Params, FString Name, FText Value)
+	{
+		Params.SetParameter(Name, Value);
+	}
+
+	/**
+	 * Set a dialogue parameter on the passed in parameters collection.
+	 * @param Params The parameter collection to update
+	 * @param Name The name of the parameter
+	 * @param Value The value of the parameter
+	 */
+	UFUNCTION(BlueprintCallable, Category="SUDS")
+	static void SetDialogueIntParameter(UPARAM(ref) FSUDSTextParameters& Params, FString Name, int32 Value)
+	{
+		Params.SetParameter(Name, Value);
+	}
+
+	/**
+	 * Set a dialogue parameter on the passed in parameters collection.
+	 * @param Params The parameter collection to update
+	 * @param Name The name of the parameter
+	 * @param Value The value of the parameter
+	 */
+	UFUNCTION(BlueprintCallable, Category="SUDS")
+	static void SetDialogueInt64Parameter(UPARAM(ref) FSUDSTextParameters& Params, FString Name, int64 Value)
+	{
+		Params.SetParameter(Name, Value);
+	}
+
+	/**
+	 * Set a dialogue parameter on the passed in parameters collection.
+	 * @param Params The parameter collection to update
+	 * @param Name The name of the parameter
+	 * @param Value The value of the parameter
+	 */
+	UFUNCTION(BlueprintCallable, Category="SUDS")
+	static void SetDialogueFloatParameter(UPARAM(ref) FSUDSTextParameters& Params, FString Name, float Value)
+	{
+		Params.SetParameter(Name, Value);
+	}
+
+	/**
+	 * Set a dialogue parameter on the passed in parameters collection.
+	 * @param Params The parameter collection to update
+	 * @param Name The name of the parameter
+	 * @param Value The value of the parameter
+	 */
+	UFUNCTION(BlueprintCallable, Category="SUDS")
+	static void SetDialogueGenderParameter(UPARAM(ref) FSUDSTextParameters& Params, FString Name, ETextGender Value)
+	{
+		Params.SetParameter(Name, Value);
+	}
+	
 	
 };

@@ -69,7 +69,7 @@ FText USUDSDialogue::GetText() const
 	if (CurrentNode->HasParameters())
 	{
 		// Really wish I could make this a USTRUCT but then I'd have no BP-callable UFUNCTIONs :(
-		USUDSTextParameters* Params = NewObject<USUDSTextParameters>();
+		FSUDSTextParameters Params;
 		for (auto& ParamName : CurrentNode->GetParameterNames())
 		{
 			// Participant pairs have been pre-sorted by descending priority 
@@ -85,7 +85,7 @@ FText USUDSDialogue::GetText() const
 				}
 			}
 		}
-		return Params->Format(CurrentNode->GetTextFormat());
+		return Params.Format(CurrentNode->GetTextFormat());
 	}
 	else
 	{
@@ -177,7 +177,7 @@ FText USUDSDialogue::GetChoiceText(int Index,bool bOnlyValidChoices) const
 			if (Choice.HasParameters())
 			{
 				// Really wish I could make this a USTRUCT but then I'd have no BP-callable UFUNCTIONs :(
-				USUDSTextParameters* Params = NewObject<USUDSTextParameters>();
+				FSUDSTextParameters Params;
 				for (auto& ParamName : Choice.GetParameterNames())
 				{
 					// Participant pairs have been pre-sorted by descending priority 
@@ -193,7 +193,7 @@ FText USUDSDialogue::GetChoiceText(int Index,bool bOnlyValidChoices) const
 						}
 					}
 				}
-				return Params->Format(Choice.GetTextFormat());
+				return Params.Format(Choice.GetTextFormat());
 				
 			}
 			else

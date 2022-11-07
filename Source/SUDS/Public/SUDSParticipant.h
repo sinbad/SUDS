@@ -32,11 +32,11 @@ public:
 	 * on this opportunity and return false. All participants will be asked for the parameter value.
 	 * @param ParamName The name of the parameter being requested
 	 * @param Params The parameter collection; if this instance can provide the requested parameter, it should call
-	 *	the appropriate SetParameter method on this object and return true.
+	 *	SetParameter (C++) or the BPL SetDialogue<Type>Parameter and return true
 	 * @return True if the parameter was successfully set, false if this instance did not provide it.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="SUDS")
-	UPARAM(DisplayName="Success") bool GetDialogueParameter(const FString& ParamName, USUDSTextParameters* Params);	
+	UPARAM(DisplayName="Parameter Set?") bool GetDialogueParameter(const FString& ParamName, UPARAM(ref) FSUDSTextParameters& Params);	
 
 
 	/**
