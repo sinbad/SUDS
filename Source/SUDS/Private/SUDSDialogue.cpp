@@ -24,13 +24,19 @@ void USUDSDialogue::Initialise(const USUDSScript* Script, FName StartLabel)
 void USUDSDialogue::SetParticipants(const TMap<FString, UObject*> InParticipants)
 {
 	Participants = InParticipants;
-	SortParticipants();
+	ParticipantsChanged();
 }
 
 void USUDSDialogue::AddParticipant(const FString& RoleName, UObject* Participant)
 {
 	Participants.Add(RoleName, Participant);
+	ParticipantsChanged();
+}
+
+void USUDSDialogue::ParticipantsChanged()
+{
 	SortParticipants();
+	RetrieveParams();
 }
 
 void USUDSDialogue::SortParticipants()

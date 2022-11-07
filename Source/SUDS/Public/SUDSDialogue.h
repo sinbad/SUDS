@@ -43,6 +43,7 @@ protected:
 	static const FString DummyString;
 
 	void SetCurrentNode(USUDSScriptNode* Node);
+	void ParticipantsChanged();
 	void RetrieveParams();
 	void SortParticipants();
 	const TArray<FSUDSScriptEdge>* GetChoices(bool bOnlyValidChoices) const;
@@ -58,7 +59,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetParticipants(const TMap<FString, UObject*> NewParticipants);
 
-	
+
 	/**
 	 * Add a participant to this dialogue instance.
 	 * Participants provide parameter values, variables, speaker names, and can receive events from the dialogue.
