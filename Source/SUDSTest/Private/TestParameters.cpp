@@ -18,7 +18,6 @@ NPC: Floating point {FloatVal} format test
 Player: Boolean test {BoolVal}?
 	* Choose, {PlayerName}!
 	* Is {NumCats} {NumCats}|plural(one=cat,other=cats) too many?
-Player: Nothing
 )RAWSUD";
 
 
