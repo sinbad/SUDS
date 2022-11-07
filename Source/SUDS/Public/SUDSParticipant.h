@@ -5,6 +5,7 @@
 #include "UObject/Interface.h"
 #include "SUDSParticipant.generated.h"
 
+class USUDSDialogue;
 UINTERFACE(MinimalAPI)
 class USUDSParticipant : public UInterface
 {
@@ -27,17 +28,14 @@ class SUDS_API ISUDSParticipant
 public:
 	
 	/**
-	 * Retrieve a text parameter value for completion in a dialogue line, e.g. "Hello {PlayerName}" will create
-	 * a request for a "PlayerName" parameter. Implementations can either fill in the value and return true, or pass
-	 * on this opportunity and return false. All participants will be asked for the parameter value.
-	 * @param ParamName The name of the parameter being requested
-	 * @param Params The parameter collection; if this instance can provide the requested parameter, it should call
-	 *	SetParameter (C++) or the BPL SetDialogue<Type>Parameter and return true
-	 * @return True if the parameter was successfully set, false if this instance did not provide it.
+	 * Trigger for this participant to update any parameters to be replaced in the text.
+	 * This function will be called each time the dialogue progresses.
+	 * @param Dialogue The dialogue requesting parameters
+	 * @param Params The parameters to be updated. Call SetParameter from C++, or from Blueprints
+	 *		one of the BPL functions SetDialogueParameter[Type] 
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="SUDS")
-	UPARAM(DisplayName="Parameter Set?") bool GetDialogueParameter(const FString& ParamName, UPARAM(ref) FSUDSTextParameters& Params);	
-
+	void UpdateDialogueParameters(USUDSDialogue* Dialogue, UPARAM(ref) FSUDSTextParameters& Params);	
 
 	/**
 	 * Retrieve the speaker display name for this participant.
@@ -51,9 +49,9 @@ public:
 
 	/**
 	 * Return the priority of this participant (default 0).
-	 * When a text parameter is requested for the dialogue, participants are asked to provide it. The first one to
-	 * return true from GetDialogueParameter will get to set the parameter. If for some reason you need to control the order
-	 * of the requests, override this method; higher priorities are called first (and negatives are allowed).
+	 * When text parameters are set by participants, they do it in order every time the dialogue progresses.
+	 * If for some reason you need to control the order because it's possible more than one participant could try to
+	 * set the same variable, override this method; higher priority values override lower ones (and negatives are allowed).
 	 * @return 
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="SUDS")

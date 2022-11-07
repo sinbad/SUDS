@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "SUDSTextParameters.h"
 #include "UObject/Object.h"
 #include "SUDSDialogue.generated.h"
 
@@ -29,6 +30,9 @@ protected:
 	UPROPERTY()
 	TMap<FString, UObject*> Participants;
 
+
+	FSUDSTextParameters CurrentParams;
+	
 	/// Cached derived info
 	mutable FText CurrentSpeakerDisplayName;
 	/// All choices available from the current node (via a linked Choice node)
@@ -37,8 +41,9 @@ protected:
 	mutable TArray<FSUDSScriptEdge> ValidCurrentChoices;
 	static const FText DummyText;
 	static const FString DummyString;
-	
+
 	void SetCurrentNode(USUDSScriptNode* Node);
+	void RetrieveParams();
 	void SortParticipants();
 	const TArray<FSUDSScriptEdge>* GetChoices(bool bOnlyValidChoices) const;
 public:

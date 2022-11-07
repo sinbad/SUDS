@@ -37,9 +37,11 @@ void USUDSDialogue::SortParticipants()
 {
 	if (!Participants.IsEmpty())
 	{
+		// We order by ascending priority so that higher priority values are later in the list
+		// Which means they're called last and get to override values set by earlier ones
 		Participants.ValueSort([](const UObject& A, const UObject& B)
 		{
-			return ISUDSParticipant::Execute_GetDialogueParticipantPriority(&A) >
+			return ISUDSParticipant::Execute_GetDialogueParticipantPriority(&A) <
 				ISUDSParticipant::Execute_GetDialogueParticipantPriority(&B);
 		});
 	}
@@ -62,30 +64,28 @@ void USUDSDialogue::SetCurrentNode(USUDSScriptNode* Node)
 	AllCurrentChoices = nullptr;
 	ValidCurrentChoices.Reset();
 
+	RetrieveParams();
+
+}
+
+void USUDSDialogue::RetrieveParams()
+{
+	// Participants are ordered from low to high priority so if multiple participants set the same parameter,
+	// later ones override earlier ones.
+	for (auto& Pair : Participants)
+	{
+		if (Pair.Value->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
+		{
+			ISUDSParticipant::Execute_UpdateDialogueParameters(Pair.Value, this, CurrentParams);
+		}
+	}
 }
 
 FText USUDSDialogue::GetText() const
 {
 	if (CurrentNode->HasParameters())
 	{
-		// Really wish I could make this a USTRUCT but then I'd have no BP-callable UFUNCTIONs :(
-		FSUDSTextParameters Params;
-		for (auto& ParamName : CurrentNode->GetParameterNames())
-		{
-			// Participant pairs have been pre-sorted by descending priority 
-			for (auto& Pair : Participants)
-			{
-				if (Pair.Value->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
-				{
-					if (ISUDSParticipant::Execute_GetDialogueParameter(Pair.Value, ParamName, Params))
-					{
-						// Param was provided, go to next one
-						continue;
-					}
-				}
-			}
-		}
-		return Params.Format(CurrentNode->GetTextFormat());
+		return CurrentParams.Format(CurrentNode->GetTextFormat());
 	}
 	else
 	{
@@ -176,25 +176,7 @@ FText USUDSDialogue::GetChoiceText(int Index,bool bOnlyValidChoices) const
 			auto& Choice = (*Choices)[Index];
 			if (Choice.HasParameters())
 			{
-				// Really wish I could make this a USTRUCT but then I'd have no BP-callable UFUNCTIONs :(
-				FSUDSTextParameters Params;
-				for (auto& ParamName : Choice.GetParameterNames())
-				{
-					// Participant pairs have been pre-sorted by descending priority 
-					for (auto& Pair : Participants)
-					{
-						if (Pair.Value->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
-						{
-							if (ISUDSParticipant::Execute_GetDialogueParameter(Pair.Value, ParamName, Params))
-							{
-								// Param was provided, go to next one
-								continue;
-							}
-						}
-					}
-				}
-				return Params.Format(Choice.GetTextFormat());
-				
+				return CurrentParams.Format(Choice.GetTextFormat());
 			}
 			else
 			{
@@ -255,7 +237,8 @@ void USUDSDialogue::Restart(bool bResetState, FName StartLabel)
 {
 	if (bResetState)
 	{
-		// TODO: reset state
+		// TODO: reset variable state
+		CurrentParams.Empty();
 	}
 
 	if (StartLabel != NAME_None)
