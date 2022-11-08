@@ -11,8 +11,8 @@ void UTestParticipant::OnDialogueStarting_Implementation(USUDSDialogue* Dialogue
 	{
 	default:
 	case 0:
-		Dialogue->SetVariable("PlayerName", FText::FromString("Protagonist"));
-		Dialogue->SetVariable("NPCName", FText::FromString("An NPC"));
+		Dialogue->SetVariable("SpeakerName.Player", FText::FromString("Protagonist"));
+		Dialogue->SetVariable("SpeakerName.NPC", FText::FromString("An NPC"));
 		Dialogue->SetVariable("NumCats", 3);
 		Dialogue->SetVariableText("FriendName", FText::FromString("Susan"));
 		Dialogue->SetVariable("Gender", ETextGender::Feminine);

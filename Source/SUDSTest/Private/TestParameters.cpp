@@ -11,12 +11,12 @@
 PRAGMA_DISABLE_OPTIMIZATION
 
 const FString ParamsInput = R"RAWSUD(
-Player: Hello, I'm {PlayerName}
-NPC: Greetings, {PlayerName}, my name is {NPCName}
+Player: Hello, I'm {SpeakerName.Player}
+NPC: Greetings, {SpeakerName.Player}, my name is {SpeakerName.NPC}
 Player: My friend's name is {FriendName}, {Gender}|gender(he,she,they) {Gender}|gender(has,has,have) {NumCats} {NumCats}|plural(one=cat,other=cats)
 NPC: Floating point {FloatVal} format test
 Player: Boolean test {BoolVal}?
-	* Choose, {PlayerName}!
+	* Choose, {SpeakerName.Player}!
 	* Is {NumCats} {NumCats}|plural(one=cat,other=cats) too many?
 )RAWSUD";
 
