@@ -16,10 +16,13 @@ class USUDSParticipant : public UInterface
 * Interface to be implemented by any participant in a given dialogue.
 * A participant could be a speaker, or simply a provider of variables or text parameters (or all of the above)
 * When the dialogue needs something external to itself, or raises an event, it will call participants.
-* Every participant is identified by a FName for that specific dialogue; although you can use the same FName across
+* Every participant is identified by an FName for that specific dialogue; although you can use the same FName across
 * all dialogues for consistency, you don't have to. So long as the dialogue can resolve a name to a participant, it
 * doesn't matter what it is.
-* A dialogue may either send messages to a specific participant, or to all participants, depending on how it's written.
+*  - Dialogues request text substitution parameters from all participants, and higher priority ones get the final say.
+*  - Dialogues may either send messages to a specific participant, or to all participants, depending on the event call
+*  - Variables (that aren't local to the dialogue) are always requested from / updated to a specific named participant 
+* 
 */
 class SUDS_API ISUDSParticipant
 {
@@ -36,16 +39,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="SUDS")
 	void UpdateDialogueParameters(USUDSDialogue* Dialogue, UPARAM(ref) FSUDSTextParameters& Params);	
-
-	/**
-	 * Retrieve the speaker display name for this participant.
-	 * This function will be called if the name that this participant was registered as is used as a speaker in a text line.
-	 * It will be called for every line, just in case you want to change how the speaker is reported over the life of the
-	 * dialogue.
-	 * @return The speaker display name (localised)
-	 */
-	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="SUDS")
-	FText GetDialogueSpeakerDisplayName();
 
 	/**
 	 * Return the priority of this participant (default 0).
