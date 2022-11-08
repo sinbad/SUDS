@@ -1,13 +1,18 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "SUDSTextParameters.h"
 #include "UObject/Object.h"
 #include "SUDSDialogue.generated.h"
 
 struct FSUDSScriptEdge;
 class USUDSScriptNode;
 class USUDSScript;
+
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogueSpeakerLine, class USUDSDialogue*, Dialogue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDialogueChoice, class USUDSDialogue*, Dialogue, int, ChoiceIndex);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDialogueStarting, class USUDSDialogue*, Dialogue, FName, AtLabel);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogueFinished, class USUDSDialogue*, Dialogue);
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSUDSDialogue, Verbose, All);
 /**
@@ -21,6 +26,16 @@ UCLASS(BlueprintType)
 class SUDS_API USUDSDialogue : public UObject
 {
 	GENERATED_BODY()
+public:
+	/// Event raised when dialogue progresses and a new speaker line, potentially with new choices, is ready to be displayed
+	FOnDialogueSpeakerLine OnSpeakerLine;
+	/// Event raised when a choice is made in the dialogue by the player. At this point, the dialogue has not progressed
+	/// as a result of that choice so the index passed can be used to reference the choice
+	FOnDialogueChoice OnChoice;
+	/// Event raised when the dialogue is starting, before the first speaker line
+	FOnDialogueStarting OnStarting;
+	/// Event raised when the dialogue finishes
+	FOnDialogueFinished OnFinished;
 protected:
 	UPROPERTY()
 	const USUDSScript* BaseScript;
@@ -30,8 +45,13 @@ protected:
 	UPROPERTY()
 	TMap<FString, UObject*> Participants;
 
+	/// All of the dialogue variables
+	/// Dialogue variable state is all held locally. Dialogue participants can retrieve or set values in state.
+	/// All state is saved with the dialogue. Variables can be used as text substitution parameters, conditionals,
+	/// or communication with external state.
+	FFormatNamedArguments VariableState;
 
-	FSUDSTextParameters CurrentParams;
+
 	TSet<FString> CurrentRequestedParamNames;
 	bool bParamNamesExtracted;
 	
@@ -45,13 +65,16 @@ protected:
 	static const FString DummyString;
 
 	void SetCurrentNode(USUDSScriptNode* Node);
-	void ParticipantsChanged();
-	void UpdateParamValues();
 	void SortParticipants();
+	void RaiseStarting(FName StartLabel);
+	void RaiseFinished();
+	void RaiseNewSpeakerLine();
+	void RaiseChoiceMade(int Index);
+
 	const TArray<FSUDSScriptEdge>* GetChoices(bool bOnlyValidChoices) const;
 public:
 	USUDSDialogue();
-	void Initialise(const USUDSScript* Script, FName StartLabel = NAME_None);
+	void Initialise(const USUDSScript* Script);
 
 	/**
 	 * Set the complete list of participants for this dialogue instance.
@@ -60,6 +83,13 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable)
 	void SetParticipants(const TMap<FString, UObject*> NewParticipants);
+
+	/**
+	 * Begin the dialogue. Make sure you've added all participants before calling this.
+	 * @param Label The start point for this dialogue. If None, starts from the beginning.
+	 */
+	UFUNCTION(BlueprintCallable)
+	void Start(FName Label = NAME_None);
 
 
 	/**
@@ -117,7 +147,7 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable)
 	bool Continue();
-	
+
 	/**
 	 * Picks one of the available choices 
 	 * If there's only 1 you can still call this with Index = 0, but also see Continue
@@ -145,5 +175,247 @@ public:
 	/// is called.
 	UFUNCTION(BlueprintCallable)
 	TSet<FString> GetParametersInUse();
+
+
+	/// Set a variable in dialogue state
+	template <typename T>
+	void SetVariable(const FString& Name, const T& Value)
+	{
+		VariableState.Add(Name, Value);
+	}
+
+	/**
+	 * Set a text dialogue variable
+	 * @param Name The name of the variable
+	 * @param Value The value of the variable
+	 */
+	UFUNCTION(BlueprintCallable)
+	void SetVariableText(FString Name, FText Value)
+	{
+		VariableState.Add(Name, Value);
+	}
+
+	/**
+	 * Get a text dialogue variable
+	 * @param Name The name of the variable
+	 * @returns Value The value of the variable
+	 */
+	UFUNCTION(BlueprintCallable)
+	FText GetVariableText(FString Name)
+	{
+		if (auto Arg = VariableState.Find(Name))
+		{
+			if (Arg->GetType() == EFormatArgumentType::Text)
+			{
+				return Arg->GetTextValue();
+			}
+			else
+			{
+				UE_LOG(LogSUDSDialogue, Error, TEXT("Requested variable %s of type text but was not a compatible type"), *Name);
+			}
+		}
+		return FText();
+	}
+
+	/**
+	 * Set a dialogue variable on the passed in parameters collection.
+	 * @param Name The name of the variable
+	 * @param Value The value of the variable
+	 */
+	UFUNCTION(BlueprintCallable)
+	void SetVariableInt(FString Name, int32 Value)
+	{
+		VariableState.Add(Name, Value);
+	}
+
+	/**
+	 * Get an int dialogue variable
+	 * @param Name The name of the variable
+	 * @returns Value The value of the variable
+	 */
+	UFUNCTION(BlueprintCallable)
+	int GetVariableInt(FString Name)
+	{
+		if (auto Arg = VariableState.Find(Name))
+		{
+			switch (Arg->GetType())
+			{
+			case EFormatArgumentType::Int:
+				return Arg->GetIntValue();
+			case EFormatArgumentType::UInt:
+				UE_LOG(LogSUDSDialogue, Warning, TEXT("Casting variable %s to int, data loss may occur"), *Name);
+				return Arg->GetUIntValue();
+			case EFormatArgumentType::Float:
+				UE_LOG(LogSUDSDialogue, Warning, TEXT("Casting variable %s to int, data loss may occur"), *Name);
+				return Arg->GetFloatValue();
+			case EFormatArgumentType::Double:
+				UE_LOG(LogSUDSDialogue, Warning, TEXT("Casting variable %s to int, data loss may occur"), *Name);
+				return Arg->GetDoubleValue();
+			default: 
+			case EFormatArgumentType::Gender:
+			case EFormatArgumentType::Text:
+				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible integer type"), *Name);
+			}
+		}
+		return 0;
+	}
+	
+	/**
+	 * Set an Int64 dialogue variable
+	 * @param Name The name of the parameter
+	 * @param Value The value of the parameter
+	 */
+	UFUNCTION(BlueprintCallable)
+	void SetVariableInt64(FString Name, int64 Value)
+	{
+		VariableState.Add(Name, Value);
+	}
+
+	/**
+	 * Get an Int64 dialogue variable
+	 * @param Name The name of the variable
+	 * @returns Value The value of the variable
+	 */
+	UFUNCTION(BlueprintCallable)
+	int64 GetVariableInt64(FString Name)
+	{
+		if (auto Arg = VariableState.Find(Name))
+		{
+			switch (Arg->GetType())
+			{
+			case EFormatArgumentType::Int:
+				return Arg->GetIntValue();
+			case EFormatArgumentType::UInt:
+				UE_LOG(LogSUDSDialogue, Warning, TEXT("Casting variable %s to int, data loss may occur"), *Name);
+				return Arg->GetUIntValue();
+			case EFormatArgumentType::Float:
+				UE_LOG(LogSUDSDialogue, Warning, TEXT("Casting variable %s to int, data loss may occur"), *Name);
+				return Arg->GetFloatValue();
+			case EFormatArgumentType::Double:
+				UE_LOG(LogSUDSDialogue, Warning, TEXT("Casting variable %s to int, data loss may occur"), *Name);
+				return Arg->GetDoubleValue();
+			default: 
+			case EFormatArgumentType::Gender:
+			case EFormatArgumentType::Text:
+				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible integer type"), *Name);
+			}
+		}
+		return 0;
+	}
+
+	/**
+	 * Set a float dialogue variable 
+	 * @param Name The name of the variable
+	 * @param Value The value of the variable
+	 */
+	UFUNCTION(BlueprintCallable)
+	void SetVariableFloat(FString Name, float Value)
+	{
+		VariableState.Add(Name, Value);
+	}
+
+	/**
+	 * Get a float dialogue variable
+	 * @param Name The name of the variable
+	 * @returns Value The value of the variable
+	 */
+	UFUNCTION(BlueprintCallable)
+	float GetVariableFloat(FString Name)
+	{
+		if (auto Arg = VariableState.Find(Name))
+		{
+			switch (Arg->GetType())
+			{
+			case EFormatArgumentType::Int:
+				return Arg->GetIntValue();
+			case EFormatArgumentType::UInt:
+				return Arg->GetUIntValue();
+			case EFormatArgumentType::Float:
+				return Arg->GetFloatValue();
+			case EFormatArgumentType::Double:
+				UE_LOG(LogSUDSDialogue, Warning, TEXT("Casting variable %s to float, data loss may occur"), *Name);
+				return Arg->GetDoubleValue();
+			default: 
+			case EFormatArgumentType::Gender:
+			case EFormatArgumentType::Text:
+				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible float type"), *Name);
+			}
+		}
+		return 0;
+	}
+	
+	/**
+	 * Set a gender dialogue variable 
+	 * @param Name The name of the variable
+	 * @param Value The value of the variable
+	 */
+	UFUNCTION(BlueprintCallable)
+	void SetVariableGender(FString Name, ETextGender Value)
+	{
+		VariableState.Add(Name, Value);
+	}
+
+	/**
+	 * Get a gender dialogue variable
+	 * @param Name The name of the variable
+	 * @returns Value The value of the variable
+	 */
+	UFUNCTION(BlueprintCallable)
+	ETextGender GetVariableGender(FString Name)
+	{
+		if (auto Arg = VariableState.Find(Name))
+		{
+			switch (Arg->GetType())
+			{
+			case EFormatArgumentType::Gender:
+				return Arg->GetGenderValue();
+			default: 
+			case EFormatArgumentType::Int:
+			case EFormatArgumentType::UInt:
+			case EFormatArgumentType::Float:
+			case EFormatArgumentType::Double:
+			case EFormatArgumentType::Text:
+				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible gender type"), *Name);
+			}
+		}
+		return ETextGender::Neuter;
+	}
+
+	/**
+	 * Set a boolean dialogue variable 
+	 * @param Name The name of the variable
+	 * @param Value The value of the variable
+	 */
+	UFUNCTION(BlueprintCallable)
+	void SetVariableBoolean(FString Name, bool Value)
+	{
+		VariableState.Add(Name, Value);
+	}
+
+	/**
+	 * Get a boolean dialogue variable
+	 * @param Name The name of the variable
+	 * @returns Value The value of the variable
+	 */
+	UFUNCTION(BlueprintCallable)
+	bool GetVariableBoolean(FString Name)
+	{
+		if (auto Arg = VariableState.Find(Name))
+		{
+			switch (Arg->GetType())
+			{
+			case EFormatArgumentType::Int:
+			case EFormatArgumentType::UInt:
+				return Arg->GetIntValue() != 0;
+			default: 
+			case EFormatArgumentType::Gender:
+			case EFormatArgumentType::Float:
+			case EFormatArgumentType::Double:
+			case EFormatArgumentType::Text:
+				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible boolean type"), *Name);
+			}
+		}
+		return false;
+	}
 
 };

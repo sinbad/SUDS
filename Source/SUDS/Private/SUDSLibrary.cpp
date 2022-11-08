@@ -4,12 +4,12 @@
 #include "SUDSScript.h"
 #include "SUDS.h"
 
-USUDSDialogue* USUDSLibrary::CreateDialogue(UObject* Owner, USUDSScript* Script, FName StartAtLabel)
+USUDSDialogue* USUDSLibrary::CreateDialogue(UObject* Owner, USUDSScript* Script)
 {
 	if (IsValid(Script))
 	{
 		USUDSDialogue* Ret = NewObject<USUDSDialogue>(Owner, Script->GetFName());
-		Ret->Initialise(Script, StartAtLabel);
+		Ret->Initialise(Script);
 		return Ret;
 	}
 	UE_LOG(LogSUDS, Error, TEXT("Called CreateDialogue with an invalid script"))
@@ -18,10 +18,9 @@ USUDSDialogue* USUDSLibrary::CreateDialogue(UObject* Owner, USUDSScript* Script,
 
 USUDSDialogue* USUDSLibrary::CreateDialogueWithParticipants(UObject* Owner,
 	USUDSScript* Script,
-	const TMap<FString, UObject*>& Participants,
-	FName StartAtLabel)
+	const TMap<FString, UObject*>& Participants)
 {
-	if (auto Dlg = CreateDialogue(Owner, Script, StartAtLabel))
+	if (auto Dlg = CreateDialogue(Owner, Script))
 	{
 		Dlg->SetParticipants(Participants);
 		return Dlg;

@@ -17,6 +17,7 @@ class SUDSTEST_API UTestParticipant : public UObject, public ISUDSParticipant
 
 public:
 	int TestNumber = 0;
+
 	
-	virtual void UpdateDialogueParameters_Implementation(USUDSDialogue* Dialogue, FSUDSTextParameters& Params) override;
+	virtual void OnDialogueStarting_Implementation(USUDSDialogue* Dialogue, FName AtLabel) override;
 };

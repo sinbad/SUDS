@@ -65,6 +65,7 @@ bool FTestSimpleRunning::RunTest(const FString& Parameters)
 
 	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
 	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
+	Dlg->Start();
 
 	TestDialogueText(this, "First node", Dlg, "Player", "Hello there");
 	TestEqual("First node choices", Dlg->GetNumberOfChoices(), 1);

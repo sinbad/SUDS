@@ -3,21 +3,22 @@
 
 #include "TestParticipant.h"
 
-void UTestParticipant::UpdateDialogueParameters_Implementation(USUDSDialogue* Dialogue, FSUDSTextParameters& Params)
+#include "SUDSDialogue.h"
+
+void UTestParticipant::OnDialogueStarting_Implementation(USUDSDialogue* Dialogue, FName AtLabel)
 {
 	switch(TestNumber)
 	{
 	default:
 	case 0:
-		Params.SetParameter("PlayerName", FText::FromString("Protagonist"));
-		Params.SetParameter("NPCName", FText::FromString("An NPC"));
-		Params.SetParameter("NumCats", 3);
-		Params.SetParameter("FriendName", FText::FromString("Susan"));
-		Params.SetParameter("Gender", ETextGender::Feminine);
-		Params.SetParameter("FloatVal", 12.567);
-		Params.SetParameter("BoolVal", true);
+		Dialogue->SetVariable("PlayerName", FText::FromString("Protagonist"));
+		Dialogue->SetVariable("NPCName", FText::FromString("An NPC"));
+		Dialogue->SetVariable("NumCats", 3);
+		Dialogue->SetVariableText("FriendName", FText::FromString("Susan"));
+		Dialogue->SetVariable("Gender", ETextGender::Feminine);
+		Dialogue->SetVariableFloat("FloatVal", 12.567);
+		Dialogue->SetVariableBoolean("BoolVal", true);
 		break;
 	}
-	
-	
 }
+

@@ -45,6 +45,7 @@ bool FTestParameters::RunTest(const FString& Parameters)
 	auto Participant = NewObject<UTestParticipant>();
 	Participant->TestNumber = 0;
 	Dlg->AddParticipant("Dummy", Participant);
+	Dlg->Start();
 
 	TestDialogueText(this, "Line 1", Dlg, "Player", "Hello, I'm Protagonist");
 	Dlg->Continue();

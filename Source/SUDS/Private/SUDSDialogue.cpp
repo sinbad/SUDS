@@ -15,28 +15,27 @@ USUDSDialogue::USUDSDialogue()
 {
 }
 
-void USUDSDialogue::Initialise(const USUDSScript* Script, FName StartLabel)
+void USUDSDialogue::Initialise(const USUDSScript* Script)
 {
 	BaseScript = Script;
-	Restart(true, StartLabel);
+	CurrentNode = nullptr;
+}
+
+void USUDSDialogue::Start(FName Label)
+{
+	Restart(true, Label);
 }
 
 void USUDSDialogue::SetParticipants(const TMap<FString, UObject*> InParticipants)
 {
 	Participants = InParticipants;
-	ParticipantsChanged();
+	SortParticipants();
 }
 
 void USUDSDialogue::AddParticipant(const FString& RoleName, UObject* Participant)
 {
 	Participants.Add(RoleName, Participant);
-	ParticipantsChanged();
-}
-
-void USUDSDialogue::ParticipantsChanged()
-{
 	SortParticipants();
-	UpdateParamValues();
 }
 
 void USUDSDialogue::SortParticipants()
@@ -71,28 +70,15 @@ void USUDSDialogue::SetCurrentNode(USUDSScriptNode* Node)
 	ValidCurrentChoices.Reset();
 	bParamNamesExtracted = false;
 
-	UpdateParamValues();
+	RaiseNewSpeakerLine();
 
-}
-
-void USUDSDialogue::UpdateParamValues()
-{
-	// Participants are ordered from low to high priority so if multiple participants set the same parameter,
-	// later ones override earlier ones.
-	for (auto& Pair : Participants)
-	{
-		if (Pair.Value->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
-		{
-			ISUDSParticipant::Execute_UpdateDialogueParameters(Pair.Value, this, CurrentParams);
-		}
-	}
 }
 
 FText USUDSDialogue::GetText() const
 {
 	if (CurrentNode->HasParameters())
 	{
-		return CurrentParams.Format(CurrentNode->GetTextFormat());
+		return FText::Format(CurrentNode->GetTextFormat(), VariableState);
 	}
 	else
 	{
@@ -183,7 +169,7 @@ FText USUDSDialogue::GetChoiceText(int Index,bool bOnlyValidChoices) const
 			auto& Choice = (*Choices)[Index];
 			if (Choice.HasParameters())
 			{
-				return CurrentParams.Format(Choice.GetTextFormat());
+				return FText::Format(Choice.GetTextFormat(), VariableState);
 			}
 			else
 			{
@@ -215,6 +201,8 @@ bool USUDSDialogue::Choose(int Index)
 	{
 		if (Choices && Choices->IsValidIndex(Index))
 		{
+			RaiseChoiceMade(Index);
+			
 			if ((*Choices)[Index].GetTargetNode().IsValid())
 			{
 				SetCurrentNode((*Choices)[Index].GetTargetNode().Get());
@@ -224,6 +212,7 @@ bool USUDSDialogue::Choose(int Index)
 			{
 				// Reached the end
 				SetCurrentNode(nullptr);
+				OnFinished.Broadcast(this);
 				return false;
 			}
 		}
@@ -244,9 +233,10 @@ void USUDSDialogue::Restart(bool bResetState, FName StartLabel)
 {
 	if (bResetState)
 	{
-		// TODO: reset variable state
-		CurrentParams.Empty();
+		VariableState.Reset();
 	}
+
+	RaiseStarting(StartLabel);
 
 	if (StartLabel != NAME_None)
 	{
@@ -283,30 +273,77 @@ TSet<FString> USUDSDialogue::GetParametersInUse()
 	if (!bParamNamesExtracted)
 	{
 		CurrentRequestedParamNames.Reset();
-		TArray<FString> TempArray;
 		if (CurrentNode && CurrentNode->HasParameters())
 		{
-			CurrentNode->GetTextFormat().GetFormatArgumentNames(TempArray);
+			CurrentRequestedParamNames.Append(CurrentNode->GetParameterNames());
 		}
-		if (auto Choices = GetChoices(true))
+		if (const auto Choices = GetChoices(true))
 		{
 			for (auto& Choice : *Choices)
 			{
 				if (Choice.HasParameters())
 				{
-					Choice.GetTextFormat().GetFormatArgumentNames(TempArray);
+					CurrentRequestedParamNames.Append(Choice.GetParameterNames());
 				}
 			}
-		}
-		for (auto& Name : TempArray)
-		{
-			CurrentRequestedParamNames.Add(Name);
 		}
 		bParamNamesExtracted = true;
 	}
 
 	return CurrentRequestedParamNames;
 	
+}
+
+void USUDSDialogue::RaiseStarting(FName StartLabel)
+{
+	for (const auto& Pair : Participants)
+	{
+		if (Pair.Value->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
+		{
+			ISUDSParticipant::Execute_OnDialogueStarting(Pair.Value, this, StartLabel);
+		}
+	}
+	OnStarting.Broadcast(this, StartLabel);
+}
+
+void USUDSDialogue::RaiseFinished()
+{
+	for (const auto& Pair : Participants)
+	{
+		if (Pair.Value->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
+		{
+			ISUDSParticipant::Execute_OnDialogueFinished(Pair.Value, this);
+		}
+	}
+	OnFinished.Broadcast(this);
+
+}
+
+void USUDSDialogue::RaiseNewSpeakerLine()
+{
+	for (const auto& Pair : Participants)
+	{
+		if (Pair.Value->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
+		{
+			ISUDSParticipant::Execute_OnDialogueSpeakerLine(Pair.Value, this);
+		}
+	}
+	
+	// Event listeners get it after
+	OnSpeakerLine.Broadcast(this);
+}
+
+void USUDSDialogue::RaiseChoiceMade(int Index)
+{
+	for (const auto& Pair : Participants)
+	{
+		if (Pair.Value->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
+		{
+			ISUDSParticipant::Execute_OnDialogueChoiceMade(Pair.Value, this, Index);
+		}
+	}
+	// Event listeners get it after
+	OnChoice.Broadcast(this, Index);
 }
 
 PRAGMA_ENABLE_OPTIMIZATION
