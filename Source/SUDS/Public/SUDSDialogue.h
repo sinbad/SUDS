@@ -32,6 +32,8 @@ protected:
 
 
 	FSUDSTextParameters CurrentParams;
+	TSet<FString> CurrentRequestedParamNames;
+	bool bParamNamesExtracted;
 	
 	/// Cached derived info
 	mutable FText CurrentSpeakerDisplayName;
@@ -44,7 +46,7 @@ protected:
 
 	void SetCurrentNode(USUDSScriptNode* Node);
 	void ParticipantsChanged();
-	void RetrieveParams();
+	void UpdateParamValues();
 	void SortParticipants();
 	const TArray<FSUDSScriptEdge>* GetChoices(bool bOnlyValidChoices) const;
 public:
@@ -136,5 +138,12 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable)
 	void Restart(bool bResetState = true, FName StartLabel = NAME_None);
+
+	/// Get the set of text parameters that are actually being asked for in the current state of the dialogue.
+	/// This will include parameters in the text, and parameters in any current choices being displayed.
+	/// Use this if you want to be more specific about what parameters you supply when ISUDSParticipant::UpdateDialogueParameters
+	/// is called.
+	UFUNCTION(BlueprintCallable)
+	TSet<FString> GetParametersInUse();
 
 };

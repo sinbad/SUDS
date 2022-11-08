@@ -36,7 +36,7 @@ void USUDSDialogue::AddParticipant(const FString& RoleName, UObject* Participant
 void USUDSDialogue::ParticipantsChanged()
 {
 	SortParticipants();
-	RetrieveParams();
+	UpdateParamValues();
 }
 
 void USUDSDialogue::SortParticipants()
@@ -69,12 +69,13 @@ void USUDSDialogue::SetCurrentNode(USUDSScriptNode* Node)
 	CurrentSpeakerDisplayName = FText::GetEmpty();
 	AllCurrentChoices = nullptr;
 	ValidCurrentChoices.Reset();
+	bParamNamesExtracted = false;
 
-	RetrieveParams();
+	UpdateParamValues();
 
 }
 
-void USUDSDialogue::RetrieveParams()
+void USUDSDialogue::UpdateParamValues()
 {
 	// Participants are ordered from low to high priority so if multiple participants set the same parameter,
 	// later ones override earlier ones.
@@ -272,6 +273,39 @@ void USUDSDialogue::Restart(bool bResetState, FName StartLabel)
 	{
 		SetCurrentNode(BaseScript->GetFirstNode());
 	}
+	
+}
+
+
+TSet<FString> USUDSDialogue::GetParametersInUse()
+{
+	// Build on demand, may not be needed
+	if (!bParamNamesExtracted)
+	{
+		CurrentRequestedParamNames.Reset();
+		TArray<FString> TempArray;
+		if (CurrentNode && CurrentNode->HasParameters())
+		{
+			CurrentNode->GetTextFormat().GetFormatArgumentNames(TempArray);
+		}
+		if (auto Choices = GetChoices(true))
+		{
+			for (auto& Choice : *Choices)
+			{
+				if (Choice.HasParameters())
+				{
+					Choice.GetTextFormat().GetFormatArgumentNames(TempArray);
+				}
+			}
+		}
+		for (auto& Name : TempArray)
+		{
+			CurrentRequestedParamNames.Add(Name);
+		}
+		bParamNamesExtracted = true;
+	}
+
+	return CurrentRequestedParamNames;
 	
 }
 
