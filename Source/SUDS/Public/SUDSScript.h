@@ -23,14 +23,25 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	TMap<FName, int> LabelList;
 
+	// Header equivalents for startup
+	TArray<USUDSScriptNode*> HeaderNodes;
+	TMap<FName, int> HeaderLabelList;
+
 	/// Array of all speaker IDs found in this script
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FString> Speakers;
 	
 public:
-
-	void StartImport(TArray<USUDSScriptNode*> **Nodes, TMap<FName, int> **LabelList, TArray<FString>** SpeakerList);
+	void StartImport(TArray<USUDSScriptNode*>** Nodes,
+	                 TArray<USUDSScriptNode*>** HeaderNodes,
+	                 TMap<FName, int>** LabelList,
+	                 TMap<FName, int>** ppHeaderLabelList,
+	                 TArray<FString>** SpeakerList);
 	void FinishImport();
+
+	/// Get the first header node, if any (header nodes are run every time the script starts)
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	USUDSScriptNode* GetHeaderNode() const;
 
 	/// Get the first node of the script, if starting from the beginning
 	UFUNCTION(BlueprintCallable, BlueprintPure)

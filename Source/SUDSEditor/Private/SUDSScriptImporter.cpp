@@ -24,15 +24,11 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 	constexpr int32 NumDelims = UE_ARRAY_COUNT(LineEndings);
 
 	int LineNumber = 1;
-	EdgeInProgress = nullptr;
-	PendingGotoLabels.Empty();
-	AliasedGotoLabels.Empty();
+	HeaderTree.Reset();
+	BodyTree.Reset();
 	bHeaderDone = false;
 	bHeaderInProgress = false;
 	bool bImportedOK = true;
-	IndentLevelStack.Empty();
-	Nodes.Empty();
-	GotoLabelList.Empty();
 	ChoiceUniqueId = 0;
 	if (Start)
 	{
@@ -86,7 +82,8 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 		bImportedOK = ParseLine(Line, LineNumber++, NameForErrors, bSilent);
 	}
 
-	ConnectRemainingNodes(NameForErrors, bSilent);
+	ConnectRemainingNodes(HeaderTree, NameForErrors, bSilent);
+	ConnectRemainingNodes(BodyTree, NameForErrors, bSilent);
 
 	return bImportedOK;
 	
@@ -155,12 +152,15 @@ bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const F
 
 bool FSUDSScriptImporter::ParseHeaderLine(const FStringView& Line, int LineNo, const FString& NameForErrors, bool bSilent)
 {
-	// TODO parse header content
-	// DeclaredSpeakers
-	// Variables
-
 	if (!bSilent)
 		UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:00: HEADER: %s"), LineNo, *FString(Line));
+
+	// Header lines include set commands
+	if (Line.StartsWith(TEXT('[')))
+	{
+		bool bParsed = ParseSetLine(Line, HeaderTree, 0, LineNo, NameForErrors, bSilent);
+	}
+	
 	return true;
 }
 
@@ -180,36 +180,36 @@ bool FSUDSScriptImporter::ParseBodyLine(const FStringView& Line,
 	//   This is why "threshold indent" remains as the outermost indent in this context
 	// If same as threshold indent, continuation of current context
 
-	while (IndentLevelStack.Num() > 1 &&
-		IndentLevel < IndentLevelStack.Top().ThresholdIndent)
+	while (BodyTree.IndentLevelStack.Num() > 1 &&
+		IndentLevel < BodyTree.IndentLevelStack.Top().ThresholdIndent)
 	{
 		// Pop as much from the stack as necessary to return to this indent level
-		PopIndent();
+		PopIndent(BodyTree);
 	}
 
-	if (IndentLevelStack.IsEmpty())
+	if (BodyTree.IndentLevelStack.IsEmpty())
 	{
 		// Must be the first body line encountered. Add 1 indent level for the root
-		PushIndent(-1, 0, "");
+		PushIndent(BodyTree, -1, 0, "");
 	}
 
 	if (Line.StartsWith(TEXT('*')))
 	{
-		return ParseChoiceLine(Line, IndentLevel, LineNo, NameForErrors, bSilent);
+		return ParseChoiceLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
 	}
 	else if (Line.StartsWith(TEXT(':')))
 	{
-		return ParseGotoLabelLine(Line, IndentLevel, LineNo, NameForErrors, bSilent);
+		return ParseGotoLabelLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
 	}
 	else if (Line.StartsWith(TEXT('[')))
 	{
-		bool bParsed = ParseConditionalLine(Line, IndentLevel, LineNo, NameForErrors, bSilent);
+		bool bParsed = ParseConditionalLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
 		if (!bParsed)
-			bParsed = ParseGotoLine(Line, IndentLevel, LineNo, NameForErrors, bSilent);
+			bParsed = ParseGotoLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
 		if (!bParsed)
-			bParsed = ParseSetLine(Line, IndentLevel, LineNo, NameForErrors, bSilent);
+			bParsed = ParseSetLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
 		if (!bParsed)
-			bParsed = ParseEventLine(Line, IndentLevel, LineNo, NameForErrors, bSilent);
+			bParsed = ParseEventLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
 
 		if (!bParsed)
 		{
@@ -224,7 +224,7 @@ bool FSUDSScriptImporter::ParseBodyLine(const FStringView& Line,
 	}
 	else
 	{
-		return ParseTextLine(Line, IndentLevel, LineNo, NameForErrors, bSilent);
+		return ParseTextLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
 	}
 	
 
@@ -235,34 +235,40 @@ bool FSUDSScriptImporter::ParseBodyLine(const FStringView& Line,
 }
 
 
-bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent)
+bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line,
+                                          FSUDSScriptImporter::ParsedTree& Tree,
+                                          int IndentLevel,
+                                          int LineNo,
+                                          const FString&
+                                          NameForErrors,
+                                          bool bSilent)
 {
 	if (Line.StartsWith('*'))
 	{
 		if (!bSilent)
 			UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: CHOICE: %s"), LineNo, IndentLevel, *FString(Line));
 		
-		auto& Ctx = IndentLevelStack.Top();
+		auto& Ctx = Tree.IndentLevelStack.Top();
 
 		// If the current indent context node is NOT a choice, create a choice node, and connect to previous node (using pending edge if needed)
-		if (!Nodes.IsValidIndex(Ctx.LastNodeIdx) ||
-			Nodes[Ctx.LastNodeIdx].NodeType != ESUDSParsedNodeType::Choice)
+		if (!Tree.Nodes.IsValidIndex(Ctx.LastNodeIdx) ||
+			Tree.Nodes[Ctx.LastNodeIdx].NodeType != ESUDSParsedNodeType::Choice)
 		{
 			// Last node was not a choice node, so to add edge for this choice we first need to create the choice node
-			AppendNode(FSUDSParsedNode(ESUDSParsedNodeType::Choice, IndentLevel, LineNo));
+			AppendNode(Tree, FSUDSParsedNode(ESUDSParsedNodeType::Choice, IndentLevel, LineNo));
 		}
-		if (EdgeInProgress)
+		if (Tree.EdgeInProgress)
 		{
 			// Must already have been a choice node but previous pending edge wasn't resolved
 			// This means it's a fallthrough, will be resolved at end
-			EdgeInProgress = nullptr;			
+			Tree.EdgeInProgress = nullptr;			
 		}
 
-		auto& ChoiceNode = Nodes[Ctx.LastNodeIdx];
+		auto& ChoiceNode = Tree.Nodes[Ctx.LastNodeIdx];
 		
 		// Inside each choice, everything should be indented at least as much as 1 character inside the *
 		// We provide the edge with context C001, C002 etc for fallthrough
-		PushIndent(Ctx.LastNodeIdx, IndentLevel + 1, FString::Printf(TEXT("C%03d"), ++ChoiceUniqueId));
+		PushIndent(Tree, Ctx.LastNodeIdx, IndentLevel + 1, FString::Printf(TEXT("C%03d"), ++ChoiceUniqueId));
 		
 		// Add a pending edge, with the choice text
 		// Following things fill in the edge details, the next node to be parsed will finalise the destination
@@ -270,14 +276,20 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line, int IndentLev
 		auto ChoiceTextView = Line.SubStr(1, Line.Len() - 1).TrimStart();
 		RetrieveAndRemoveOrGenerateTextID(ChoiceTextView, ChoiceTextID);
 		const int EdgeIdx = ChoiceNode.Edges.Add(FSUDSParsedEdge(-1, LineNo, FString(ChoiceTextView), ChoiceTextID));
-		EdgeInProgress = &ChoiceNode.Edges[EdgeIdx];
+		Tree.EdgeInProgress = &ChoiceNode.Edges[EdgeIdx];
 		
 		return true;
 	}
 	return false;
 }
 
-bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent)
+bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line,
+                                               FSUDSScriptImporter::ParsedTree& Tree,
+                                               int IndentLevel,
+                                               int LineNo,
+                                               const FString&
+                                               NameForErrors,
+                                               bool bSilent)
 {
 	if (Line.Equals(TEXT("[else]")))
 	{
@@ -326,7 +338,13 @@ bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line, int Inde
 	return false;
 }
 
-bool FSUDSScriptImporter::ParseGotoLabelLine(const FStringView& Line, int IndentLevel, int LineNo,	const FString& NameForErrors, bool bSilent)
+bool FSUDSScriptImporter::ParseGotoLabelLine(const FStringView& Line,
+                                             FSUDSScriptImporter::ParsedTree& Tree,
+                                             int IndentLevel,
+                                             int LineNo,
+                                             const FString&
+                                             NameForErrors,
+                                             bool bSilent)
 {
 	if (!bSilent)
 		UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: LABEL : %s"), LineNo, IndentLevel, *FString(Line));
@@ -346,7 +364,7 @@ bool FSUDSScriptImporter::ParseGotoLabelLine(const FStringView& Line, int Indent
 		}
 		else
 		{
-			PendingGotoLabels.Add(Label);
+			Tree.PendingGotoLabels.Add(Label);
 			// This will be connected to the next node created
 			// Is a list since multiple labels may resolve to the same place
 		}
@@ -360,7 +378,13 @@ bool FSUDSScriptImporter::ParseGotoLabelLine(const FStringView& Line, int Indent
 	return true;
 }
 
-bool FSUDSScriptImporter::ParseGotoLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent)
+bool FSUDSScriptImporter::ParseGotoLine(const FStringView& Line,
+                                        FSUDSScriptImporter::ParsedTree& Tree,
+                                        int IndentLevel,
+                                        int LineNo,
+                                        const FString&
+                                        NameForErrors,
+                                        bool bSilent)
 {
 	if (!bSilent)
 		UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: GOTO  : %s"), LineNo, IndentLevel, *FString(Line));
@@ -374,15 +398,15 @@ bool FSUDSScriptImporter::ParseGotoLine(const FStringView& Line, int IndentLevel
 		// lower case label so case insensitive
 		const FString Label = GotoRegex.GetCaptureGroup(1).ToLower();
 		// note that we do NOT try to resolve the goto label here, to allow forward jumps.
-		const auto& Ctx = IndentLevelStack.Top();
+		const auto& Ctx = Tree.IndentLevelStack.Top();
 		// A goto is an edge from the current node to another node
 		// That means if we had pending labels that didn't hit a node before now, they're just aliases to THIS label
-		for (auto PendingLabel : PendingGotoLabels)
+		for (auto PendingLabel : Tree.PendingGotoLabels)
 		{
-			AliasedGotoLabels.Add(PendingLabel, Label);
+			Tree.AliasedGotoLabels.Add(PendingLabel, Label);
 		}
-		PendingGotoLabels.Reset();
-		AppendNode(FSUDSParsedNode(Label, IndentLevel, LineNo));
+		Tree.PendingGotoLabels.Reset();
+		AppendNode(Tree, FSUDSParsedNode(Label, IndentLevel, LineNo));
 		return true;
 	}
 	if (!bSilent)
@@ -390,7 +414,13 @@ bool FSUDSScriptImporter::ParseGotoLine(const FStringView& Line, int IndentLevel
 	return false;
 }
 
-bool FSUDSScriptImporter::ParseSetLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent)
+bool FSUDSScriptImporter::ParseSetLine(const FStringView& Line,
+                                       FSUDSScriptImporter::ParsedTree& Tree,
+                                       int IndentLevel,
+                                       int LineNo,
+                                       const FString&
+                                       NameForErrors,
+                                       bool bSilent)
 {
 	// Unfortunately FRegexMatcher doesn't support FStringView
 	const FString LineStr(Line);
@@ -406,7 +436,13 @@ bool FSUDSScriptImporter::ParseSetLine(const FStringView& Line, int IndentLevel,
 	return false;
 }
 
-bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent)
+bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line,
+                                         FSUDSScriptImporter::ParsedTree& Tree,
+                                         int IndentLevel,
+                                         int LineNo,
+                                         const FString&
+                                         NameForErrors,
+                                         bool bSilent)
 {
 	const FString LineStr(Line);
 	const FRegexPattern EventPattern(TEXT("^\\[event\\s+(\\S+)\\s+(.+)\\]$"));
@@ -421,9 +457,15 @@ bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line, int IndentLeve
 	return false;
 }
 
-bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent)
+bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine,
+                                        FSUDSScriptImporter::ParsedTree& Tree,
+                                        int IndentLevel,
+                                        int LineNo,
+                                        const FString&
+                                        NameForErrors,
+                                        bool bSilent)
 {
-	auto& Ctx = IndentLevelStack.Top();
+	auto& Ctx = Tree.IndentLevelStack.Top();
 
 	// Attempt to find existing text ID
 	// For multiple lines, may not be present until last line (but in fact can be on any line)
@@ -445,7 +487,7 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine, int IndentLev
 		// New text node
 		// Text nodes can never introduce another indent context
 		// We've already backed out to the outer indent in caller
-		AppendNode(FSUDSParsedNode(Speaker, Text, TextID, IndentLevel, LineNo));
+		AppendNode(Tree, FSUDSParsedNode(Speaker, Text, TextID, IndentLevel, LineNo));
 
 		ReferencedSpeakers.AddUnique(Speaker);
 		
@@ -455,9 +497,9 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine, int IndentLev
 	// If we fell through, this line is appended to the last text node
 	if (!bSilent)
 		UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: TEXT+ : %s"), LineNo, IndentLevel, *FString(Line));
-	if (Nodes.IsValidIndex(Ctx.LastNodeIdx))
+	if (Tree.Nodes.IsValidIndex(Ctx.LastNodeIdx))
 	{
-		auto& Node = Nodes[Ctx.LastNodeIdx];
+		auto& Node = Tree.Nodes[Ctx.LastNodeIdx];
 		if (Node.NodeType == ESUDSParsedNodeType::Text)
 		{
 			Node.Text.Appendf(TEXT("\n%s"), *LineStr);
@@ -520,7 +562,7 @@ FString FSUDSScriptImporter::GenerateTextID(const FStringView& Line)
 	return FString::Printf(TEXT("@%x@"), ++TextIDHighestNumber);
 }
 
-FString FSUDSScriptImporter::GetCurrentTreePath()
+FString FSUDSScriptImporter::GetCurrentTreePath(FSUDSScriptImporter::ParsedTree& Tree)
 {
 	// This is just a path of all the choice / select nodes AND their edges leading to this point, for fallthrough
 	// * Choice (/C000/)
@@ -531,33 +573,33 @@ FString FSUDSScriptImporter::GetCurrentTreePath()
 	// Fallthrough to here instead (/)
 
 	FStringBuilderBase B;
-	for (auto Indent : IndentLevelStack)
+	for (auto Indent : Tree.IndentLevelStack)
 	{
 		B.Appendf(TEXT("%s%s"), *Indent.PathEntry, *TreePathSeparator);
 	}
 	return B.ToString();
 }
 
-int FSUDSScriptImporter::AppendNode(const FSUDSParsedNode& NewNode)
+int FSUDSScriptImporter::AppendNode(FSUDSScriptImporter::ParsedTree& Tree, const FSUDSParsedNode& NewNode)
 {
-	auto& Ctx = IndentLevelStack.Top();
+	auto& Ctx = Tree.IndentLevelStack.Top();
 
-	const int NewIndex = Nodes.Add(NewNode);
+	const int NewIndex = Tree.Nodes.Add(NewNode);
 
 	// Set the tree path of the node (post-add)
 	{
-		auto& N = Nodes[NewIndex];
-		N.TreePath = GetCurrentTreePath();
+		auto& N = Tree.Nodes[NewIndex];
+		N.TreePath = GetCurrentTreePath(Tree);
 	}
 	
-	if (Nodes.IsValidIndex(Ctx.LastNodeIdx))
+	if (Tree.Nodes.IsValidIndex(Ctx.LastNodeIdx))
 	{
 		// Append this node onto the last one
-		auto& PrevNode = Nodes[Ctx.LastNodeIdx];
+		auto& PrevNode = Tree.Nodes[Ctx.LastNodeIdx];
 		// Use pending edge if present; that could be because this is under a choice node, or a condition
-		if (EdgeInProgress)
+		if (Tree.EdgeInProgress)
 		{
-			EdgeInProgress->TargetNodeIdx = NewIndex;
+			Tree.EdgeInProgress->TargetNodeIdx = NewIndex;
 		}
 		else
 		{
@@ -571,15 +613,15 @@ int FSUDSScriptImporter::AppendNode(const FSUDSParsedNode& NewNode)
 				PrevNode.Edges.Add(FSUDSParsedEdge(NewIndex, NewNode.SourceLineNo));
 			}
 		}
-		EdgeInProgress = nullptr;
+		Tree.EdgeInProgress = nullptr;
 	}
 
 	// All goto labels in scope at this point now point to this node
-	for (auto Label : PendingGotoLabels)
+	for (auto Label : Tree.PendingGotoLabels)
 	{
-		GotoLabelList.Add(Label, NewIndex);
+		Tree.GotoLabelList.Add(Label, NewIndex);
 	}
-	PendingGotoLabels.Reset();
+	Tree.PendingGotoLabels.Reset();
 
 	Ctx.LastNodeIdx = NewIndex;
 	Ctx.ThresholdIndent = FMath::Min(Ctx.ThresholdIndent, NewNode.OriginalIndent);
@@ -588,16 +630,16 @@ int FSUDSScriptImporter::AppendNode(const FSUDSParsedNode& NewNode)
 	return NewIndex;
 }
 
-void FSUDSScriptImporter::PopIndent()
+void FSUDSScriptImporter::PopIndent(FSUDSScriptImporter::ParsedTree& Tree)
 {
-	IndentLevelStack.Pop();
+	Tree.IndentLevelStack.Pop();
 	// We *could* reset the pending goto list if there are labels at higher indents than current that never resolved to a node
 	// but I'm choosing not to right now and letting them fall through
 }
 
-void FSUDSScriptImporter::PushIndent(int NodeIdx, int Indent, const FString& Path)
+void FSUDSScriptImporter::PushIndent(FSUDSScriptImporter::ParsedTree& Tree, int NodeIdx, int Indent, const FString& Path)
 {
-	IndentLevelStack.Push(IndentContext(NodeIdx, Indent, Path));
+	Tree.IndentLevelStack.Push(IndentContext(NodeIdx, Indent, Path));
 
 }
 
@@ -628,27 +670,27 @@ FStringView FSUDSScriptImporter::TrimLine(const FStringView& Line, int& OutInden
 	
 }
 
-void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors, bool bSilent)
+void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree& Tree, const FString& NameForErrors, bool bSilent)
 {
 	// Now we go through all nodes, resolving gotos, and finding links that don't go anywhere * making
 	// them fall through to the next appropriate outdented node (or the end)
 
 	// Firstly turn all the alias gotos into final gotos
-	for (auto& Alias : AliasedGotoLabels)
+	for (auto& Alias : Tree.AliasedGotoLabels)
 	{
-		if (int* pIdx = GotoLabelList.Find(Alias.Value))
+		if (int* pIdx = Tree.GotoLabelList.Find(Alias.Value))
 		{
-			GotoLabelList.Add(Alias.Key, *pIdx);
+			Tree.GotoLabelList.Add(Alias.Key, *pIdx);
 		}
 	}
-	AliasedGotoLabels.Reset();
+	Tree.AliasedGotoLabels.Reset();
 	
 
 	// We go through top-to-bottom, which is the order of lines in the file as well
 	// We don't need to cascade for this
-	for (int i = 0; i < Nodes.Num(); ++i)
+	for (int i = 0; i < Tree.Nodes.Num(); ++i)
 	{
-		auto& Node = Nodes[i];
+		auto& Node = Tree.Nodes[i];
 		if (Node.Edges.IsEmpty())
 		{
 			if (Node.NodeType == ESUDSParsedNodeType::Goto)
@@ -660,7 +702,7 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors, bo
 				// Special case 'end' which needs no further checking
 				if (Label != EndGotoLabel)
 				{
-					const int GotoNodeIdx = GetGotoTargetNodeIndex(Node.SpeakerOrGotoLabel);
+					const int GotoNodeIdx = GetGotoTargetNodeIndex(Tree, Node.SpeakerOrGotoLabel);
 					if (GotoNodeIdx == -1)
 					{
 						if (!bSilent)
@@ -671,8 +713,8 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors, bo
 			else
 			{
 				// Find the next node which is at a higher indent level than this
-				const auto FallthroughIdx = FindNextOutdentedNodeIndex(i+1, Node.OriginalIndent, Node.TreePath);
-				if (Nodes.IsValidIndex(FallthroughIdx))
+				const auto FallthroughIdx = FindNextOutdentedNodeIndex(Tree, i+1, Node.OriginalIndent, Node.TreePath);
+				if (Tree.Nodes.IsValidIndex(FallthroughIdx))
 				{
 					Node.Edges.Add(FSUDSParsedEdge(FallthroughIdx, Node.SourceLineNo));
 				}
@@ -686,11 +728,11 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors, bo
 		{
 			for (auto& Edge : Node.Edges)
 			{
-				if (!Nodes.IsValidIndex(Edge.TargetNodeIdx))
+				if (!Tree.Nodes.IsValidIndex(Edge.TargetNodeIdx))
 				{
 					// Usually this is a choice line without anything under it, or a condition with nothing in it
-					const auto FallthroughIdx = FindNextOutdentedNodeIndex(i+1, Node.OriginalIndent, Node.TreePath);
-					if (Nodes.IsValidIndex(FallthroughIdx))
+					const auto FallthroughIdx = FindNextOutdentedNodeIndex(Tree, i+1, Node.OriginalIndent, Node.TreePath);
+					if (Tree.Nodes.IsValidIndex(FallthroughIdx))
 					{
 						Edge.TargetNodeIdx = FallthroughIdx;
 					}
@@ -705,7 +747,7 @@ void FSUDSScriptImporter::ConnectRemainingNodes(const FString& NameForErrors, bo
 	}
 }
 
-int FSUDSScriptImporter::FindNextOutdentedNodeIndex(int StartNodeIndex, int IndentLessThan, const FString& FromPath)
+int FSUDSScriptImporter::FindNextOutdentedNodeIndex(FSUDSScriptImporter::ParsedTree& Tree, int StartNodeIndex, int IndentLessThan, const FString& FromPath)
 {
 	// In order to be a valid fallthrough, also needs to be on the same choice (or select) path
 	// E.g. it's possible to have:
@@ -741,9 +783,9 @@ int FSUDSScriptImporter::FindNextOutdentedNodeIndex(int StartNodeIndex, int Inde
 	//  - Point T3 is on / which is a subset of /C1 so OK
 
 	// We'll form these paths just from node indexes rather than C1/C2 etc. Nesting can be for a choice or a select
-	for (int i = StartNodeIndex; i < Nodes.Num(); ++i)
+	for (int i = StartNodeIndex; i < Tree.Nodes.Num(); ++i)
 	{
-		auto N = Nodes[i];
+		auto N = Tree.Nodes[i];
 		if (N.OriginalIndent < IndentLessThan &&
 			FromPath.StartsWith(N.TreePath))
 		{
@@ -755,26 +797,42 @@ int FSUDSScriptImporter::FindNextOutdentedNodeIndex(int StartNodeIndex, int Inde
 	return -1;
 }
 
-const FSUDSParsedNode* FSUDSScriptImporter::GetNode(int Index)
+const FSUDSParsedNode* FSUDSScriptImporter::GetNode(const FSUDSScriptImporter::ParsedTree& Tree, int Index)
 {
-	if (Nodes.IsValidIndex(Index))
+	if (Tree.Nodes.IsValidIndex(Index))
 	{
-		return &Nodes[Index];
+		return &Tree.Nodes[Index];
 	}
 
 	return nullptr;
 }
 
+const FSUDSParsedNode* FSUDSScriptImporter::GetHeaderNode(int Index)
+{
+	return GetNode(HeaderTree, Index);
+}
+
+const FSUDSParsedNode* FSUDSScriptImporter::GetNode(int Index)
+{
+	return GetNode(BodyTree, Index);
+}
+
 int FSUDSScriptImporter::GetGotoTargetNodeIndex(const FString& InLabel)
 {
+	// Assume Body for this public version
+	return GetGotoTargetNodeIndex(BodyTree, InLabel);
+}
+
+int FSUDSScriptImporter::GetGotoTargetNodeIndex(const ParsedTree& Tree, const FString& InLabel)
+{
 	FString Label = InLabel;
-	if (FString* AliasLabel = AliasedGotoLabels.Find(Label))
+	if (const FString* AliasLabel = Tree.AliasedGotoLabels.Find(Label))
 	{
 		Label = *AliasLabel;
 	}
 							
 	// Resolve using goto list
-	if (const int *pGotoIdx = GotoLabelList.Find(Label))
+	if (const int *pGotoIdx = Tree.GotoLabelList.Find(Label))
 	{
 		return *pGotoIdx;
 	}
@@ -788,18 +846,30 @@ void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset, UStringTable* String
 	// This is only called if the parsing was successful
 	// Populate the runtime asset
 	TArray<USUDSScriptNode*> *pOutNodes = nullptr;
+	TArray<USUDSScriptNode*> *pOutHeaderNodes = nullptr;
 	TMap<FName, int> *pOutLabels = nullptr;
+	TMap<FName, int> *pOutHeaderLabels = nullptr;
 	TArray<FString> *pOutSpeakers = nullptr;
-	Asset->StartImport(&pOutNodes, &pOutLabels, &pOutSpeakers);
+	Asset->StartImport(&pOutNodes, &pOutHeaderNodes, &pOutLabels, &pOutHeaderLabels, &pOutSpeakers);
 
 	pOutSpeakers->Append(ReferencedSpeakers);
 
+	PopulateAssetFromTree(Asset, HeaderTree, pOutHeaderNodes, pOutHeaderLabels, StringTable);
+	PopulateAssetFromTree(Asset, BodyTree, pOutNodes, pOutLabels, StringTable);
+}
+
+void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
+                                                const FSUDSScriptImporter::ParsedTree& Tree,
+                                                TArray<USUDSScriptNode*>* pOutNodes,
+                                                TMap<FName, int>* pOutLabels,
+                                                UStringTable* StringTable)
+{
 	if (pOutNodes && pOutLabels)
 	{
 		TArray<int> IndexRemap;
 		int OutIndex = 0;
 		// First pass, create all the nodes
-		for (const auto& InNode : Nodes)
+		for (const auto& InNode : Tree.Nodes)
 		{
 			// Gotos are dealt with in the node that references them, so ignore them
 			// We're going to be removing Goto nodes in the parse structure, because they were useful while parsing
@@ -837,9 +907,9 @@ void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset, UStringTable* String
 		}
 
 		// Second pass, create edges between nodes now that we know where everything is
-		for (int i = 0; i < Nodes.Num(); ++i)
+		for (int i = 0; i < Tree.Nodes.Num(); ++i)
 		{
-			const FSUDSParsedNode& InNode = Nodes[i];
+			const FSUDSParsedNode& InNode = Tree.Nodes[i];
 			if (InNode.NodeType != ESUDSParsedNodeType::Goto)
 			{
 				USUDSScriptNode* Node = (*pOutNodes)[IndexRemap[i]];
@@ -862,13 +932,13 @@ void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset, UStringTable* String
 							NewEdge.SetText(FText::FromStringTable(StringTable->GetStringTableId(), InEdge.TextID));
 						}
 						
-						if (const FSUDSParsedNode *InTargetNode = GetNode(InEdge.TargetNodeIdx))
+						if (const FSUDSParsedNode *InTargetNode = GetNode(Tree, InEdge.TargetNodeIdx))
 						{
 							
 							if (InTargetNode->NodeType == ESUDSParsedNodeType::Goto)
 							{
 								// Resolve GOTOs immediately, point them directly at node goto points to
-								int Idx = GetGotoTargetNodeIndex(InTargetNode->SpeakerOrGotoLabel);
+								int Idx = GetGotoTargetNodeIndex(Tree, InTargetNode->SpeakerOrGotoLabel);
 								// -1 means "Goto end", leave target null in that case
 								if (Idx != -1)
 								{
@@ -904,7 +974,7 @@ void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset, UStringTable* String
 
 		// Add labels, so that dialogue can be entered at any label
 		// Aliases have already been resolved
-		for (auto& Elem : GotoLabelList)
+		for (auto& Elem : Tree.GotoLabelList)
 		{
 			int NewIndex = IndexRemap[Elem.Value];
 			pOutLabels->Add(FName(Elem.Key), NewIndex);

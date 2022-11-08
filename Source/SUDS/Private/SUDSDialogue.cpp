@@ -23,7 +23,9 @@ void USUDSDialogue::Initialise(const USUDSScript* Script)
 
 void USUDSDialogue::Start(FName Label)
 {
-	Restart(true, Label);
+	// Note that we don't reset state by default here. This is to allow long-term memory on dialogue, such as
+	// knowing whether you've met a character before etc.
+	Restart(false, Label);
 }
 
 void USUDSDialogue::SetParticipants(const TMap<FString, UObject*> InParticipants)

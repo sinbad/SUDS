@@ -2,15 +2,29 @@
 
 #include "EditorFramework/AssetImportData.h"
 
-void USUDSScript::StartImport(TArray<USUDSScriptNode*>** ppNodes, TMap<FName, int>** ppLabelList, TArray<FString>** ppSpeakerList)
+void USUDSScript::StartImport(TArray<USUDSScriptNode*>** ppNodes,
+                              TArray<USUDSScriptNode*>** ppHeaderNodes,
+                              TMap<FName, int>** ppLabelList,
+                              TMap<FName, int>** ppHeaderLabelList,
+                              TArray<FString>** ppSpeakerList)
 {
 	*ppNodes = &Nodes;
+	*ppHeaderNodes = &HeaderNodes;
 	*ppLabelList = &LabelList;
+	*ppHeaderLabelList = &HeaderLabelList;
 	*ppSpeakerList = &Speakers;
 }
 
 void USUDSScript::FinishImport()
 {
+}
+
+USUDSScriptNode* USUDSScript::GetHeaderNode() const
+{
+	if (HeaderNodes.Num() > 0)
+		return HeaderNodes[0];
+
+	return nullptr;
 }
 
 USUDSScriptNode* USUDSScript::GetFirstNode() const

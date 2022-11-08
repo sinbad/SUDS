@@ -112,22 +112,42 @@ protected:
 		IndentContext(int NodeIdx, int Indent, const FString& Path) : LastNodeIdx(NodeIdx), ThresholdIndent(Indent), PathEntry(Path) {}
 
 	};
-	/// The indent context stack representing where we are in the indentation tree while parsing
-	/// There must always be 1 level (root)
-	TArray<IndentContext> IndentLevelStack;
-	/// When encountering conditions and choice lines, we are building up details for an edge to another node, but
-	/// we currently don't know the target node. We keep these pending details here
-	FSUDSParsedEdge* EdgeInProgress = nullptr;
-	/// List of all nodes, appended to as parsing progresses
-	/// Ordering is important, these nodes must be in the order encountered in the file 
-	TArray<FSUDSParsedNode> Nodes;
-	/// Record of goto labels to node index, built up during parsing (forward refs are OK so not complete until end of parsing)
-	TMap<FString, int> GotoLabelList;
-	/// Goto labels which have been encountered but we haven't found a destination yet
-	TArray<FString> PendingGotoLabels;
-	/// Goto labels that lead directly to another goto and thus are just aliases
-	TMap<FString, FString> AliasedGotoLabels;
 
+	/// A tree of nodes. Contained to separate header nodes from body nodes
+	struct ParsedTree
+	{
+	public:
+		/// The indent context stack representing where we are in the indentation tree while parsing
+		/// There must always be 1 level (root)
+		TArray<IndentContext> IndentLevelStack;
+		/// When encountering conditions and choice lines, we are building up details for an edge to another node, but
+		/// we currently don't know the target node. We keep these pending details here
+		FSUDSParsedEdge* EdgeInProgress = nullptr;
+		/// List of all nodes, appended to as parsing progresses
+		/// Ordering is important, these nodes must be in the order encountered in the file 
+		TArray<FSUDSParsedNode> Nodes;
+		/// Record of goto labels to node index, built up during parsing (forward refs are OK so not complete until end of parsing)
+		TMap<FString, int> GotoLabelList;
+		/// Goto labels which have been encountered but we haven't found a destination yet
+		TArray<FString> PendingGotoLabels;
+		/// Goto labels that lead directly to another goto and thus are just aliases
+		TMap<FString, FString> AliasedGotoLabels;
+
+		void Reset()
+		{
+			IndentLevelStack.Reset();
+			EdgeInProgress = nullptr;
+			Nodes.Reset();
+			GotoLabelList.Reset();
+			PendingGotoLabels.Reset();
+			AliasedGotoLabels.Reset();
+		}
+	};
+
+	ParsedTree HeaderTree;
+	ParsedTree BodyTree;
+
+	
 	/// List of speakers, detected during parsing of lines of text 
 	TArray<FString> ReferencedSpeakers;
 	
@@ -143,27 +163,35 @@ protected:
 	bool ParseLine(const FStringView& Line, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseHeaderLine(const FStringView& Line, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseBodyLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseChoiceLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseConditionalLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseGotoLabelLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseGotoLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseSetLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseEventLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseTextLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool ParseChoiceLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool ParseConditionalLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool ParseGotoLabelLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool ParseGotoLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool ParseSetLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool ParseEventLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool ParseTextLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool IsCommentLine(const FStringView& TrimmedLine);
 	FStringView TrimLine(const FStringView& Line, int& OutIndentLevel) const;
-	void PopIndent();
-	void PushIndent(int NodeIdx, int Indent, const FString& Path);
-	FString GetCurrentTreePath();
-	int AppendNode(const FSUDSParsedNode& NewNode);
-	void ConnectRemainingNodes(const FString& NameForErrors, bool bSilent);
-	int FindNextOutdentedNodeIndex(int StartNodeIndex, int IndentLessThan, const FString& FromPath);
+	void PopIndent(ParsedTree& Tree);
+	void PushIndent(ParsedTree& Tree, int NodeIdx, int Indent, const FString& Path);
+	FString GetCurrentTreePath(ParsedTree& Tree);
+	int AppendNode(ParsedTree& Tree, const FSUDSParsedNode& NewNode);
+	void ConnectRemainingNodes(ParsedTree& Tree, const FString& NameForErrors, bool bSilent);
+	int FindNextOutdentedNodeIndex(ParsedTree& Tree, int StartNodeIndex, int IndentLessThan, const FString& FromPath);
 	void RetrieveAndRemoveOrGenerateTextID(FStringView& InOutLine, FString& OutTextID);
 	bool RetrieveAndRemoveTextID(FStringView& InOutLine, FString& OutTextID);
 	FString GenerateTextID(const FStringView& Line);
-	
+	const FSUDSParsedNode* GetNode(const ParsedTree& Tree, int Index = 0);
+	int GetGotoTargetNodeIndex(const ParsedTree& Tree, const FString& InLabel);
+	void PopulateAssetFromTree(USUDSScript* Asset,
+	                           const ParsedTree& Tree,
+	                           TArray<class USUDSScriptNode*>* pOutNodes,
+	                           TMap<FName, int>* pOutLabels,
+	                           UStringTable* StringTable);
+
 public:
 	const FSUDSParsedNode* GetNode(int Index = 0);
+	const FSUDSParsedNode* GetHeaderNode(int Index = 0);
 	/// Resolve a goto label to a target index (after import), or -1 if not resolvable
 	int GetGotoTargetNodeIndex(const FString& Label);
 };

@@ -86,6 +86,10 @@ public:
 
 	/**
 	 * Begin the dialogue. Make sure you've added all participants before calling this.
+	 * This may not be the first time you've started this dialogue. All previous state is maintained to enable you
+	 * for example to take branching paths based on whether you've spoken to this character before.
+	 * If you want to reset *all* state, call Restart(true). However this is an extreme case; if you want to just
+	 * reset some variables then use the header section of the script to set variables to a default starting point.
 	 * @param Label The start point for this dialogue. If None, starts from the beginning.
 	 */
 	UFUNCTION(BlueprintCallable)
@@ -163,11 +167,13 @@ public:
 
 	/**
 	 * Restart the dialogue, either from the start or from a named label.
-	 * @param bResetState Reset all dialogue local state, as if the dialogue had been created anew
+	 * @param bResetState Reset all dialogue local state, as if the dialogue had been created anew. You mostly don't want
+	 * to do this; if you have certain things you want to reset every time, then use [set] commands in the header section
+	 * which runs every time the dialogue starts.
 	 * @param StartLabel Label to start running from; if None start from the beginning.
 	 */
 	UFUNCTION(BlueprintCallable)
-	void Restart(bool bResetState = true, FName StartLabel = NAME_None);
+	void Restart(bool bResetState = false, FName StartLabel = NAME_None);
 
 	/// Get the set of text parameters that are actually being asked for in the current state of the dialogue.
 	/// This will include parameters in the text, and parameters in any current choices being displayed.
