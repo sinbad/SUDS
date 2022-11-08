@@ -2,10 +2,11 @@
 
 #include "EditorFramework/AssetImportData.h"
 
-void USUDSScript::StartImport(TArray<USUDSScriptNode*>** ppNodes, TMap<FName, int>** ppLabelList)
+void USUDSScript::StartImport(TArray<USUDSScriptNode*>** ppNodes, TMap<FName, int>** ppLabelList, TArray<FString>** ppSpeakerList)
 {
 	*ppNodes = &Nodes;
 	*ppLabelList = &LabelList;
+	*ppSpeakerList = &Speakers;
 }
 
 void USUDSScript::FinishImport()

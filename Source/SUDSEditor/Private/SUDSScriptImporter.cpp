@@ -437,26 +437,19 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine, int IndentLev
 	FRegexMatcher SpeakerRegex(SpeakerPattern, LineStr);
 	if (SpeakerRegex.FindNext())
 	{
-		// OK this might be a speaker line, in which case this is a new text node
-		// However it might also be a new line in the existing speaker text node, if the word before the ":" is not
-		// a recognised speaker
-		// This is to allow cases where your text itself includes the words "Something: something else". You just need
-		// to avoid having a speaker ID as the prefix
-		// However, if you didn't define ANY speakers in the header, then we assume EVERY instance of "Something: Blah" is
-		// a new speaker line. So you don't have to define speakers if you don't have this ambiguity or any other reason to.
+		// OK this is a speaker line, in which case this is a new text node
 		const FString Speaker = SpeakerRegex.GetCaptureGroup(1);
 		const FString Text = SpeakerRegex.GetCaptureGroup(2);
-		if (DeclaredSpeakers.Num() == 0 || DeclaredSpeakers.Contains(Speaker))
-		{
-			if (!bSilent)
-				UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: TEXT  : %s"), LineNo, IndentLevel, *FString(Line));
-			// New text node
-			// Text nodes can never introduce another indent context
-			// We've already backed out to the outer indent in caller
-			AppendNode(FSUDSParsedNode(Speaker, Text, TextID, IndentLevel, LineNo));
-			
-			return true;
-		}
+		if (!bSilent)
+			UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: TEXT  : %s"), LineNo, IndentLevel, *FString(Line));
+		// New text node
+		// Text nodes can never introduce another indent context
+		// We've already backed out to the outer indent in caller
+		AppendNode(FSUDSParsedNode(Speaker, Text, TextID, IndentLevel, LineNo));
+
+		ReferencedSpeakers.AddUnique(Speaker);
+		
+		return true;
 	}
 
 	// If we fell through, this line is appended to the last text node
@@ -796,7 +789,10 @@ void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset, UStringTable* String
 	// Populate the runtime asset
 	TArray<USUDSScriptNode*> *pOutNodes = nullptr;
 	TMap<FName, int> *pOutLabels = nullptr;
-	Asset->StartImport(&pOutNodes, &pOutLabels);
+	TArray<FString> *pOutSpeakers = nullptr;
+	Asset->StartImport(&pOutNodes, &pOutLabels, &pOutSpeakers);
+
+	pOutSpeakers->Append(ReferencedSpeakers);
 
 	if (pOutNodes && pOutLabels)
 	{

@@ -128,9 +128,7 @@ protected:
 	/// Goto labels that lead directly to another goto and thus are just aliases
 	TMap<FString, FString> AliasedGotoLabels;
 
-	/// List of speakers, declared in header. Used to disambiguate sometimes
-	TArray<FString> DeclaredSpeakers;
-	/// List of speakers, detected during parsing of lines of text, or events, or get/set variables 
+	/// List of speakers, detected during parsing of lines of text 
 	TArray<FString> ReferencedSpeakers;
 	
 	const int TabIndentValue = 4;

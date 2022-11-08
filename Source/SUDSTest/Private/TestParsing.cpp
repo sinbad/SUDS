@@ -123,7 +123,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 	auto RootNode = Importer.GetNode(0);
 	if (!TestNotNull("Root node should exist", RootNode))
 		return false;
-	
+
 	TestEqual("Root node type", RootNode->NodeType, ESUDSParsedNodeType::Text);
 	TestEqual("Root node speaker", RootNode->SpeakerOrGotoLabel, "Player");
 	TestEqual("Root node text", RootNode->Text, "Excuse me?");
@@ -823,7 +823,11 @@ bool FTestConversionToRuntime::RunTest(const FString& Parameters)
 	TestTextNode(this, "Goto secondchoice", GotoNode, "NPC", "Yep, this one too");
 	GotoNode = Asset->GetNodeByLabel("goodbye");
 	TestTextNode(this, "Goto goodbye", GotoNode, "NPC", "Bye!");
-	
+
+	// Test speakers
+	TestEqual("Num speakers", Asset->GetSpeakers().Num(), 2);
+	TestTrue("Speaker 1", Asset->GetSpeakers().Contains("Player"));
+	TestTrue("Speaker 2", Asset->GetSpeakers().Contains("NPC"));
 
 	// Tidy up string table
 	FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());

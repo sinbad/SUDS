@@ -22,10 +22,14 @@ protected:
 	/// Map of labels to nodes
 	UPROPERTY(BlueprintReadOnly)
 	TMap<FName, int> LabelList;
+
+	/// Array of all speaker IDs found in this script
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FString> Speakers;
 	
 public:
 
-	void StartImport(TArray<USUDSScriptNode*> **Nodes, TMap<FName, int> **LabelList);
+	void StartImport(TArray<USUDSScriptNode*> **Nodes, TMap<FName, int> **LabelList, TArray<FString>** SpeakerList);
 	void FinishImport();
 
 	/// Get the first node of the script, if starting from the beginning
@@ -36,6 +40,8 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	USUDSScriptNode* GetNodeByLabel(const FName& Label) const;
 
+	/// Get the list of speakers
+	const TArray<FString>& GetSpeakers() const { return Speakers; }
 
 #if WITH_EDITORONLY_DATA
 	// Import data for this 
