@@ -718,12 +718,14 @@ int FSUDSScriptImporter::AppendNode(FSUDSScriptImporter::ParsedTree& Tree, const
 		}
 		else
 		{
-			// We only auto-connect new nodes to text nodes
-			// Otherwise, we should be doing it via pending edges
+			// Auto-connect new nodes to previous nodes
+			// Valid for nodes with only one output node
+			// With choices / selects, we should be doing it via pending edges
 			// E.g. choice nodes get edges created for choice options, select nodes for conditions
 			// A new node with no pending edge following any other type may be connected via fallthrough at
 			// the end of parsing
-			if (PrevNode.NodeType == ESUDSParsedNodeType::Text)
+			if (PrevNode.NodeType == ESUDSParsedNodeType::Text ||
+				PrevNode.NodeType == ESUDSParsedNodeType::SetVariable)
 			{
 				PrevNode.Edges.Add(FSUDSParsedEdge(NewIndex, NewNode.SourceLineNo));
 			}
