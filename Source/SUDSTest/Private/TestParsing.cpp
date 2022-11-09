@@ -661,28 +661,40 @@ bool FTestSetVariableParsing::RunTest(const FString& Parameters)
 	// Test the content of the parsing
 
 	// Header nodes first
-	auto HeaderNode = Importer.GetHeaderNode(0);
-	TestParsedSetLiteral(this, "Header node 1", HeaderNode, "SpeakerName.Player", "Protagonist");
-	if (TestEqual("Header node 1 edge", HeaderNode->Edges.Num(), 1))
-	{
-		auto NextNode = Importer.GetHeaderNode(HeaderNode->Edges[0].TargetNodeIdx);
-		if (!TestNotNull("Next node should exist", NextNode))
-			return false;
-
-		TestParsedSetLiteral(this, "Header node 2", NextNode, "ValetName", "Bob");
-		if (TestEqual("Header node 2 edge", NextNode->Edges.Num(), 1))
-		{
-			NextNode = Importer.GetHeaderNode(NextNode->Edges[0].TargetNodeIdx);
-			if (!TestNotNull("Next node should exist", NextNode))
-				return false;
-			TestParsedSetLiteral(this, "Header node 3", NextNode, "SomeFloat", 12.5f);
-		}
-	}
+	auto NextNode = Importer.GetHeaderNode(0);
+	TestParsedSetLiteral(this, "Header node 1", NextNode, "SpeakerName.Player", "Protagonist");
+	TestGetParsedNextNode(this, "Header node 1 next", NextNode, Importer, true, &NextNode);
+	TestParsedSetLiteral(this, "Header node 2", NextNode, "ValetName", "Bob");
+	TestGetParsedNextNode(this, "Header node 2 next", NextNode, Importer, true, &NextNode);
+	TestParsedSetLiteral(this, "Header node 3", NextNode, "SomeFloat", 12.5f);
 
 	// Now body nodes
-	auto RootNode = Importer.GetNode(0);
-	if (!TestNotNull("Root node should exist", RootNode))
-		return false;
+	NextNode = Importer.GetNode(0);
+	TestParsedText(this, "Root node", NextNode, "Player", "Hello");
+	TestGetParsedNextNode(this, "Node 1 next", NextNode, Importer, false, &NextNode);
+	TestParsedSetLiteral(this, "Node 2", NextNode, "SomeInt", 99);
+	TestGetParsedNextNode(this, "Node 2 next", NextNode, Importer, false, &NextNode);
+	TestParsedText(this, "Node 3 text", NextNode, "NPC", "Wotcha");
+	TestGetParsedNextNode(this, "Node 3 next", NextNode, Importer, false, &NextNode);
+	TestParsedSetLiteral(this, "Node 4", NextNode, "SomeGender", ETextGender::Masculine);
+	TestGetParsedNextNode(this, "Node 4 next", NextNode, Importer, false, &NextNode);
+	TestParsedChoice(this, "Node 5 choice", NextNode, 2);
+	auto ChoiceNode = NextNode;
+	TestParsedChoiceEdge(this, "Choice 1 edge", ChoiceNode, 0, "Choice 1", Importer, &NextNode);
+	TestParsedSetLiteral(this, "Choice 1 set", NextNode, "SomeBoolean", true);
+	TestGetParsedNextNode(this, "Choice 1 next", NextNode, Importer, false, &NextNode);
+	TestParsedText(this, "Choice 1 text", NextNode, "NPC", "Truth");
+
+	TestParsedChoiceEdge(this, "Choice 2 edge", ChoiceNode, 1, "Choice 2", Importer, &NextNode);
+	TestParsedText(this, "Choice 2 text", NextNode, "NPC", "Surprise");
+	TestGetParsedNextNode(this, "Choice 2 next", NextNode, Importer, false, &NextNode);
+	TestParsedSetLiteral(this, "Choice 2 set", NextNode, "ValetName", "Kate");
+	TestGetParsedNextNode(this, "Choice 2 next 2", NextNode, Importer, false, &NextNode);
+	TestParsedSetLiteral(this, "Choice 2 set 2", NextNode, "SomeGender", ETextGender::Feminine);
+	
+
+	// NEED TO TEST RUNTIME FALLTHROUGH OF SET NODES
+	
 
 	return true;
 }
