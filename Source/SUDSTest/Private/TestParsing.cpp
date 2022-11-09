@@ -660,9 +660,26 @@ bool FTestSetVariableParsing::RunTest(const FString& Parameters)
 	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SetVariableParsingInput), SetVariableParsingInput.Len(), "SetVariableParsingInput", true));
 	// Test the content of the parsing
 
+	// Header nodes first
 	auto HeaderNode = Importer.GetHeaderNode(0);
 	TestParsedSetLiteral(this, "Header node 1", HeaderNode, "SpeakerName.Player", "Protagonist");
-	
+	if (TestEqual("Header node 1 edge", HeaderNode->Edges.Num(), 1))
+	{
+		auto NextNode = Importer.GetHeaderNode(HeaderNode->Edges[0].TargetNodeIdx);
+		if (!TestNotNull("Next node should exist", NextNode))
+			return false;
+
+		TestParsedSetLiteral(this, "Header node 2", NextNode, "ValetName", "Bob");
+		if (TestEqual("Header node 2 edge", NextNode->Edges.Num(), 1))
+		{
+			NextNode = Importer.GetHeaderNode(NextNode->Edges[0].TargetNodeIdx);
+			if (!TestNotNull("Next node should exist", NextNode))
+				return false;
+			TestParsedSetLiteral(this, "Header node 3", NextNode, "SomeFloat", 12.5f);
+		}
+	}
+
+	// Now body nodes
 	auto RootNode = Importer.GetNode(0);
 	if (!TestNotNull("Root node should exist", RootNode))
 		return false;
