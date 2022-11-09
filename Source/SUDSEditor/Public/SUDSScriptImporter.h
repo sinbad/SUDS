@@ -47,7 +47,9 @@ enum class ESUDSParsedNodeType : uint8
 	/// Goto node, redirects execution somewhere else
 	/// Gotos are only nodes in the parsing structure, because they need to be discoverable as a fallthrough destination
 	/// When converting to runtime use they just become edges
-	Goto
+	Goto,
+	/// Set variable node
+	SetVariable,
 };
 
 /// Intermediate parsed node from script text
@@ -57,11 +59,14 @@ struct SUDSEDITOR_API FSUDSParsedNode
 public:
 	ESUDSParsedNodeType NodeType;
 	int OriginalIndent;
-	FString SpeakerOrGotoLabel;
+	/// Identifier is speaker ID, goto label, variable name etc
+	FString Identifier;
 	/// Text in native language
 	FString Text;
 	/// Identifier of the text, for the string table
 	FString TextID;
+	/// Variable literal value, for set nodes
+	FFormatArgumentValue VarLiteral;
 	/// Labels which lead to this node
 	TArray<FString> Labels;
 	/// Edges leading to other nodes
@@ -75,10 +80,14 @@ public:
 	
 	FSUDSParsedNode(ESUDSParsedNodeType InNodeType, int Indent, int LineNo) : NodeType(InNodeType), OriginalIndent(Indent), SourceLineNo(LineNo) {}
 	FSUDSParsedNode(const FString& InSpeaker, const FString& InText, const FString& InTextID, int Indent, int LineNo)
-		:NodeType(ESUDSParsedNodeType::Text), OriginalIndent(Indent), SpeakerOrGotoLabel(InSpeaker), Text(InText), TextID(InTextID), SourceLineNo(LineNo) {}
+		:NodeType(ESUDSParsedNodeType::Text), OriginalIndent(Indent), Identifier(InSpeaker), Text(InText), TextID(InTextID), SourceLineNo(LineNo) {}
 	FSUDSParsedNode(const FString& GotoLabel, int Indent, int LineNo)
-		:NodeType(ESUDSParsedNodeType::Goto), OriginalIndent(Indent), SpeakerOrGotoLabel(GotoLabel), SourceLineNo(LineNo)  {}
-	
+		:NodeType(ESUDSParsedNodeType::Goto), OriginalIndent(Indent), Identifier(GotoLabel), SourceLineNo(LineNo)  {}
+
+	FSUDSParsedNode(const FString& VariableName, const FFormatArgumentValue& LiteralValue, int Indent, int LineNo)
+		: NodeType(ESUDSParsedNodeType::SetVariable), OriginalIndent(Indent), Identifier(VariableName), VarLiteral(LiteralValue), SourceLineNo(LineNo) {}
+	FSUDSParsedNode(const FString& VariableName, const FFormatArgumentValue& LiteralValue, const FString& InTextID, int Indent, int LineNo)
+		: NodeType(ESUDSParsedNodeType::SetVariable), OriginalIndent(Indent), Identifier(VariableName), TextID(InTextID), VarLiteral(LiteralValue), SourceLineNo(LineNo) {}
 };
 class SUDSEDITOR_API FSUDSScriptImporter
 {
@@ -161,7 +170,7 @@ protected:
 	int TextIDHighestNumber = 0;
 	/// Parse a single line
 	bool ParseLine(const FStringView& Line, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseHeaderLine(const FStringView& Line, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool ParseHeaderLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseBodyLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseChoiceLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseConditionalLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
@@ -170,6 +179,7 @@ protected:
 	bool ParseSetLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseEventLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseTextLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool ParseLiteral(const FString& ValueStr, FFormatArgumentValue& OutVal);
 	bool IsCommentLine(const FStringView& TrimmedLine);
 	FStringView TrimLine(const FStringView& Line, int& OutIndentLevel) const;
 	void PopIndent(ParsedTree& Tree);

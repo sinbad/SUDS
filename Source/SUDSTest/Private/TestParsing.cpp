@@ -2,6 +2,7 @@
 #include "Misc/AutomationTest.h"
 #include "SUDSScriptImporter.h"
 #include "SUDSScriptNode.h"
+#include "TestUtils.h"
 #include "Internationalization/StringTable.h"
 #include "Internationalization/StringTableRegistry.h"
 
@@ -73,6 +74,33 @@ NPC: Bye!
 )RAWSUD";
 
 
+const FString SetVariableParsingInput = R"RAWSUD(
+===
+# Set some vars in header
+# Text var with an existing localised ID
+[set SpeakerName.Player "Protagonist"] @12345@
+# Text var no localised ID
+[set ValetName "Bob"]
+[set SomeFloat 12.5]
+===
+
+Player: Hello
+[set SomeInt 99]
+NPC: Wotcha
+# Test that inserting a set node in between text and choice doesn't break link 
+[set SomeGender masculine]
+	* Choice 1
+		[set SomeBoolean True]
+		NPC: Truth
+	* Choice 2
+		NPC: Surprise
+		[set ValetName "Kate"]
+		[set SomeGender feminine]
+Player: Well
+	
+)RAWSUD";
+
+
 
 const FString ConditionalParsingInput = R"RAWSUD(
 ===
@@ -125,7 +153,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 		return false;
 
 	TestEqual("Root node type", RootNode->NodeType, ESUDSParsedNodeType::Text);
-	TestEqual("Root node speaker", RootNode->SpeakerOrGotoLabel, "Player");
+	TestEqual("Root node speaker", RootNode->Identifier, "Player");
 	TestEqual("Root node text", RootNode->Text, "Excuse me?");
 	TestEqual("Root node path", RootNode->TreePath, "/");
 	TestEqual("Root node edges", RootNode->Edges.Num(), 1);
@@ -135,7 +163,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 		return false;
 
 	TestEqual("Second node type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-	TestEqual("Second node speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+	TestEqual("Second node speaker", NextNode->Identifier, "NPC");
 	TestEqual("Second node text", NextNode->Text, "Well, hello there. This is a test.");
 	TestEqual("Second node path", RootNode->TreePath, "/");
 	TestEqual("Second node edges", NextNode->Edges.Num(), 1);
@@ -159,7 +187,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 		if (TestNotNull("Next node should exist", NextNode))
 		{
 			TestEqual("Choice 1 1st text node type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-			TestEqual("Choice 1 1st text node speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+			TestEqual("Choice 1 1st text node speaker", NextNode->Identifier, "NPC");
 			TestEqual("Choice 1 1st text node text", NextNode->Text, "Yes, a test. This is some indented continuation text.");
 			TestEqual("Choice 1 1st text node path", NextNode->TreePath, "/C001/");
 			TestEqual("Choice 1 1st text node edges", NextNode->Edges.Num(), 1);
@@ -167,7 +195,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 			if (TestNotNull("Next node should exist", NextNode))
 			{
 				TestEqual("Choice 1 2nd text node type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-				TestEqual("Choice 1 2nd text node speaker", NextNode->SpeakerOrGotoLabel, "Player");
+				TestEqual("Choice 1 2nd text node speaker", NextNode->Identifier, "Player");
 				TestEqual("Choice 1 2nd text node text", NextNode->Text, "Oh I see, thank you.");
 				TestEqual("Choice 1 2nd text node path", NextNode->TreePath, "/C001/");
 				TestEqual("Choice 1 2nd text node edges", NextNode->Edges.Num(), 1);
@@ -175,7 +203,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 				if (TestNotNull("Next node should exist", NextNode))
 				{
 					TestEqual("Choice 1 3rd text node type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-					TestEqual("Choice 1 3rd text node speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+					TestEqual("Choice 1 3rd text node speaker", NextNode->Identifier, "NPC");
 					TestEqual("Choice 1 3rd text node text", NextNode->Text, "You're welcome.");
 					TestEqual("Choice 1 3rd text node path", NextNode->TreePath, "/C001/");
 
@@ -201,7 +229,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 			return false;
 		
 		TestEqual("Choice 2 1st text node type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-		TestEqual("Choice 2 1st text node speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+		TestEqual("Choice 2 1st text node speaker", NextNode->Identifier, "NPC");
 		TestEqual("Choice 2 1st text node text", NextNode->Text, "This is another option with an embedded choice.");
 		TestEqual("Choice 2 2nd text node path", NextNode->TreePath, "/C002/");
 		TestEqual("Choice 2 1st text node edges", NextNode->Edges.Num(), 1);
@@ -221,7 +249,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 			if (TestNotNull("Next node should exist", NextNode))
 			{
 				TestEqual("Nested Choice 1st text node type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-				TestEqual("Nested Choice 1st text node speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+				TestEqual("Nested Choice 1st text node speaker", NextNode->Identifier, "NPC");
 				TestEqual("Nested Choice 1st text node text", NextNode->Text, "Theoretically forever but who knows?");
 				// Choice edges are assigned unique numbers in ascending order, but nested
 				// This helps with fallthrough
@@ -243,7 +271,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 			if (TestNotNull("Next node should exist", NextNode))
 			{
 				TestEqual("Nested Choice 2nd text node type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-				TestEqual("Nested Choice 2nd text node speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+				TestEqual("Nested Choice 2nd text node speaker", NextNode->Identifier, "NPC");
 				TestEqual("Nested Choice 2nd text node text", NextNode->Text, "That should have been added to the previous choice");
 				TestEqual("Nested Choice 2nd text node path", NextNode->TreePath, "/C002/C004/");
 				TestEqual("Nested Choice 2nd text node edges", NextNode->Edges.Num(), 1);
@@ -263,7 +291,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 			if (TestNotNull("Next node should exist", NextNode))
 			{
 				TestEqual("Nested Choice 3rd text node type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-				TestEqual("Nested Choice 3rd text node speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+				TestEqual("Nested Choice 3rd text node speaker", NextNode->Identifier, "NPC");
 				TestEqual("Nested Choice 3rd text node text", NextNode->Text, "Yep, this one too");
 				TestEqual("Nested Choice 3rd text node path", NextNode->TreePath, "/C002/C005/");
 				if (TestEqual("Nested Choice 3rd text node edges", NextNode->Edges.Num(), 1))
@@ -281,7 +309,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 							if (TestNotNull("Double Nested Choice node option 0", NextNode))
 							{
 								TestEqual("Double Nested Choice option 0 text node type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-								TestEqual("Double Nested Choice option 0 text node speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+								TestEqual("Double Nested Choice option 0 text node speaker", NextNode->Identifier, "NPC");
 								TestEqual("Double Nested Choice option 0 text node text", NextNode->Text, "Yes, really!");
 								// Should fall through
 								if (TestEqual("Double Nested Choice option 0 text edge", NextNode->Edges.Num(), 1))
@@ -297,7 +325,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 							if (TestNotNull("Double Nested Choice node option 1", NextNode))
 							{
 								TestEqual("Double Nested Choice option 1 text node type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-								TestEqual("Double Nested Choice option 1 text node speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+								TestEqual("Double Nested Choice option 1 text node speaker", NextNode->Identifier, "NPC");
 								TestEqual("Double Nested Choice option 1 text node text", NextNode->Text, "IKR");
 								// Should fall through
 								if (TestEqual("Double Nested Choice option 1 text edge", NextNode->Edges.Num(), 1))
@@ -328,7 +356,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 		{
 			// Test the final fallthrough
 			TestEqual("Fallthrough node type", FallthroughNode->NodeType, ESUDSParsedNodeType::Text);
-			TestEqual("Fallthrough node speaker", FallthroughNode->SpeakerOrGotoLabel, "Player");
+			TestEqual("Fallthrough node speaker", FallthroughNode->Identifier, "Player");
 			TestEqual("Fallthrough node text", FallthroughNode->Text, "Well, that's all for now. This should appear for all paths as a fall-through.\nThis, in fact, is a multi-line piece of text\nWhich is joined to the previous text node with the line breaks");
 			if (TestEqual("Fallthrough node edge count", FallthroughNode->Edges.Num(), 1))
 			{
@@ -336,7 +364,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 				if (TestNotNull("Fallthrough node next node not null", NextNode))
 				{
 					TestEqual("Fallthrough node 2 type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-					TestEqual("Fallthrough node 2 speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+					TestEqual("Fallthrough node 2 speaker", NextNode->Identifier, "NPC");
 					TestEqual("Fallthrough node 2 text", NextNode->Text, "Bye!");
 					// Should have no further edges since is at end
 					TestEqual("Fallthrough node 2 edge count", NextNode->Edges.Num(), 0);
@@ -370,7 +398,7 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 		return false;
 
 	TestEqual("Root node type", RootNode->NodeType, ESUDSParsedNodeType::Text);
-	TestEqual("Root node speaker", RootNode->SpeakerOrGotoLabel, "Player");
+	TestEqual("Root node speaker", RootNode->Identifier, "Player");
 	TestEqual("Root node text", RootNode->Text, "This is the start");
 	TestEqual("Root node edges", RootNode->Edges.Num(), 1);
 
@@ -387,7 +415,7 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 		if (TestNotNull("Next node should not be null", NextNode))
 		{
 			TestEqual("Goto End node text type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-			TestEqual("Goto End node text speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+			TestEqual("Goto End node text speaker", NextNode->Identifier, "NPC");
 			TestEqual("Goto End node text text", NextNode->Text, "How rude, bye then");
 			if (TestEqual("Goto End node text edges", NextNode->Edges.Num(), 1))
 			{
@@ -395,7 +423,7 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 				if (TestNotNull("Goto node should not be null", NextNode))
 				{
 					TestEqual("Goto End node type", NextNode->NodeType, ESUDSParsedNodeType::Goto);
-					TestEqual("Goto End node label", NextNode->SpeakerOrGotoLabel, FSUDSScriptImporter::EndGotoLabel);
+					TestEqual("Goto End node label", NextNode->Identifier, FSUDSScriptImporter::EndGotoLabel);
 				}
 				
 			}
@@ -406,7 +434,7 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 		if (TestNotNull("Next node should not be null", NextNode))
 		{
 			TestEqual("Choice 2 node text type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-			TestEqual("Choice 2 node text speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+			TestEqual("Choice 2 node text speaker", NextNode->Identifier, "NPC");
 			TestEqual("Choice 2 node text text", NextNode->Text, "Some nesting");
 			if (TestEqual("Choice 2 node text edges", NextNode->Edges.Num(), 1))
 			{
@@ -422,7 +450,7 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 						if (TestNotNull("Should not be null", NextNode))
 						{
 							TestEqual("Nested choice 0 text type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-							TestEqual("Nested choice 0 text speaker", NextNode->SpeakerOrGotoLabel, "Player");
+							TestEqual("Nested choice 0 text speaker", NextNode->Identifier, "Player");
 							TestEqual("Nested choice 0 text text", NextNode->Text, "Gotta go!");
 
 							if (TestEqual("Nested Choice textnode edges", NextNode->Edges.Num(), 1))
@@ -432,14 +460,14 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 								{
 									// This is the goto
 									TestEqual("Nested choice 0 goto type", NextNode->NodeType, ESUDSParsedNodeType::Goto);
-									TestEqual("Nested choice 0 goto label", NextNode->SpeakerOrGotoLabel, "goodbye");
-									const int DestIdx = Importer.GetGotoTargetNodeIndex(NextNode->SpeakerOrGotoLabel);
+									TestEqual("Nested choice 0 goto label", NextNode->Identifier, "goodbye");
+									const int DestIdx = Importer.GetGotoTargetNodeIndex(NextNode->Identifier);
 									TestNotEqual("Label should be valid", DestIdx, -1);
 									NextNode = Importer.GetNode(DestIdx);
 									if (TestNotNull("Goto dest node", NextNode))
 									{
 										TestEqual("Goto dest text type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-										TestEqual("Goto dest text speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+										TestEqual("Goto dest text speaker", NextNode->Identifier, "NPC");
 										TestEqual("Goto dest text text", NextNode->Text, "Bye!");
 									}
 								}
@@ -451,15 +479,15 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 						{
 							// This one goes straight to goto
 							TestEqual("Nested choice 1 goto type", NextNode->NodeType, ESUDSParsedNodeType::Goto);
-							TestEqual("Nested choice 1 goto label", NextNode->SpeakerOrGotoLabel, "secondchoice");
+							TestEqual("Nested choice 1 goto label", NextNode->Identifier, "secondchoice");
 
-							const int DestIdx = Importer.GetGotoTargetNodeIndex(NextNode->SpeakerOrGotoLabel);
+							const int DestIdx = Importer.GetGotoTargetNodeIndex(NextNode->Identifier);
 							TestNotEqual("Label should be valid", DestIdx, -1);
 							NextNode = Importer.GetNode(DestIdx);
 							if (TestNotNull("Goto dest node", NextNode))
 							{
 								TestEqual("Goto dest text type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-								TestEqual("Goto dest text speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+								TestEqual("Goto dest text speaker", NextNode->Identifier, "NPC");
 								TestEqual("Goto dest text text", NextNode->Text, "Yep, this one too");
 										
 							}
@@ -469,7 +497,7 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 						if (TestNotNull("Should not be null", NextNode))
 						{
 							TestEqual("Nested choice 2 text type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-							TestEqual("Nested choice 2 text speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+							TestEqual("Nested choice 2 text speaker", NextNode->Identifier, "NPC");
 							TestEqual("Nested choice 2 text text", NextNode->Text, "Oh no");
 
 							if (TestEqual("Nested Choice text node edges", NextNode->Edges.Num(), 1))
@@ -479,8 +507,8 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 								{
 									// This is the goto
 									TestEqual("Nested choice 0 goto type", NextNode->NodeType, ESUDSParsedNodeType::Goto);
-									TestEqual("Nested choice 0 goto label", NextNode->SpeakerOrGotoLabel, "this_is_an_error");
-									TestEqual("Label should go nowhere", Importer.GetGotoTargetNodeIndex(NextNode->SpeakerOrGotoLabel), -1);
+									TestEqual("Nested choice 0 goto label", NextNode->Identifier, "this_is_an_error");
+									TestEqual("Label should go nowhere", Importer.GetGotoTargetNodeIndex(NextNode->Identifier), -1);
 								}
 							}
 							
@@ -498,7 +526,7 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 		if (TestNotNull("End choice node should not be null", NextNode))
 		{
 			TestEqual("End choice node text type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-			TestEqual("End choice node text speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+			TestEqual("End choice node text speaker", NextNode->Identifier, "NPC");
 			TestEqual("End choice node text text", NextNode->Text, "Yep, this one too");
 			if (TestEqual("End choice node text edges", NextNode->Edges.Num(), 1))
 			{
@@ -515,7 +543,7 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 						if (TestNotNull("", NextNode))
 						{
 							TestEqual("Node text type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-							TestEqual("Node text speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+							TestEqual("Node text speaker", NextNode->Identifier, "NPC");
 							TestEqual("Node text text", NextNode->Text, "Okay!");
 							if (TestEqual("Next node edges", NextNode->Edges.Num(), 1))
 							{
@@ -523,11 +551,11 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 								if (TestNotNull("", NextNode))
 								{
 									TestEqual("Should be goto node", NextNode->NodeType, ESUDSParsedNodeType::Goto);
-									TestEqual("Goto label", NextNode->SpeakerOrGotoLabel, "choice");
+									TestEqual("Goto label", NextNode->Identifier, "choice");
 									
 									// This should lead back to a choice node, ie letting the previous text node use the same choices
 									// without repeating the text (loop with context)
-									const int DestIdx = Importer.GetGotoTargetNodeIndex(NextNode->SpeakerOrGotoLabel);
+									const int DestIdx = Importer.GetGotoTargetNodeIndex(NextNode->Identifier);
 									TestNotEqual("Label should be valid", DestIdx, -1);
 									NextNode = Importer.GetNode(DestIdx);
 									if (TestNotNull("Goto dest node", NextNode))
@@ -547,7 +575,7 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 							if (TestNotNull("", NextNode))
 							{
 								TestEqual("Node text type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-								TestEqual("Node text speaker", NextNode->SpeakerOrGotoLabel, "NPC");
+								TestEqual("Node text speaker", NextNode->Identifier, "NPC");
 								TestEqual("Node text text", NextNode->Text, "Gotcha");
 								if (TestEqual("Next node edges", NextNode->Edges.Num(), 1))
 								{
@@ -555,18 +583,18 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 									if (TestNotNull("", NextNode))
 									{
 										TestEqual("Should be goto node", NextNode->NodeType, ESUDSParsedNodeType::Goto);
-										TestEqual("Goto label", NextNode->SpeakerOrGotoLabel, "start");
+										TestEqual("Goto label", NextNode->Identifier, "start");
 									
 										// This should lead back to a choice node, ie letting the previous text node use the same choices
 										// without repeating the text (loop with context)
-										const int DestIdx = Importer.GetGotoTargetNodeIndex(NextNode->SpeakerOrGotoLabel);
+										const int DestIdx = Importer.GetGotoTargetNodeIndex(NextNode->Identifier);
 										TestNotEqual("Label should be valid", DestIdx, -1);
 										NextNode = Importer.GetNode(DestIdx);
 										if (TestNotNull("Goto dest node", NextNode))
 										{
 											// Just make sure it's the right node
 											TestEqual("Goto dest text type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-											TestEqual("Node text speaker", NextNode->SpeakerOrGotoLabel, "Player");
+											TestEqual("Node text speaker", NextNode->Identifier, "Player");
 											TestEqual("Node text text", NextNode->Text, "This is the start");
 										}
 									
@@ -578,18 +606,18 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 							{
 								// Straight to goto
 								TestEqual("Should be goto node", NextNode->NodeType, ESUDSParsedNodeType::Goto);
-								TestEqual("Goto label", NextNode->SpeakerOrGotoLabel, "alsostart");
+								TestEqual("Goto label", NextNode->Identifier, "alsostart");
 							
 								// This should lead back to a choice node, ie letting the previous text node use the same choices
 								// without repeating the text (loop with context)
-								const int DestIdx = Importer.GetGotoTargetNodeIndex(NextNode->SpeakerOrGotoLabel);
+								const int DestIdx = Importer.GetGotoTargetNodeIndex(NextNode->Identifier);
 								TestNotEqual("Label should be valid", DestIdx, -1);
 								NextNode = Importer.GetNode(DestIdx);
 								if (TestNotNull("Goto dest node", NextNode))
 								{
 									// Just make sure it's the right node
 									TestEqual("Goto dest text type", NextNode->NodeType, ESUDSParsedNodeType::Text);
-									TestEqual("Node text speaker", NextNode->SpeakerOrGotoLabel, "Player");
+									TestEqual("Node text speaker", NextNode->Identifier, "Player");
 									TestEqual("Node text text", NextNode->Text, "This is the start");
 								}
 							}
@@ -608,7 +636,7 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 		if (TestNotNull("Second choice node should not be null", StartNode))
 		{
 			TestEqual("Start node text type", StartNode->NodeType, ESUDSParsedNodeType::Text);
-			TestEqual("Start node text speaker", StartNode->SpeakerOrGotoLabel, "Player");
+			TestEqual("Start node text speaker", StartNode->Identifier, "Player");
 			TestEqual("Start node text text", StartNode->Text, "This is the start");
 		}
 		const int AlsoStartNodeIdx = Importer.GetGotoTargetNodeIndex("alsostart");
@@ -619,61 +647,30 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestSetVariableParsing,
+								 "SUDSTest.TestSetVariableParsing",
+								 EAutomationTestFlags::EditorContext |
+								 EAutomationTestFlags::ClientContext |
+								 EAutomationTestFlags::ProductFilter)
 
-bool TestTextNode(FAutomationTestBase* T, const FString& NameForTest, const USUDSScriptNode* Node, const FString& Speaker, const FString& Text)
+
+bool FTestSetVariableParsing::RunTest(const FString& Parameters)
 {
-	if (T->TestNotNull(NameForTest, Node))
-	{
-		T->TestEqual(NameForTest, Node->GetNodeType(), ESUDSScriptNodeType::Text);
-		T->TestEqual(NameForTest, Node->GetSpeakerID(), Speaker);
-		T->TestEqual(NameForTest, Node->GetText().ToString(), Text);
-		return true;
-	}
-	return false;
-}
-bool TestEdge(FAutomationTestBase* T, const FString& NameForTest, USUDSScriptNode* Node, int EdgeIndex, USUDSScriptNode** OutNode)
-{
-	*OutNode = nullptr;
-	if (Node && Node->GetEdgeCount() > EdgeIndex)
-	{
-		if (auto Edge = Node->GetEdge(EdgeIndex))
-		{
-			*OutNode = Edge->GetTargetNode().Get();
-			return T->TestNotNull(NameForTest, *OutNode);
-		}
-	}
+	FSUDSScriptImporter Importer;
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SetVariableParsingInput), SetVariableParsingInput.Len(), "SetVariableParsingInput", true));
+	// Test the content of the parsing
+
+	auto HeaderNode = Importer.GetHeaderNode(0);
+	TestParsedSetLiteral(this, "Header node 1", HeaderNode, "SpeakerName.Player", "Protagonist");
 	
-	return false;
-	
+	auto RootNode = Importer.GetNode(0);
+	if (!TestNotNull("Root node should exist", RootNode))
+		return false;
+
+	return true;
 }
 
-bool TestChoiceNode(FAutomationTestBase* T, const FString& NameForTest, const USUDSScriptNode* Node, int NumChoices)
-{
-	if (T->TestNotNull(NameForTest, Node))
-	{
-		T->TestEqual(NameForTest, Node->GetNodeType(), ESUDSScriptNodeType::Choice);
-		return T->TestEqual(NameForTest, Node->GetEdgeCount(), NumChoices);
-	}
-	return false;
-}
 
-bool TestChoiceEdge(FAutomationTestBase* T, const FString& NameForTest, USUDSScriptNode* Node, int EdgeIndex, const FString& Text, USUDSScriptNode** OutNode)
-{
-	*OutNode = nullptr;
-	if (Node && Node->GetEdgeCount() > EdgeIndex)
-	{
-		if (auto Edge = Node->GetEdge(EdgeIndex))
-		{
-			T->TestEqual(NameForTest, Edge->GetNavigation(), ESUDSScriptEdgeNavigation::Explicit);
-			T->TestEqual(NameForTest, Edge->GetText().ToString(), Text);
-			*OutNode = Edge->GetTargetNode().Get();
-			return T->TestNotNull(NameForTest, *OutNode);
-		}
-	}
-	
-	return false;
-	
-}
 
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestConversionToRuntime,

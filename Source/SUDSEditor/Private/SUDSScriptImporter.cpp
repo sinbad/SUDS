@@ -5,6 +5,7 @@
 #include "Internationalization/Regex.h"
 #include "Internationalization/StringTable.h"
 #include "Internationalization/StringTableCore.h"
+#include "Misc/DefaultValueHelper.h"
 
 PRAGMA_DISABLE_OPTIMIZATION
 
@@ -142,7 +143,7 @@ bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const F
 	}
 	else if (bHeaderInProgress)
 	{
-		return ParseHeaderLine(TrimmedLine, LineNo, NameForErrors, bSilent);
+		return ParseHeaderLine(TrimmedLine, IndentLevel, LineNo, NameForErrors, bSilent);
 	}
 
 	// Process body
@@ -150,12 +151,26 @@ bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const F
 	
 }
 
-bool FSUDSScriptImporter::ParseHeaderLine(const FStringView& Line, int LineNo, const FString& NameForErrors, bool bSilent)
+bool FSUDSScriptImporter::ParseHeaderLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent)
 {
 	if (!bSilent)
 		UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:00: HEADER: %s"), LineNo, *FString(Line));
 
-	// Header lines include set commands
+	// Header can still have indenting, only a very limited set of functions though (conditionals)
+	while (HeaderTree.IndentLevelStack.Num() > 1 &&
+		IndentLevel < HeaderTree.IndentLevelStack.Top().ThresholdIndent)
+	{
+		// Pop as much from the stack as necessary to return to this indent level
+		PopIndent(HeaderTree);
+	}
+
+	if (HeaderTree.IndentLevelStack.IsEmpty())
+	{
+		// Must be the first body line encountered. Add 1 indent level for the root
+		PushIndent(HeaderTree, -1, 0, "");
+	}
+	
+	// Header lines include set / conditionals
 	if (Line.StartsWith(TEXT('[')))
 	{
 		bool bParsed = ParseSetLine(Line, HeaderTree, 0, LineNo, NameForErrors, bSilent);
@@ -414,7 +429,7 @@ bool FSUDSScriptImporter::ParseGotoLine(const FStringView& Line,
 	return false;
 }
 
-bool FSUDSScriptImporter::ParseSetLine(const FStringView& Line,
+bool FSUDSScriptImporter::ParseSetLine(const FStringView& InLine,
                                        FSUDSScriptImporter::ParsedTree& Tree,
                                        int IndentLevel,
                                        int LineNo,
@@ -422,18 +437,116 @@ bool FSUDSScriptImporter::ParseSetLine(const FStringView& Line,
                                        NameForErrors,
                                        bool bSilent)
 {
+	// Attempt to find existing text ID, for string literals
+	// For multiple lines, may not be present until last line (but in fact can be on any line)
+	// We generate anyway, because it can be overriden by later lines, but makes sure we have one always
+	FString TextID;
+	FStringView Line = InLine;
+	RetrieveAndRemoveTextID(Line, TextID);
+	
 	// Unfortunately FRegexMatcher doesn't support FStringView
 	const FString LineStr(Line);
-	const FRegexPattern SetPattern(TEXT("^\\[set\\s+(\\S+)\\s+(\\S+)\\]$"));
-	FRegexMatcher EventRegex(SetPattern, LineStr);
-	if (EventRegex.FindNext())
+	const FRegexPattern SetPattern(TEXT("^\\[set\\s+(\\S+)\\s+(.+)\\]$"));
+	FRegexMatcher SetRegex(SetPattern, LineStr);
+	if (SetRegex.FindNext())
 	{
-		// TODO: Implement set lines
 		if (!bSilent)
 			UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: SET   : %s"), LineNo, IndentLevel, *FString(Line));
-		return true;
+
+		FString Name = SetRegex.GetCaptureGroup(1);
+		FString ValueStr = SetRegex.GetCaptureGroup(2).TrimStartAndEnd(); // trim because capture accepts spaces in quotes
+
+		// Parse literal argument
+		// TODO: support references to other variables, expressions
+		FFormatArgumentValue LiteralValue;
+		if (ParseLiteral(ValueStr, LiteralValue))
+		{
+			if (LiteralValue.GetType() == EFormatArgumentType::Text)
+			{
+				// Text must be localised
+				if (TextID.IsEmpty())
+				{
+					TextID = GenerateTextID(InLine);
+				}
+				AppendNode(Tree, FSUDSParsedNode(Name, LiteralValue, TextID, IndentLevel, LineNo));
+			}
+			else
+			{
+				AppendNode(Tree, FSUDSParsedNode(Name, LiteralValue, IndentLevel, LineNo));
+			}
+			return true;
+		}
+		
+		if (!bSilent)
+			UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: malformed set line"), *NameForErrors, LineNo);
+
 	}
 	return false;
+}
+
+bool FSUDSScriptImporter::ParseLiteral(const FString& ValueStr, FFormatArgumentValue& OutVal)
+{
+	// Try Boolean first since only 2 options
+	{
+		if (ValueStr.Compare("true", ESearchCase::IgnoreCase) == 0)
+		{
+			OutVal = FFormatArgumentValue(1);
+			return true;
+		}
+		if (ValueStr.Compare("false", ESearchCase::IgnoreCase) == 0)
+		{
+			OutVal = FFormatArgumentValue(0);
+			return true;
+		}
+	}
+	// Try gender
+	{
+		if (ValueStr.Compare("masculine", ESearchCase::IgnoreCase) == 0)
+		{
+			OutVal = FFormatArgumentValue(ETextGender::Masculine);
+			return true;
+		}
+		if (ValueStr.Compare("feminine", ESearchCase::IgnoreCase) == 0)
+		{
+			OutVal = FFormatArgumentValue(ETextGender::Feminine);
+			return true;
+		}
+		if (ValueStr.Compare("neuter", ESearchCase::IgnoreCase) == 0)
+		{
+			OutVal = FFormatArgumentValue(ETextGender::Neuter);
+			return true;
+		}
+	}
+	// Try quoted text (will be localised later in asset conversion)
+	{
+		const FRegexPattern Pattern(TEXT("^\\\"([^\\\"]*)\\\"$"));
+		FRegexMatcher Regex(Pattern, ValueStr);
+		if (Regex.FindNext())
+		{
+			const FString Val = Regex.GetCaptureGroup(1);
+			OutVal = FFormatArgumentValue(FText::FromString(Val));
+			return true;
+		}
+	}
+	// Try Numbers
+	{
+		float FloatVal;
+		int IntVal;
+		// look for int first; anything with a decimal point will fail
+		if (FDefaultValueHelper::ParseInt(ValueStr, IntVal))
+		{
+			OutVal = FFormatArgumentValue(IntVal);	
+			return true;
+		}
+		if (FDefaultValueHelper::ParseFloat(ValueStr, FloatVal))
+		{
+			OutVal = FFormatArgumentValue(FloatVal);	
+			return true;
+		}
+	}
+
+	return false;
+	
 }
 
 bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line,
@@ -544,6 +657,8 @@ bool FSUDSScriptImporter::RetrieveAndRemoveTextID(FStringView& InOutLine, FStrin
 		OutTextID = TextIDRegex.GetCaptureGroup(1);
 		// Chop the incoming string to the left of the TextID
 		InOutLine = InOutLine.Left(TextIDRegex.GetCaptureGroupBeginning(1));
+		// Also trim right
+		InOutLine = InOutLine.TrimEnd();
 		// FDefaultValueHelper::ParseInt requires an "0x" prefix but we're not using that
 		// Plus does extra checking we don't need
 		TextIDHighestNumber = FCString::Strtoi(*TextIDRegex.GetCaptureGroup(2), nullptr, 16);
@@ -698,15 +813,15 @@ void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree&
 				// Try to resolve goto now that we've parsed all labels
 				// We don't actually create edges here, the label is enough so long as it leads somewhere
 				// Check aliases first
-				FString Label = Node.SpeakerOrGotoLabel;
+				FString Label = Node.Identifier;
 				// Special case 'end' which needs no further checking
 				if (Label != EndGotoLabel)
 				{
-					const int GotoNodeIdx = GetGotoTargetNodeIndex(Tree, Node.SpeakerOrGotoLabel);
+					const int GotoNodeIdx = GetGotoTargetNodeIndex(Tree, Node.Identifier);
 					if (GotoNodeIdx == -1)
 					{
 						if (!bSilent)
-							UE_LOG(LogSUDSImporter, Warning, TEXT("Error in %s line %d: Goto label '%s' was not found, references to it will goto End"), *NameForErrors, Node.SourceLineNo, *Node.SpeakerOrGotoLabel)
+							UE_LOG(LogSUDSImporter, Warning, TEXT("Error in %s line %d: Goto label '%s' was not found, references to it will goto End"), *NameForErrors, Node.SourceLineNo, *Node.Identifier)
 					}
 				}
 			}
@@ -889,7 +1004,7 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 				{
 				case ESUDSParsedNodeType::Text:
 					StringTable->GetMutableStringTable()->SetSourceString(InNode.TextID, InNode.Text);
-					Node->InitText(InNode.SpeakerOrGotoLabel, FText::FromStringTable (StringTable->GetStringTableId(), InNode.TextID));
+					Node->InitText(InNode.Identifier, FText::FromStringTable (StringTable->GetStringTableId(), InNode.TextID));
 					break;
 				case ESUDSParsedNodeType::Choice:
 					Node->InitChoice();
@@ -938,7 +1053,7 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 							if (InTargetNode->NodeType == ESUDSParsedNodeType::Goto)
 							{
 								// Resolve GOTOs immediately, point them directly at node goto points to
-								int Idx = GetGotoTargetNodeIndex(Tree, InTargetNode->SpeakerOrGotoLabel);
+								int Idx = GetGotoTargetNodeIndex(Tree, InTargetNode->Identifier);
 								// -1 means "Goto end", leave target null in that case
 								if (Idx != -1)
 								{
