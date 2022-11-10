@@ -231,8 +231,15 @@ bool FTestSetVariableRunning::RunTest(const FString& Parameters)
 	TestEqual("Some boolean should be set", Dlg->GetVariableBoolean("SomeBoolean"), true);
 	TestEqual("Valet name should not have changed", Dlg->GetVariableText("ValetName").ToString(), "Bob");
 	TestEqual("Gender should not have changed", Dlg->GetVariableGender("SomeGender"), ETextGender::Masculine);
+	TestDialogueText(this, "Choice end text", Dlg, "NPC", "Truth");
+	TestTrue("Continue", Dlg->Continue());
+	TestDialogueText(this, "Final node", Dlg, "Player", "Well");
+	TestFalse("Continue", Dlg->Continue());
+	TestTrue("At end", Dlg->IsEnded());
 
-
+	// Restart and take the other path
+	
+	
 	
 	// Tidy up string table
 	// Constructor registered this table
