@@ -213,12 +213,26 @@ bool FTestSetVariableRunning::RunTest(const FString& Parameters)
 	TestEqual("Initial: Some int", Dlg->GetVariableInt("SomeInt"), 0);
 	TestEqual("Initial: Some boolean", Dlg->GetVariableBoolean("SomeBoolean"), false);
 
+	// Just set this to something
+	Dlg->SetVariable("SomeGender", ETextGender::Neuter);
+	TestEqual("Gender should be set", Dlg->GetVariableGender("SomeGender"), ETextGender::Neuter);
+
+
 	TestDialogueText(this, "Node 1", Dlg, "Player", "Hello");
 	TestTrue("Continue", Dlg->Continue());
 	// Set node should have run
 	TestEqual("Initial: Some int", Dlg->GetVariableInt("SomeInt"), 99);
 	TestDialogueText(this, "Node 2", Dlg, "NPC", "Wotcha");
-	TestTrue("Continue", Dlg->Continue());
+	TestEqual("Choices count", Dlg->GetNumberOfChoices(), 2);
+	TestEqual("Choice 1 text", Dlg->GetChoiceText(0).ToString(), "Choice 1");
+	TestEqual("Choice 2 text", Dlg->GetChoiceText(1).ToString(), "Choice 2");
+	TestTrue("Choose 1", Dlg->Choose(0));
+	TestEqual("Gender should be set", Dlg->GetVariableGender("SomeGender"), ETextGender::Masculine);
+	TestEqual("Some boolean should be set", Dlg->GetVariableBoolean("SomeBoolean"), true);
+	TestEqual("Valet name should not have changed", Dlg->GetVariableText("ValetName").ToString(), "Bob");
+	TestEqual("Gender should not have changed", Dlg->GetVariableGender("SomeGender"), ETextGender::Masculine);
+
+
 	
 	// Tidy up string table
 	// Constructor registered this table

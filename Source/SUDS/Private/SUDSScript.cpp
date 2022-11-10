@@ -18,7 +18,7 @@ void USUDSScript::StartImport(TArray<USUDSScriptNode*>** ppNodes,
 	*ppSpeakerList = &Speakers;
 }
 
-USUDSScriptNode* USUDSScript::GetNextNode(USUDSScriptNode* Node) const
+USUDSScriptNode* USUDSScript::GetNextNode(const USUDSScriptNode* Node) const
 {
 	switch (Node->GetEdgeCount())
 	{

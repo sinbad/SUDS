@@ -49,7 +49,7 @@ public:
 
 	/// Get the next node after a given node, ONLY if there's only one way to go
 	UFUNCTION(BlueprintCallable)
-	USUDSScriptNode* GetNextNode(USUDSScriptNode* Node) const;
+	USUDSScriptNode* GetNextNode(const USUDSScriptNode* Node) const;
 
 	/// Get the first node of the script following a label, or null if the label wasn't found
 	UFUNCTION(BlueprintCallable, BlueprintPure)

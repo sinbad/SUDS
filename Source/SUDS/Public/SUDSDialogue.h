@@ -73,7 +73,7 @@ protected:
 	void RaiseFinished();
 	void RaiseNewSpeakerLine();
 	void RaiseChoiceMade(int Index);
-	USUDSScriptNode* GetNextNode(USUDSScriptNode* Node) const;
+	USUDSScriptNode* GetNextNode(const USUDSScriptNode* Node) const;
 	USUDSScriptNode* RunSelectNode(USUDSScriptNode* Node);
 	USUDSScriptNode* RunSetVariableNode(USUDSScriptNode* Node);
 

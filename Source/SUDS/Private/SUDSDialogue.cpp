@@ -170,7 +170,7 @@ FText USUDSDialogue::GetSpeakerDisplayName() const
 	return CurrentSpeakerDisplayName;
 }
 
-USUDSScriptNode* USUDSDialogue::GetNextNode(USUDSScriptNode* Node) const
+USUDSScriptNode* USUDSDialogue::GetNextNode(const USUDSScriptNode* Node) const
 {
 	return BaseScript->GetNextNode(Node);
 }
@@ -179,25 +179,12 @@ const USUDSScriptNode* USUDSDialogue::RunUntilNextChoiceNode(const USUDSScriptNo
 {
 	if (FromTextNode && FromTextNode->GetEdgeCount() == 1)
 	{
-		auto NextNode = FromTextNode->GetEdge(0)->GetTargetNode().Get();
-		while (NextNode && NextNode->GetNodeType() != ESUDSScriptNodeType::Choice)
+		auto NextNode = GetNextNode(FromTextNode);
+		// We only skip over set nodes
+		while (NextNode &&
+			NextNode->GetNodeType() == ESUDSScriptNodeType::SetVariable)
 		{
-			switch (NextNode->GetNodeType())
-			{
-			case ESUDSScriptNodeType::Text:
-				UE_LOG(LogSUDSDialogue, Error, TEXT("Error in %s: Text node encountered while looking for choice node"), *BaseScript->GetName());
-				break;
-			case ESUDSScriptNodeType::Choice:
-				// Should never get here
-				break;
-			case ESUDSScriptNodeType::Select:
-				UE_LOG(LogSUDSDialogue, Error, TEXT("Error in %s: Cannot have a select node between text and choice"), *BaseScript->GetName());
-				break;
-			default: 
-			case ESUDSScriptNodeType::SetVariable:
-				NextNode = RunSelectNode(NextNode);
-				break;
-			}
+			NextNode = RunSetVariableNode(NextNode);
 		}
 
 		return NextNode;
@@ -211,25 +198,12 @@ const USUDSScriptNode* USUDSDialogue::FindNextChoiceNode(const USUDSScriptNodeTe
 {
 	if (FromTextNode && FromTextNode->GetEdgeCount() == 1)
 	{
-		auto NextNode = FromTextNode->GetEdge(0)->GetTargetNode().Get();
-		while (NextNode && NextNode->GetNodeType() != ESUDSScriptNodeType::Choice)
+		auto NextNode = GetNextNode(FromTextNode);
+		// We only skip over set nodes
+		while (NextNode &&
+			NextNode->GetNodeType() == ESUDSScriptNodeType::SetVariable)
 		{
-			switch (NextNode->GetNodeType())
-			{
-			case ESUDSScriptNodeType::Text:
-				UE_LOG(LogSUDSDialogue, Error, TEXT("Error in %s: Text node encountered while looking for choice node"), *BaseScript->GetName());
-				break;
-			case ESUDSScriptNodeType::Choice:
-				// Should n ever get here
-				break;
-			case ESUDSScriptNodeType::Select:
-				UE_LOG(LogSUDSDialogue, Error, TEXT("Error in %s: Cannot have a select node between text and choice"), *BaseScript->GetName());
-				break;
-			default: 
-			case ESUDSScriptNodeType::SetVariable:
-				NextNode = GetNextNode(NextNode);
-				break;
-			}
+			NextNode = GetNextNode(NextNode);
 		}
 
 		return NextNode;
@@ -344,6 +318,10 @@ bool USUDSDialogue::Choose(int Index)
 		if (Choices && Choices->IsValidIndex(Index))
 		{
 			RaiseChoiceMade(Index);
+			// Run any e.g. set nodes between text and choice
+			// These can be set nodes directly under the text and before the first choice, which get run for all choices
+			RunUntilNextChoiceNode(CurrentSpeakerNode);
+			// Then choose path
 			RunUntilNextSpeakerNodeOrEnd((*Choices)[Index].GetTargetNode().Get());
 			return !IsEnded();
 		}
