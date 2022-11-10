@@ -212,10 +212,7 @@ bool FTestSetVariableRunning::RunTest(const FString& Parameters)
 	// Check initial values
 	TestEqual("Initial: Some int", Dlg->GetVariableInt("SomeInt"), 0);
 	TestEqual("Initial: Some boolean", Dlg->GetVariableBoolean("SomeBoolean"), false);
-
-	// Just set this to something
-	Dlg->SetVariable("SomeGender", ETextGender::Neuter);
-	TestEqual("Gender should be set", Dlg->GetVariableGender("SomeGender"), ETextGender::Neuter);
+	TestEqual("Initial: Some gender", Dlg->GetVariableGender("SomeGender"), ETextGender::Neuter);
 
 
 	TestDialogueText(this, "Node 1", Dlg, "Player", "Hello");
@@ -237,9 +234,39 @@ bool FTestSetVariableRunning::RunTest(const FString& Parameters)
 	TestFalse("Continue", Dlg->Continue());
 	TestTrue("At end", Dlg->IsEnded());
 
-	// Restart and take the other path
-	
-	
+	// Restart and DON'T reset state
+	Dlg->Restart(false);
+
+	// Variables should be the same
+	// Except for the headers, which will have run again
+	TestEqual("Player name should have been set again", Dlg->GetVariableText("SpeakerName.Player").ToString(), "Protagonist");
+	TestEqual("Valet name should have been set again", Dlg->GetVariableText("ValetName").ToString(), "Bob");
+	TestEqual("Some float should have been set again", Dlg->GetVariableFloat("SomeFloat"), 12.5f);
+	TestEqual("Int should still be set", Dlg->GetVariableInt("SomeInt"), 99);
+	TestEqual("Gender should still be set", Dlg->GetVariableGender("SomeGender"), ETextGender::Masculine);
+	TestEqual("Some boolean should still be set", Dlg->GetVariableBoolean("SomeBoolean"), true);
+
+	// Restart and DO reset state
+	Dlg->Restart(true);
+	TestEqual("Player name should have been set again", Dlg->GetVariableText("SpeakerName.Player").ToString(), "Protagonist");
+	TestEqual("Valet name should have been set again", Dlg->GetVariableText("ValetName").ToString(), "Bob");
+	TestEqual("Some float should have been set again", Dlg->GetVariableFloat("SomeFloat"), 12.5f);
+	TestEqual("Int should have been reset", Dlg->GetVariableInt("SomeInt"), 0);
+	TestEqual("Gender should have been reset", Dlg->GetVariableGender("SomeGender"), ETextGender::Neuter);
+	TestEqual("Some boolean should have been reset", Dlg->GetVariableBoolean("SomeBoolean"), false);
+
+	// Try the other path
+	TestTrue("Continue", Dlg->Continue());
+	TestTrue("Choose 2", Dlg->Choose(1));
+	TestDialogueText(this, "Choice 2 text", Dlg, "NPC", "Surprise");
+	TestEqual("Gender should not be changed yet", Dlg->GetVariableGender("SomeGender"), ETextGender::Masculine);
+	TestEqual("Valet name should not be changed yet", Dlg->GetVariableText("ValetName").ToString(), "Bob");
+	TestTrue("Continue", Dlg->Continue());
+	TestDialogueText(this, "Final node", Dlg, "Player", "Well");
+	TestEqual("Gender should have changed", Dlg->GetVariableGender("SomeGender"), ETextGender::Feminine);
+	TestEqual("Valet name should have changed", Dlg->GetVariableText("ValetName").ToString(), "Kate");
+	TestFalse("Continue", Dlg->Continue());
+	TestTrue("At end", Dlg->IsEnded());
 	
 	// Tidy up string table
 	// Constructor registered this table
