@@ -3,6 +3,8 @@
 #include "SUDSParticipant.h"
 #include "SUDSScript.h"
 #include "SUDSScriptNode.h"
+#include "SUDSScriptNodeSet.h"
+#include "SUDSScriptNodeText.h"
 
 DEFINE_LOG_CATEGORY(LogSUDSDialogue)
 
@@ -18,7 +20,7 @@ USUDSDialogue::USUDSDialogue()
 void USUDSDialogue::Initialise(const USUDSScript* Script)
 {
 	BaseScript = Script;
-	CurrentNode = nullptr;
+	CurrentSpeakerNode = nullptr;
 }
 
 void USUDSDialogue::Start(FName Label)
@@ -63,9 +65,72 @@ UObject* USUDSDialogue::GetParticipant(const FString& RoleName)
 	return nullptr;
 }
 
-void USUDSDialogue::SetCurrentNode(USUDSScriptNode* Node)
+void USUDSDialogue::RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* NextNode)
 {
-	CurrentNode = Node;
+	// We run through nodes which don't require a speaker line prompt
+	// E.g. set nodes, select nodes which are all automatically resolved
+	// Starting with this node
+	while (NextNode && NextNode->GetNodeType() != ESUDSScriptNodeType::Text)
+	{
+		switch (NextNode->GetNodeType())
+		{
+		case ESUDSScriptNodeType::Text:
+			// Should not have got here, while condition
+			break;
+		case ESUDSScriptNodeType::Choice:
+			UE_LOG(LogSUDSDialogue, Error, TEXT("Error in %s: Choice node encountered but wasn't immediately following a text node"), *BaseScript->GetName());
+			NextNode = nullptr;
+			break;
+		case ESUDSScriptNodeType::Select:
+			NextNode = RunSelectNode(NextNode);
+			break;
+		case ESUDSScriptNodeType::SetVariable:
+			NextNode = RunSetVariableNode(NextNode);
+			break;
+		default: ;
+		}
+		
+	}
+
+	if (NextNode)
+	{
+		// This should be a given, since while will only exit when non-null in this case, but still
+		if (NextNode->GetNodeType() == ESUDSScriptNodeType::Text)
+		{
+			SetCurrentSpeakerNode(Cast<USUDSScriptNodeText>(NextNode));
+		}
+	}
+	else
+	{
+		// Reached the end
+		SetCurrentSpeakerNode(nullptr);
+		OnFinished.Broadcast(this);
+	}
+
+}
+
+USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node)
+{
+	// TODO: implement select
+	return GetNextNode(Node);
+}
+
+USUDSScriptNode* USUDSDialogue::RunSetVariableNode(USUDSScriptNode* Node)
+{
+	// TODO: support things other than literals
+	if (USUDSScriptNodeSet* SetNode = Cast<USUDSScriptNodeSet>(Node))
+	{
+		VariableState.Add(SetNode->GetIdentifier(), SetNode->GetLiteral());
+	}
+
+	// Always one edge
+	return GetNextNode(Node);
+	
+}
+
+void USUDSDialogue::SetCurrentSpeakerNode(USUDSScriptNodeText* Node)
+{
+	CurrentSpeakerNode = Node;
 
 	CurrentSpeakerDisplayName = FText::GetEmpty();
 	AllCurrentChoices = nullptr;
@@ -78,20 +143,20 @@ void USUDSDialogue::SetCurrentNode(USUDSScriptNode* Node)
 
 FText USUDSDialogue::GetText() const
 {
-	if (CurrentNode->HasParameters())
+	if (CurrentSpeakerNode->HasParameters())
 	{
-		return FText::Format(CurrentNode->GetTextFormat(), VariableState);
+		return FText::Format(CurrentSpeakerNode->GetTextFormat(), VariableState);
 	}
 	else
 	{
-		return CurrentNode->GetText();
+		return CurrentSpeakerNode->GetText();
 	}
 }
 
 const FString& USUDSDialogue::GetSpeakerID() const
 {
-	if (CurrentNode)
-		return CurrentNode->GetSpeakerID();
+	if (CurrentSpeakerNode)
+		return CurrentSpeakerNode->GetSpeakerID();
 	
 	return DummyString;
 }
@@ -105,6 +170,75 @@ FText USUDSDialogue::GetSpeakerDisplayName() const
 	return CurrentSpeakerDisplayName;
 }
 
+USUDSScriptNode* USUDSDialogue::GetNextNode(USUDSScriptNode* Node) const
+{
+	return BaseScript->GetNextNode(Node);
+}
+
+const USUDSScriptNode* USUDSDialogue::RunUntilNextChoiceNode(const USUDSScriptNodeText* FromTextNode)
+{
+	if (FromTextNode && FromTextNode->GetEdgeCount() == 1)
+	{
+		auto NextNode = FromTextNode->GetEdge(0)->GetTargetNode().Get();
+		while (NextNode && NextNode->GetNodeType() != ESUDSScriptNodeType::Choice)
+		{
+			switch (NextNode->GetNodeType())
+			{
+			case ESUDSScriptNodeType::Text:
+				UE_LOG(LogSUDSDialogue, Error, TEXT("Error in %s: Text node encountered while looking for choice node"), *BaseScript->GetName());
+				break;
+			case ESUDSScriptNodeType::Choice:
+				// Should never get here
+				break;
+			case ESUDSScriptNodeType::Select:
+				UE_LOG(LogSUDSDialogue, Error, TEXT("Error in %s: Cannot have a select node between text and choice"), *BaseScript->GetName());
+				break;
+			default: 
+			case ESUDSScriptNodeType::SetVariable:
+				NextNode = RunSelectNode(NextNode);
+				break;
+			}
+		}
+
+		return NextNode;
+	}
+
+	return nullptr;
+	
+}
+
+const USUDSScriptNode* USUDSDialogue::FindNextChoiceNode(const USUDSScriptNodeText* FromTextNode) const
+{
+	if (FromTextNode && FromTextNode->GetEdgeCount() == 1)
+	{
+		auto NextNode = FromTextNode->GetEdge(0)->GetTargetNode().Get();
+		while (NextNode && NextNode->GetNodeType() != ESUDSScriptNodeType::Choice)
+		{
+			switch (NextNode->GetNodeType())
+			{
+			case ESUDSScriptNodeType::Text:
+				UE_LOG(LogSUDSDialogue, Error, TEXT("Error in %s: Text node encountered while looking for choice node"), *BaseScript->GetName());
+				break;
+			case ESUDSScriptNodeType::Choice:
+				// Should n ever get here
+				break;
+			case ESUDSScriptNodeType::Select:
+				UE_LOG(LogSUDSDialogue, Error, TEXT("Error in %s: Cannot have a select node between text and choice"), *BaseScript->GetName());
+				break;
+			default: 
+			case ESUDSScriptNodeType::SetVariable:
+				NextNode = GetNextNode(NextNode);
+				break;
+			}
+		}
+
+		return NextNode;
+	}
+
+	return nullptr;
+	
+}
+
 const TArray<FSUDSScriptEdge>* USUDSDialogue::GetChoices(bool bOnlyValidChoices) const
 {
 	// "CurrentNode" is always a text node in practice
@@ -113,33 +247,39 @@ const TArray<FSUDSScriptEdge>* USUDSDialogue::GetChoices(bool bOnlyValidChoices)
 	if (!AllCurrentChoices)
 	{
 		ValidCurrentChoices.Reset();
-		if (CurrentNode && CurrentNode->GetEdgeCount() == 1)
+		if (CurrentSpeakerNode)
 		{
-			auto Edge = CurrentNode->GetEdge(0);
-			// Choice nodes are combinatorial, but still separate so you can link to them multiple text nodes (e.g. loops)
-			if (Edge->GetNavigation() == ESUDSScriptEdgeNavigation::Combine && Edge->GetTargetNode().IsValid())
+			if (CurrentSpeakerNode->HasChoices())
 			{
-				check(Edge->GetTargetNode()->GetNodeType() == ESUDSScriptNodeType::Choice);
-				/// Choices are the edges under the choice node
-				AllCurrentChoices = &Edge->GetTargetNode()->GetEdges();
-
-				if (bOnlyValidChoices)
+				// Choice node might not be directly underneath. For example, we may go through set nodes first
+				if (const USUDSScriptNode* ChoiceNode = FindNextChoiceNode(CurrentSpeakerNode))
 				{
-					// Note that we only re-evaluate conditions once per node change, for stability between counts / indexes
-					// Even if conditions are dependent on external data we only sample them once when node changes so everything is consistent
-					// TODO: evaluate conditions
-					for (auto& Choice : *AllCurrentChoices)
+					/// Choices are the edges under the choice node
+					AllCurrentChoices = &(ChoiceNode->GetEdges());
+
+					if (bOnlyValidChoices)
 					{
-						// Copy happens here
-						ValidCurrentChoices.Add(Choice);
+						// Note that we only re-evaluate conditions once per node change, for stability between counts / indexes
+						// Even if conditions are dependent on external data we only sample them once when node changes so everything is consistent
+						// TODO: evaluate conditions
+						for (auto& Choice : *AllCurrentChoices)
+						{
+							// Copy happens here
+							ValidCurrentChoices.Add(Choice);
+						}
 					}
 				}
 			}
 			else
 			{
-				// Simple no-choice progression (text->text)
-				ValidCurrentChoices.Add(*Edge);			
+				AllCurrentChoices = &ValidCurrentChoices;
+				if (auto Edge = CurrentSpeakerNode->GetEdge(0))
+				{
+					// Simple no-choice progression (text->text)
+					ValidCurrentChoices.Add(*Edge);
+				}
 			}
+			
 		}
 	}
 
@@ -154,7 +294,7 @@ int USUDSDialogue::GetNumberOfChoices(bool bOnlyValidChoices) const
 	else
 	{
 		// If not a choice node, then if there's a single edge that's a "choice" too
-		if (CurrentNode && CurrentNode->GetEdgeCount() == 1)
+		if (CurrentSpeakerNode && CurrentSpeakerNode->GetEdgeCount() == 1)
 			return 1;
 	}
 	
@@ -204,19 +344,8 @@ bool USUDSDialogue::Choose(int Index)
 		if (Choices && Choices->IsValidIndex(Index))
 		{
 			RaiseChoiceMade(Index);
-			
-			if ((*Choices)[Index].GetTargetNode().IsValid())
-			{
-				SetCurrentNode((*Choices)[Index].GetTargetNode().Get());
-				return !IsEnded();
-			}
-			else
-			{
-				// Reached the end
-				SetCurrentNode(nullptr);
-				OnFinished.Broadcast(this);
-				return false;
-			}
+			RunUntilNextSpeakerNodeOrEnd((*Choices)[Index].GetTargetNode().Get());
+			return !IsEnded();
 		}
 		else
 		{
@@ -228,7 +357,7 @@ bool USUDSDialogue::Choose(int Index)
 
 bool USUDSDialogue::IsEnded() const
 {
-	return CurrentNode == nullptr;
+	return CurrentSpeakerNode == nullptr;
 }
 
 void USUDSDialogue::Restart(bool bResetState, FName StartLabel)
@@ -239,6 +368,9 @@ void USUDSDialogue::Restart(bool bResetState, FName StartLabel)
 	}
 
 	RaiseStarting(StartLabel);
+
+	// We always run header nodes
+	RunUntilNextSpeakerNodeOrEnd(BaseScript->GetHeaderNode());
 
 	if (StartLabel != NAME_None)
 	{
@@ -259,11 +391,11 @@ void USUDSDialogue::Restart(bool bResetState, FName StartLabel)
 			       *BaseScript->GetName());
 			StartNode = BaseScript->GetFirstNode();
 		}
-		SetCurrentNode(StartNode);
+		RunUntilNextSpeakerNodeOrEnd(StartNode);
 	}
 	else
 	{
-		SetCurrentNode(BaseScript->GetFirstNode());
+		RunUntilNextSpeakerNodeOrEnd(BaseScript->GetFirstNode());
 	}
 	
 }
@@ -275,9 +407,9 @@ TSet<FString> USUDSDialogue::GetParametersInUse()
 	if (!bParamNamesExtracted)
 	{
 		CurrentRequestedParamNames.Reset();
-		if (CurrentNode && CurrentNode->HasParameters())
+		if (CurrentSpeakerNode && CurrentSpeakerNode->HasParameters())
 		{
-			CurrentRequestedParamNames.Append(CurrentNode->GetParameterNames());
+			CurrentRequestedParamNames.Append(CurrentSpeakerNode->GetParameterNames());
 		}
 		if (const auto Choices = GetChoices(true))
 		{

@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "SUDSDialogue.h"
 #include "SUDSScriptNode.h"
+#include "SUDSScriptNodeText.h"
 
 inline void TestDialogueText(FAutomationTestBase* T, const FString& NameForTest, USUDSDialogue* D, const FString& SpeakerID, const FString& Text)
 {
@@ -114,8 +115,11 @@ inline bool TestTextNode(FAutomationTestBase* T, const FString& NameForTest, con
 	if (T->TestNotNull(NameForTest, Node))
 	{
 		T->TestEqual(NameForTest, Node->GetNodeType(), ESUDSScriptNodeType::Text);
-		T->TestEqual(NameForTest, Node->GetSpeakerID(), Speaker);
-		T->TestEqual(NameForTest, Node->GetText().ToString(), Text);
+		if (auto TextNode = Cast<USUDSScriptNodeText>(Node))
+		{
+			T->TestEqual(NameForTest, TextNode->GetSpeakerID(), Speaker);
+			T->TestEqual(NameForTest, TextNode->GetText().ToString(), Text);
+		}
 		return true;
 	}
 	return false;
@@ -154,7 +158,6 @@ inline bool TestChoiceEdge(FAutomationTestBase* T, const FString& NameForTest, U
 	{
 		if (auto Edge = Node->GetEdge(EdgeIndex))
 		{
-			T->TestEqual(NameForTest, Edge->GetNavigation(), ESUDSScriptEdgeNavigation::Explicit);
 			T->TestEqual(NameForTest, Edge->GetText().ToString(), Text);
 			*OutNode = Edge->GetTargetNode().Get();
 			return T->TestNotNull(NameForTest, *OutNode);

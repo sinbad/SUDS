@@ -14,6 +14,8 @@ enum class ESUDSScriptNodeType : uint8
 	Choice,
 	/// Select node, automatically selecting one which navigates to another node based on state
 	Select,
+	/// Set variable node
+	SetVariable
 };
 /**
  * A node in the script graph.
@@ -25,49 +27,29 @@ enum class ESUDSScriptNodeType : uint8
  * Edges connect everything. Edges may have text if they're user choices (even if that's a single choice), and
  * may have conditions.
  */
-UCLASS()
+UCLASS(BlueprintType)
 class SUDS_API USUDSScriptNode : public UObject
 {
 	GENERATED_BODY()
 
 protected:
 
-	// Everything UPROPERTY to assist serialization
-
 	/// Type of node
-	UPROPERTY()
+	/// To make it easier to check rather than having to cast to subtypes blindly. And also not all types need a subtype
+	UPROPERTY(BlueprintReadOnly)
 	ESUDSScriptNodeType NodeType = ESUDSScriptNodeType::Text;
-	/// Identifier of the speaker for text nodes
-	UPROPERTY(BlueprintReadOnly)
-	FString SpeakerID;
-protected:
-	/// Text, always references a string table. Parameters will not have been completed.
-	UPROPERTY(BlueprintReadOnly)
-	FText Text;
-protected:
-	/// Identifier of the text string to use (based on the string table used by parent script
-	UPROPERTY(BlueprintReadOnly)
-	FString TextID;
 	/// Links to other nodes
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FSUDSScriptEdge> Edges;
 
-	mutable bool bFormatExtracted = false; 
-	mutable TArray<FString> ParameterNames;
-	mutable FTextFormat TextFormat;
-
-	void ExtractFormat() const;
 
 public:
 	USUDSScriptNode();
-	
-	[[nodiscard]] ESUDSScriptNodeType GetNodeType() const { return NodeType; }
-	[[nodiscard]] const FString& GetSpeakerID() const { return SpeakerID; }
-	[[nodiscard]] const FText& GetText() const { return Text; }
-	[[nodiscard]] const TArray<FSUDSScriptEdge>& GetEdges() const { return Edges; }
+
+	ESUDSScriptNodeType GetNodeType() const { return NodeType; }
+	const TArray<FSUDSScriptEdge>& GetEdges() const { return Edges; }
 
 	void AddEdge(const FSUDSScriptEdge& NewEdge);
-	void InitText(const FString& SpeakerID, const FText& Text);
 	void InitChoice();
 	void InitSelect();
 
@@ -81,7 +63,4 @@ public:
 		return nullptr;
 	}
 
-	const FTextFormat& GetTextFormat() const;
-	const TArray<FString>& GetParameterNames() const;	
-	bool HasParameters() const;
 };

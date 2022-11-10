@@ -46,6 +46,32 @@ NPC: Yep, sure is
 NPC: Bye!
 )RAWSUD";
 
+const FString SetVariableRunnerInput = R"RAWSUD(
+===
+# Set some vars in header
+# Text var with an existing localised ID
+[set SpeakerName.Player "Protagonist"] @12345@
+# Text var no localised ID
+[set ValetName "Bob"]
+[set SomeFloat 12.5]
+===
+
+Player: Hello
+[set SomeInt 99]
+NPC: Wotcha
+# Test that inserting a set node in between text and choice doesn't break link 
+[set SomeGender masculine]
+	* Choice 1
+		[set SomeBoolean True]
+		NPC: Truth
+	* Choice 2
+		NPC: Surprise
+		[set ValetName "Kate"]
+		[set SomeGender feminine]
+Player: Well
+	
+)RAWSUD";
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestSimpleRunning,
 								 "SUDSTest.TestSimpleRunning",
 								 EAutomationTestFlags::EditorContext |
@@ -157,5 +183,49 @@ bool FTestSimpleRunning::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestSetVariableRunning,
+								 "SUDSTest.TestSetVariableRunning",
+								 EAutomationTestFlags::EditorContext |
+								 EAutomationTestFlags::ClientContext |
+								 EAutomationTestFlags::ProductFilter)
+
+
+
+bool FTestSetVariableRunning::RunTest(const FString& Parameters)
+{
+	FSUDSScriptImporter Importer;
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SetVariableRunnerInput), SetVariableRunnerInput.Len(), "SetVariableRunnerInput", true));
+
+	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
+	auto StringTable = NewObject<UStringTable>(GetTransientPackage(), "TestStrings");
+	Importer.PopulateAsset(Script, StringTable);
+
+	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
+	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
+	Dlg->Start();
+
+	// Check headers have run & initial variables are set
+	TestEqual("Header: Player name", Dlg->GetVariableText("SpeakerName.Player").ToString(), "Protagonist");
+	TestEqual("Header: Valet name", Dlg->GetVariableText("ValetName").ToString(), "Bob");
+	TestEqual("Header: Some float", Dlg->GetVariableFloat("SomeFloat"), 12.5f);
+
+	// Check initial values
+	TestEqual("Initial: Some int", Dlg->GetVariableInt("SomeInt"), 0);
+	TestEqual("Initial: Some boolean", Dlg->GetVariableBoolean("SomeBoolean"), false);
+
+	TestDialogueText(this, "Node 1", Dlg, "Player", "Hello");
+	TestTrue("Continue", Dlg->Continue());
+	// Set node should have run
+	TestEqual("Initial: Some int", Dlg->GetVariableInt("SomeInt"), 99);
+	TestDialogueText(this, "Node 2", Dlg, "NPC", "Wotcha");
+	TestTrue("Continue", Dlg->Continue());
+	
+	// Tidy up string table
+	// Constructor registered this table
+	FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());
+
+	return true;
+
+}
 
 PRAGMA_ENABLE_OPTIMIZATION

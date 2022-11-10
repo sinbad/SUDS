@@ -1,5 +1,8 @@
 ﻿#include "SUDSScript.h"
 
+#include "SUDS.h"
+#include "SUDSScriptNode.h"
+#include "SUDSScriptNodeText.h"
 #include "EditorFramework/AssetImportData.h"
 
 void USUDSScript::StartImport(TArray<USUDSScriptNode*>** ppNodes,
@@ -15,8 +18,45 @@ void USUDSScript::StartImport(TArray<USUDSScriptNode*>** ppNodes,
 	*ppSpeakerList = &Speakers;
 }
 
+USUDSScriptNode* USUDSScript::GetNextNode(USUDSScriptNode* Node) const
+{
+	switch (Node->GetEdgeCount())
+	{
+	case 0:
+		return nullptr;
+	case 1:
+		return Node->GetEdge(0)->GetTargetNode().Get();
+	default:
+		UE_LOG(LogSUDS, Error, TEXT("Called GetNextNode on a node with more than one edge"));
+		return nullptr;
+	}
+	
+}
+
 void USUDSScript::FinishImport()
 {
+	// As an optimisation, make all text nodes pre-scan their follow-on nodes for choice nodes
+	// We can actually have intermediate nodes, for example set nodes which run for all choices that are placed
+	// between the text and the first choice. Resolve whether they exist now
+	for (auto Node : Nodes)
+	{
+		if (Node->GetNodeType() == ESUDSScriptNodeType::Text)
+		{
+			auto NextNode = GetNextNode(Node);
+			while (NextNode &&
+				NextNode->GetNodeType() == ESUDSScriptNodeType::SetVariable) // We only skip over set right now
+			{
+				NextNode = GetNextNode(NextNode);
+			}
+
+			if (NextNode && NextNode->GetNodeType() == ESUDSScriptNodeType::Choice)
+			{
+				auto TextNode = Cast<USUDSScriptNodeText>(Node);
+				TextNode->NotifyHasChoices();
+			}
+		}
+	}
+	
 }
 
 USUDSScriptNode* USUDSScript::GetHeaderNode() const

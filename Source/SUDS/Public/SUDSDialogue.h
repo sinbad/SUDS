@@ -4,6 +4,7 @@
 #include "UObject/Object.h"
 #include "SUDSDialogue.generated.h"
 
+class USUDSScriptNodeText;
 struct FSUDSScriptEdge;
 class USUDSScriptNode;
 class USUDSScript;
@@ -40,7 +41,7 @@ protected:
 	UPROPERTY()
 	const USUDSScript* BaseScript;
 	UPROPERTY()
-	USUDSScriptNode* CurrentNode;
+	USUDSScriptNodeText* CurrentSpeakerNode;
 	/// Map of role to participant
 	UPROPERTY()
 	TMap<FString, UObject*> Participants;
@@ -64,13 +65,19 @@ protected:
 	static const FText DummyText;
 	static const FString DummyString;
 
-	void SetCurrentNode(USUDSScriptNode* Node);
+	void RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* FromNode);
+	const USUDSScriptNode* RunUntilNextChoiceNode(const USUDSScriptNodeText* FromTextNode);
+	void SetCurrentSpeakerNode(USUDSScriptNodeText* Node);
 	void SortParticipants();
 	void RaiseStarting(FName StartLabel);
 	void RaiseFinished();
 	void RaiseNewSpeakerLine();
 	void RaiseChoiceMade(int Index);
+	USUDSScriptNode* GetNextNode(USUDSScriptNode* Node) const;
+	USUDSScriptNode* RunSelectNode(USUDSScriptNode* Node);
+	USUDSScriptNode* RunSetVariableNode(USUDSScriptNode* Node);
 
+	const USUDSScriptNode* FindNextChoiceNode(const USUDSScriptNodeText* FromTextNode) const;
 	const TArray<FSUDSScriptEdge>* GetChoices(bool bOnlyValidChoices) const;
 public:
 	USUDSDialogue();

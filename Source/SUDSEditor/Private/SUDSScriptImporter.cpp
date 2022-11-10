@@ -2,6 +2,8 @@
 
 #include "SUDSScript.h"
 #include "SUDSScriptNode.h"
+#include "SUDSScriptNodeSet.h"
+#include "SUDSScriptNodeText.h"
 #include "Internationalization/Regex.h"
 #include "Internationalization/StringTable.h"
 #include "Internationalization/StringTableCore.h"
@@ -171,6 +173,7 @@ bool FSUDSScriptImporter::ParseHeaderLine(const FStringView& Line, int IndentLev
 	}
 	
 	// Header lines include set / conditionals
+	// We ignore every other type of line
 	if (Line.StartsWith(TEXT('[')))
 	{
 		bool bParsed = ParseSetLine(Line, HeaderTree, 0, LineNo, NameForErrors, bSilent);
@@ -973,6 +976,8 @@ void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset, UStringTable* String
 
 	PopulateAssetFromTree(Asset, HeaderTree, pOutHeaderNodes, pOutHeaderLabels, StringTable);
 	PopulateAssetFromTree(Asset, BodyTree, pOutNodes, pOutLabels, StringTable);
+
+	Asset->FinishImport();
 }
 
 void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
@@ -1001,19 +1006,39 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 			{
 				IndexRemap.Add(OutIndex++);
 				
-				USUDSScriptNode* Node = NewObject<USUDSScriptNode>(Asset);
+				USUDSScriptNode* Node = nullptr;
 				switch (InNode.NodeType)
 				{
 				case ESUDSParsedNodeType::Text:
-					StringTable->GetMutableStringTable()->SetSourceString(InNode.TextID, InNode.Text);
-					Node->InitText(InNode.Identifier, FText::FromStringTable (StringTable->GetStringTableId(), InNode.TextID));
-					break;
+					{
+						StringTable->GetMutableStringTable()->SetSourceString(InNode.TextID, InNode.Text);
+						auto TextNode = NewObject<USUDSScriptNodeText>(Asset);
+						TextNode->Init(InNode.Identifier, FText::FromStringTable (StringTable->GetStringTableId(), InNode.TextID));
+						Node = TextNode;
+						break;
+					}
 				case ESUDSParsedNodeType::Choice:
-					Node->InitChoice();
-					break;
+					{
+						auto ChoiceNode = NewObject<USUDSScriptNode>(Asset);
+						ChoiceNode->InitChoice();
+						Node = ChoiceNode;
+						break;
+					}
 				case ESUDSParsedNodeType::Select:
-					Node->InitSelect();
-					break;
+					{
+						auto SelectNode = NewObject<USUDSScriptNode>(Asset);
+						SelectNode->InitSelect();
+						Node = SelectNode;
+						break;
+					}
+				case ESUDSParsedNodeType::SetVariable:
+					{
+						auto SetNode = NewObject<USUDSScriptNodeSet>(Asset);
+						// TODO support expressions not just literals
+						SetNode->Init(InNode.Identifier, InNode.VarLiteral);
+						Node = SetNode;
+						break;
+					}
 				case ESUDSParsedNodeType::Goto:
 				default: ;
 				}
@@ -1035,7 +1060,7 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 				{
 					// This normally happens with the final node in the script
 					// Make it an edge to nullptr for consistency
-					Node->AddEdge(FSUDSScriptEdge(nullptr, ESUDSScriptEdgeNavigation::Explicit));
+					Node->AddEdge(FSUDSScriptEdge(nullptr));
 				}
 				else
 				{
@@ -1071,17 +1096,6 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 
 						}
 
-						if (NewEdge.GetTargetNode().IsValid() &&
-							NewEdge.GetTargetNode()->GetNodeType() == ESUDSScriptNodeType::Choice)
-						{
-							NewEdge.SetNavigation(ESUDSScriptEdgeNavigation::Combine);
-						}
-						else
-						{
-							// TODO: support other navigation types like auto, timer based
-							NewEdge.SetNavigation(ESUDSScriptEdgeNavigation::Explicit);
-						}
-
 						Node->AddEdge(NewEdge);
 
 					}
@@ -1097,7 +1111,6 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 			pOutLabels->Add(FName(Elem.Key), NewIndex);
 		}
 
-		Asset->FinishImport();
 	}
 	
 }

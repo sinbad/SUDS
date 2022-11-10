@@ -692,10 +692,6 @@ bool FTestSetVariableParsing::RunTest(const FString& Parameters)
 	TestGetParsedNextNode(this, "Choice 2 next 2", NextNode, Importer, false, &NextNode);
 	TestParsedSetLiteral(this, "Choice 2 set 2", NextNode, "SomeGender", ETextGender::Feminine);
 	
-
-	// NEED TO TEST RUNTIME FALLTHROUGH OF SET NODES
-	
-
 	return true;
 }
 
@@ -742,7 +738,6 @@ bool FTestConversionToRuntime::RunTest(const FString& Parameters)
 		return false;
 	}
 	
-	TestEqual("Start node edge", pEdge->GetNavigation(), ESUDSScriptEdgeNavigation::Combine);
 	NextNode = pEdge->GetTargetNode().Get();
 	if (TestChoiceNode(this, "Start node next", NextNode, 2))
 	{

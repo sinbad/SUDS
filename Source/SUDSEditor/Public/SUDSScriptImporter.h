@@ -77,7 +77,7 @@ public:
 	// Path hierarchy of choice/selects leading to this node, of the form "/002/006" etc, not including this node index
 	// This helps us identify valid fallthroughs
 	FString TreePath;
-	
+
 	FSUDSParsedNode(ESUDSParsedNodeType InNodeType, int Indent, int LineNo) : NodeType(InNodeType), OriginalIndent(Indent), SourceLineNo(LineNo) {}
 	FSUDSParsedNode(const FString& InSpeaker, const FString& InText, const FString& InTextID, int Indent, int LineNo)
 		:NodeType(ESUDSParsedNodeType::Text), OriginalIndent(Indent), Identifier(InSpeaker), Text(InText), TextID(InTextID), SourceLineNo(LineNo) {}
