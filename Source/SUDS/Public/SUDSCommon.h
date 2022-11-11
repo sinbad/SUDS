@@ -1,0 +1,5 @@
+﻿#pragma once
+
+// Use DECLARE_LOG_CATEGORY_CLASS not DECLARE_LOG_CATEGORY_EXTERN because we use UE_LOG in headers
+DECLARE_LOG_CATEGORY_CLASS(LogSUDS, Warning, All)
+

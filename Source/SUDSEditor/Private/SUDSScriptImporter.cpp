@@ -461,10 +461,10 @@ bool FSUDSScriptImporter::ParseSetLine(const FStringView& InLine,
 
 		// Parse literal argument
 		// TODO: support references to other variables, expressions
-		FFormatArgumentValue LiteralValue;
+		FSUDSValue LiteralValue;
 		if (ParseLiteral(ValueStr, LiteralValue))
 		{
-			if (LiteralValue.GetType() == EFormatArgumentType::Text)
+			if (LiteralValue.GetType() == ESUDSValueType::Text)
 			{
 				// Text must be localised
 				if (TextID.IsEmpty())
@@ -487,18 +487,18 @@ bool FSUDSScriptImporter::ParseSetLine(const FStringView& InLine,
 	return false;
 }
 
-bool FSUDSScriptImporter::ParseLiteral(const FString& ValueStr, FFormatArgumentValue& OutVal)
+bool FSUDSScriptImporter::ParseLiteral(const FString& ValueStr, FSUDSValue& OutVal)
 {
 	// Try Boolean first since only 2 options
 	{
 		if (ValueStr.Compare("true", ESearchCase::IgnoreCase) == 0)
 		{
-			OutVal = FFormatArgumentValue(1);
+			OutVal = FSUDSValue(true);
 			return true;
 		}
 		if (ValueStr.Compare("false", ESearchCase::IgnoreCase) == 0)
 		{
-			OutVal = FFormatArgumentValue(0);
+			OutVal = FSUDSValue(false);
 			return true;
 		}
 	}
@@ -506,17 +506,17 @@ bool FSUDSScriptImporter::ParseLiteral(const FString& ValueStr, FFormatArgumentV
 	{
 		if (ValueStr.Compare("masculine", ESearchCase::IgnoreCase) == 0)
 		{
-			OutVal = FFormatArgumentValue(ETextGender::Masculine);
+			OutVal = FSUDSValue(ETextGender::Masculine);
 			return true;
 		}
 		if (ValueStr.Compare("feminine", ESearchCase::IgnoreCase) == 0)
 		{
-			OutVal = FFormatArgumentValue(ETextGender::Feminine);
+			OutVal = FSUDSValue(ETextGender::Feminine);
 			return true;
 		}
 		if (ValueStr.Compare("neuter", ESearchCase::IgnoreCase) == 0)
 		{
-			OutVal = FFormatArgumentValue(ETextGender::Neuter);
+			OutVal = FSUDSValue(ETextGender::Neuter);
 			return true;
 		}
 	}
@@ -527,7 +527,7 @@ bool FSUDSScriptImporter::ParseLiteral(const FString& ValueStr, FFormatArgumentV
 		if (Regex.FindNext())
 		{
 			const FString Val = Regex.GetCaptureGroup(1);
-			OutVal = FFormatArgumentValue(FText::FromString(Val));
+			OutVal = FSUDSValue(FText::FromString(Val));
 			return true;
 		}
 	}
@@ -538,12 +538,12 @@ bool FSUDSScriptImporter::ParseLiteral(const FString& ValueStr, FFormatArgumentV
 		// look for int first; anything with a decimal point will fail
 		if (FDefaultValueHelper::ParseInt(ValueStr, IntVal))
 		{
-			OutVal = FFormatArgumentValue(IntVal);	
+			OutVal = FSUDSValue(IntVal);	
 			return true;
 		}
 		if (FDefaultValueHelper::ParseFloat(ValueStr, FloatVal))
 		{
-			OutVal = FFormatArgumentValue(FloatVal);	
+			OutVal = FSUDSValue(FloatVal);	
 			return true;
 		}
 	}

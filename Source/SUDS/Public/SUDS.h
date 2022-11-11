@@ -1,9 +1,6 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
-#include "Modules/ModuleManager.h"
-
-DECLARE_LOG_CATEGORY_EXTERN(LogSUDS, Warning, All)
 
 class FSUDSModule : public IModuleInterface
 {

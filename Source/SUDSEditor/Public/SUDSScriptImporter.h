@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "SUDSValue.h"
 
 class USUDSScript;
 DECLARE_LOG_CATEGORY_EXTERN(LogSUDSImporter, Verbose, All);
@@ -66,7 +67,7 @@ public:
 	/// Identifier of the text, for the string table
 	FString TextID;
 	/// Variable literal value, for set nodes
-	FFormatArgumentValue VarLiteral;
+	FSUDSValue VarLiteral;
 	/// Labels which lead to this node
 	TArray<FString> Labels;
 	/// Edges leading to other nodes
@@ -84,9 +85,9 @@ public:
 	FSUDSParsedNode(const FString& GotoLabel, int Indent, int LineNo)
 		:NodeType(ESUDSParsedNodeType::Goto), OriginalIndent(Indent), Identifier(GotoLabel), SourceLineNo(LineNo)  {}
 
-	FSUDSParsedNode(const FString& VariableName, const FFormatArgumentValue& LiteralValue, int Indent, int LineNo)
+	FSUDSParsedNode(const FString& VariableName, const FSUDSValue& LiteralValue, int Indent, int LineNo)
 		: NodeType(ESUDSParsedNodeType::SetVariable), OriginalIndent(Indent), Identifier(VariableName), VarLiteral(LiteralValue), SourceLineNo(LineNo) {}
-	FSUDSParsedNode(const FString& VariableName, const FFormatArgumentValue& LiteralValue, const FString& InTextID, int Indent, int LineNo)
+	FSUDSParsedNode(const FString& VariableName, const FSUDSValue& LiteralValue, const FString& InTextID, int Indent, int LineNo)
 		: NodeType(ESUDSParsedNodeType::SetVariable), OriginalIndent(Indent), Identifier(VariableName), TextID(InTextID), VarLiteral(LiteralValue), SourceLineNo(LineNo) {}
 };
 class SUDSEDITOR_API FSUDSScriptImporter
@@ -179,7 +180,7 @@ protected:
 	bool ParseSetLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseEventLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseTextLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseLiteral(const FString& ValueStr, FFormatArgumentValue& OutVal);
+	bool ParseLiteral(const FString& ValueStr, FSUDSValue& OutVal);
 	bool IsCommentLine(const FStringView& TrimmedLine);
 	FStringView TrimLine(const FStringView& Line, int& OutIndentLevel) const;
 	void PopIndent(ParsedTree& Tree);

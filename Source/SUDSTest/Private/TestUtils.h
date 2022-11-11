@@ -3,14 +3,14 @@
 #include "SUDSScriptNode.h"
 #include "SUDSScriptNodeText.h"
 
-inline void TestDialogueText(FAutomationTestBase* T, const FString& NameForTest, USUDSDialogue* D, const FString& SpeakerID, const FString& Text)
+FORCEINLINE void TestDialogueText(FAutomationTestBase* T, const FString& NameForTest, USUDSDialogue* D, const FString& SpeakerID, const FString& Text)
 {
 	T->TestEqual(NameForTest, D->GetSpeakerID(), SpeakerID);
 	T->TestEqual(NameForTest, D->GetText().ToString(), Text);
 	
 }
 
-inline bool TestParsedText(FAutomationTestBase* T, const FString& NameForTest, const FSUDSParsedNode* Node, const FString& Speaker, const FString& Text)
+FORCEINLINE bool TestParsedText(FAutomationTestBase* T, const FString& NameForTest, const FSUDSParsedNode* Node, const FString& Speaker, const FString& Text)
 {
 	if (T->TestNotNull(NameForTest, Node))
 	{
@@ -22,33 +22,33 @@ inline bool TestParsedText(FAutomationTestBase* T, const FString& NameForTest, c
 	return false;
 }
 
-inline bool TestArgValue(FAutomationTestBase* T, const FString& NameForTest, const FFormatArgumentValue& Actual, int Expected)
+FORCEINLINE bool TestArgValue(FAutomationTestBase* T, const FString& NameForTest, const FSUDSValue& Actual, int Expected)
 {
-	if (T->TestEqual(NameForTest, Actual.GetType(), EFormatArgumentType::Int))
+	if (T->TestEqual(NameForTest, Actual.GetType(), ESUDSValueType::Int))
 	{
 		return T->TestEqual(NameForTest, Actual.GetIntValue(), Expected);
 	}
 	return false;
 }
-inline bool TestArgValue(FAutomationTestBase* T, const FString& NameForTest, const FFormatArgumentValue& Actual, float Expected)
+FORCEINLINE bool TestArgValue(FAutomationTestBase* T, const FString& NameForTest, const FSUDSValue& Actual, float Expected)
 {
-	if (T->TestEqual(NameForTest, Actual.GetType(), EFormatArgumentType::Float))
+	if (T->TestEqual(NameForTest, Actual.GetType(), ESUDSValueType::Float))
 	{
 		return T->TestEqual(NameForTest, Actual.GetFloatValue(), Expected);
 	}
 	return false;
 }
-inline bool TestArgValue(FAutomationTestBase* T, const FString& NameForTest, const FFormatArgumentValue& Actual, ETextGender Expected)
+FORCEINLINE bool TestArgValue(FAutomationTestBase* T, const FString& NameForTest, const FSUDSValue& Actual, ETextGender Expected)
 {
-	if (T->TestEqual(NameForTest, Actual.GetType(), EFormatArgumentType::Gender))
+	if (T->TestEqual(NameForTest, Actual.GetType(), ESUDSValueType::Gender))
 	{
 		return T->TestEqual(NameForTest, Actual.GetGenderValue(), Expected);
 	}
 	return false;
 }
-inline bool TestArgValue(FAutomationTestBase* T, const FString& NameForTest, const FFormatArgumentValue& Actual, const FString& Expected)
+FORCEINLINE bool TestArgValue(FAutomationTestBase* T, const FString& NameForTest, const FSUDSValue& Actual, const FString& Expected)
 {
-	if (T->TestEqual(NameForTest, Actual.GetType(), EFormatArgumentType::Text))
+	if (T->TestEqual(NameForTest, Actual.GetType(), ESUDSValueType::Text))
 	{
 		return T->TestEqual(NameForTest, Actual.GetTextValue().ToString(), Expected);
 	}
@@ -56,7 +56,7 @@ inline bool TestArgValue(FAutomationTestBase* T, const FString& NameForTest, con
 }
 
 template <typename V>
-inline bool TestParsedSetLiteral(FAutomationTestBase* T, const FString& NameForTest, const FSUDSParsedNode* Node, const FString& VarName, V Literal)
+FORCEINLINE bool TestParsedSetLiteral(FAutomationTestBase* T, const FString& NameForTest, const FSUDSParsedNode* Node, const FString& VarName, V Literal)
 {
 	if (T->TestNotNull(NameForTest, Node))
 	{
@@ -69,7 +69,22 @@ inline bool TestParsedSetLiteral(FAutomationTestBase* T, const FString& NameForT
 	
 }
 
-inline bool TestGetParsedNextNode(FAutomationTestBase* T, const FString& NameForTest, const FSUDSParsedNode* Node, FSUDSScriptImporter& Importer, bool bIsHeader, const FSUDSParsedNode** OutNextNode)
+// Explicit bool version of the above since otherwise it gets converted to int & fails
+FORCEINLINE bool TestParsedSetLiteral(FAutomationTestBase* T, const FString& NameForTest, const FSUDSParsedNode* Node, const FString& VarName, bool Literal)
+{
+	if (T->TestNotNull(NameForTest, Node))
+	{
+		T->TestEqual(NameForTest, Node->NodeType, ESUDSParsedNodeType::SetVariable);
+		T->TestEqual(NameForTest, Node->Identifier, VarName);
+		TestArgValue(T, NameForTest,Node->VarLiteral.GetBooleanValue(), Literal);
+		return true;
+	}
+	return false;
+	
+}
+
+
+FORCEINLINE bool TestGetParsedNextNode(FAutomationTestBase* T, const FString& NameForTest, const FSUDSParsedNode* Node, FSUDSScriptImporter& Importer, bool bIsHeader, const FSUDSParsedNode** OutNextNode)
 {
 	if (T->TestNotNull(NameForTest, Node))
 	{
@@ -82,7 +97,7 @@ inline bool TestGetParsedNextNode(FAutomationTestBase* T, const FString& NameFor
 	}
 	return false;
 }
-inline bool TestParsedChoice(FAutomationTestBase* T, const FString& NameForTest, const FSUDSParsedNode* Node, int ExpectedNumChoices)
+FORCEINLINE bool TestParsedChoice(FAutomationTestBase* T, const FString& NameForTest, const FSUDSParsedNode* Node, int ExpectedNumChoices)
 {
 	if (T->TestNotNull(NameForTest, Node))
 	{
@@ -93,7 +108,7 @@ inline bool TestParsedChoice(FAutomationTestBase* T, const FString& NameForTest,
 	return false;
 }
 
-inline bool TestParsedChoiceEdge(FAutomationTestBase* T, const FString& NameForTest, const FSUDSParsedNode* Node, int EdgeIndex, const FString& Text, FSUDSScriptImporter& Importer, const FSUDSParsedNode** OutNode)
+FORCEINLINE bool TestParsedChoiceEdge(FAutomationTestBase* T, const FString& NameForTest, const FSUDSParsedNode* Node, int EdgeIndex, const FString& Text, FSUDSScriptImporter& Importer, const FSUDSParsedNode** OutNode)
 {
 	*OutNode = nullptr;
 	if (Node && Node->Edges.Num() > EdgeIndex)
@@ -110,7 +125,7 @@ inline bool TestParsedChoiceEdge(FAutomationTestBase* T, const FString& NameForT
 }
 
 
-inline bool TestTextNode(FAutomationTestBase* T, const FString& NameForTest, const USUDSScriptNode* Node, const FString& Speaker, const FString& Text)
+FORCEINLINE bool TestTextNode(FAutomationTestBase* T, const FString& NameForTest, const USUDSScriptNode* Node, const FString& Speaker, const FString& Text)
 {
 	if (T->TestNotNull(NameForTest, Node))
 	{
@@ -125,7 +140,7 @@ inline bool TestTextNode(FAutomationTestBase* T, const FString& NameForTest, con
 	return false;
 }
 
-inline bool TestEdge(FAutomationTestBase* T, const FString& NameForTest, USUDSScriptNode* Node, int EdgeIndex, USUDSScriptNode** OutNode)
+FORCEINLINE bool TestEdge(FAutomationTestBase* T, const FString& NameForTest, USUDSScriptNode* Node, int EdgeIndex, USUDSScriptNode** OutNode)
 {
 	*OutNode = nullptr;
 	if (Node && Node->GetEdgeCount() > EdgeIndex)
@@ -141,7 +156,7 @@ inline bool TestEdge(FAutomationTestBase* T, const FString& NameForTest, USUDSSc
 	
 }
 
-inline bool TestChoiceNode(FAutomationTestBase* T, const FString& NameForTest, const USUDSScriptNode* Node, int NumChoices)
+FORCEINLINE bool TestChoiceNode(FAutomationTestBase* T, const FString& NameForTest, const USUDSScriptNode* Node, int NumChoices)
 {
 	if (T->TestNotNull(NameForTest, Node))
 	{
@@ -151,7 +166,7 @@ inline bool TestChoiceNode(FAutomationTestBase* T, const FString& NameForTest, c
 	return false;
 }
 
-inline bool TestChoiceEdge(FAutomationTestBase* T, const FString& NameForTest, USUDSScriptNode* Node, int EdgeIndex, const FString& Text, USUDSScriptNode** OutNode)
+FORCEINLINE bool TestChoiceEdge(FAutomationTestBase* T, const FString& NameForTest, USUDSScriptNode* Node, int EdgeIndex, const FString& Text, USUDSScriptNode** OutNode)
 {
 	*OutNode = nullptr;
 	if (Node && Node->GetEdgeCount() > EdgeIndex)

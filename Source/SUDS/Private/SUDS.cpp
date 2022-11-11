@@ -1,4 +1,5 @@
 ﻿#include "SUDS.h"
+#include "SUDSCommon.h"
 
 #define LOCTEXT_NAMESPACE "FSUDSModule"
 
@@ -16,4 +17,3 @@ void FSUDSModule::ShutdownModule()
 #undef LOCTEXT_NAMESPACE
 	
 IMPLEMENT_MODULE(FSUDSModule, SUDS)
-DEFINE_LOG_CATEGORY(LogSUDS)

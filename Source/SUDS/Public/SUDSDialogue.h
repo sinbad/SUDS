@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "SUDSValue.h"
 #include "UObject/Object.h"
 #include "SUDSDialogue.generated.h"
 
@@ -50,7 +51,8 @@ protected:
 	/// Dialogue variable state is all held locally. Dialogue participants can retrieve or set values in state.
 	/// All state is saved with the dialogue. Variables can be used as text substitution parameters, conditionals,
 	/// or communication with external state.
-	FFormatNamedArguments VariableState;
+	typedef TMap<FString, FSUDSValue, FDefaultSetAllocator, FLocKeyMapFuncs<FSUDSValue>> FSUDSValueMap;
+	FSUDSValueMap VariableState;
 
 
 	TSet<FString> CurrentRequestedParamNames;
@@ -79,6 +81,7 @@ protected:
 
 	const USUDSScriptNode* FindNextChoiceNode(const USUDSScriptNodeText* FromTextNode) const;
 	const TArray<FSUDSScriptEdge>* GetChoices(bool bOnlyValidChoices) const;
+	void GetTextFormatArgs(const TArray<FString>& ArgNames, FFormatNamedArguments& OutArgs) const;
 public:
 	USUDSDialogue();
 	void Initialise(const USUDSScript* Script);
@@ -218,7 +221,7 @@ public:
 	{
 		if (auto Arg = VariableState.Find(Name))
 		{
-			if (Arg->GetType() == EFormatArgumentType::Text)
+			if (Arg->GetType() == ESUDSValueType::Text)
 			{
 				return Arg->GetTextValue();
 			}
@@ -253,69 +256,20 @@ public:
 		{
 			switch (Arg->GetType())
 			{
-			case EFormatArgumentType::Int:
+			case ESUDSValueType::Int:
 				return Arg->GetIntValue();
-			case EFormatArgumentType::UInt:
-				UE_LOG(LogSUDSDialogue, Warning, TEXT("Casting variable %s to int, data loss may occur"), *Name);
-				return Arg->GetUIntValue();
-			case EFormatArgumentType::Float:
+			case ESUDSValueType::Float:
 				UE_LOG(LogSUDSDialogue, Warning, TEXT("Casting variable %s to int, data loss may occur"), *Name);
 				return Arg->GetFloatValue();
-			case EFormatArgumentType::Double:
-				UE_LOG(LogSUDSDialogue, Warning, TEXT("Casting variable %s to int, data loss may occur"), *Name);
-				return Arg->GetDoubleValue();
 			default: 
-			case EFormatArgumentType::Gender:
-			case EFormatArgumentType::Text:
+			case ESUDSValueType::Gender:
+			case ESUDSValueType::Text:
 				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible integer type"), *Name);
 			}
 		}
 		return 0;
 	}
 	
-	/**
-	 * Set an Int64 dialogue variable
-	 * @param Name The name of the parameter
-	 * @param Value The value of the parameter
-	 */
-	UFUNCTION(BlueprintCallable)
-	void SetVariableInt64(FString Name, int64 Value)
-	{
-		VariableState.Add(Name, Value);
-	}
-
-	/**
-	 * Get an Int64 dialogue variable
-	 * @param Name The name of the variable
-	 * @returns Value The value of the variable
-	 */
-	UFUNCTION(BlueprintCallable)
-	int64 GetVariableInt64(FString Name)
-	{
-		if (auto Arg = VariableState.Find(Name))
-		{
-			switch (Arg->GetType())
-			{
-			case EFormatArgumentType::Int:
-				return Arg->GetIntValue();
-			case EFormatArgumentType::UInt:
-				UE_LOG(LogSUDSDialogue, Warning, TEXT("Casting variable %s to int, data loss may occur"), *Name);
-				return Arg->GetUIntValue();
-			case EFormatArgumentType::Float:
-				UE_LOG(LogSUDSDialogue, Warning, TEXT("Casting variable %s to int, data loss may occur"), *Name);
-				return Arg->GetFloatValue();
-			case EFormatArgumentType::Double:
-				UE_LOG(LogSUDSDialogue, Warning, TEXT("Casting variable %s to int, data loss may occur"), *Name);
-				return Arg->GetDoubleValue();
-			default: 
-			case EFormatArgumentType::Gender:
-			case EFormatArgumentType::Text:
-				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible integer type"), *Name);
-			}
-		}
-		return 0;
-	}
-
 	/**
 	 * Set a float dialogue variable 
 	 * @param Name The name of the variable
@@ -339,18 +293,13 @@ public:
 		{
 			switch (Arg->GetType())
 			{
-			case EFormatArgumentType::Int:
+			case ESUDSValueType::Int:
 				return Arg->GetIntValue();
-			case EFormatArgumentType::UInt:
-				return Arg->GetUIntValue();
-			case EFormatArgumentType::Float:
+			case ESUDSValueType::Float:
 				return Arg->GetFloatValue();
-			case EFormatArgumentType::Double:
-				UE_LOG(LogSUDSDialogue, Warning, TEXT("Casting variable %s to float, data loss may occur"), *Name);
-				return Arg->GetDoubleValue();
 			default: 
-			case EFormatArgumentType::Gender:
-			case EFormatArgumentType::Text:
+			case ESUDSValueType::Gender:
+			case ESUDSValueType::Text:
 				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible float type"), *Name);
 			}
 		}
@@ -380,14 +329,12 @@ public:
 		{
 			switch (Arg->GetType())
 			{
-			case EFormatArgumentType::Gender:
+			case ESUDSValueType::Gender:
 				return Arg->GetGenderValue();
 			default: 
-			case EFormatArgumentType::Int:
-			case EFormatArgumentType::UInt:
-			case EFormatArgumentType::Float:
-			case EFormatArgumentType::Double:
-			case EFormatArgumentType::Text:
+			case ESUDSValueType::Int:
+			case ESUDSValueType::Float:
+			case ESUDSValueType::Text:
 				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible gender type"), *Name);
 			}
 		}
@@ -417,14 +364,14 @@ public:
 		{
 			switch (Arg->GetType())
 			{
-			case EFormatArgumentType::Int:
-			case EFormatArgumentType::UInt:
+			case ESUDSValueType::Boolean:
+				return Arg->GetBooleanValue();
+			case ESUDSValueType::Int:
 				return Arg->GetIntValue() != 0;
 			default: 
-			case EFormatArgumentType::Gender:
-			case EFormatArgumentType::Float:
-			case EFormatArgumentType::Double:
-			case EFormatArgumentType::Text:
+			case ESUDSValueType::Float:
+			case ESUDSValueType::Gender:
+			case ESUDSValueType::Text:
 				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible boolean type"), *Name);
 			}
 		}

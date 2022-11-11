@@ -141,11 +141,27 @@ void USUDSDialogue::SetCurrentSpeakerNode(USUDSScriptNodeText* Node)
 
 }
 
+void USUDSDialogue::GetTextFormatArgs(const TArray<FString>& ArgNames, FFormatNamedArguments& OutArgs) const
+{
+	for (auto& Name : ArgNames)
+	{
+		if (const FSUDSValue* Value = VariableState.Find(Name))
+		{
+			// Use the operator conversion
+			OutArgs.Add(Name, Value->ToFormatArg());
+		}
+	}
+}
+
 FText USUDSDialogue::GetText() const
 {
 	if (CurrentSpeakerNode->HasParameters())
 	{
-		return FText::Format(CurrentSpeakerNode->GetTextFormat(), VariableState);
+		// Need to make a temp arg list for compatibility
+		// Also lets us just set the ones we need to
+		FFormatNamedArguments Args;
+		GetTextFormatArgs(CurrentSpeakerNode->GetParameterNames(), Args);
+		return FText::Format(CurrentSpeakerNode->GetTextFormat(), Args);
 	}
 	else
 	{
@@ -172,7 +188,7 @@ FText USUDSDialogue::GetSpeakerDisplayName() const
 		FString Key = SpeakerIDPrefix + GetSpeakerID();
 		if (auto Arg = VariableState.Find(Key))
 		{
-			if (Arg->GetType() == EFormatArgumentType::Text)
+			if (Arg->GetType() == ESUDSValueType::Text)
 			{
 				CurrentSpeakerDisplayName = Arg->GetTextValue();
 			}
@@ -305,7 +321,11 @@ FText USUDSDialogue::GetChoiceText(int Index,bool bOnlyValidChoices) const
 			auto& Choice = (*Choices)[Index];
 			if (Choice.HasParameters())
 			{
-				return FText::Format(Choice.GetTextFormat(), VariableState);
+				// Need to make a temp arg list for compatibility
+				// Also lets us just set the ones we need to
+				FFormatNamedArguments Args;
+				GetTextFormatArgs(Choice.GetParameterNames(), Args);
+				return FText::Format(Choice.GetTextFormat(), Args);
 			}
 			else
 			{

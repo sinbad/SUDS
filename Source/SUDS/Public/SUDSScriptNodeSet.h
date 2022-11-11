@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "SUDSScriptNode.h"
-#include "Internationalization/Text.h"
+#include "SUDSValue.h"
 #include "SUDSScriptNodeSet.generated.h"
 
 /**
@@ -19,11 +19,11 @@ protected:
 	FString Identifier;
 	
 	/// Literal value, for set nodes
-	FFormatArgumentValue Literal;
+	FSUDSValue Literal;
 
 public:
 
-	void Init(const FString& VarName, const FFormatArgumentValue& LiteralValue);
+	void Init(const FString& VarName, const FSUDSValue& LiteralValue);
 	const FString& GetIdentifier() const { return Identifier; }
-	const FFormatArgumentValue& GetLiteral() const { return Literal; }
+	const FSUDSValue& GetLiteral() const { return Literal; }
 };
