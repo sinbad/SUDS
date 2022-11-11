@@ -276,4 +276,58 @@ bool FTestSetVariableRunning::RunTest(const FString& Parameters)
 
 }
 
+
+const FString SpeakerNamesInput = R"RAWSUD(
+===
+[set SpeakerName.Player "Protagonist"]
+[set SpeakerName.NPC "Just Some Guy"]
+===
+:start
+Player: Hello there
+NPC: Salutations fellow human
+ThirdGuy: Sup
+[set SpeakerName.NPC "Actually A Villain"]
+NPC: Aha!
+)RAWSUD";
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestSpeakerNames,
+								 "SUDSTest.TestSpeakerNames",
+								 EAutomationTestFlags::EditorContext |
+								 EAutomationTestFlags::ClientContext |
+								 EAutomationTestFlags::ProductFilter)
+
+bool FTestSpeakerNames::RunTest(const FString& Parameters)
+{
+	FSUDSScriptImporter Importer;
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SpeakerNamesInput), SpeakerNamesInput.Len(), "SpeakerNamesInput", true));
+
+	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
+	auto StringTable = NewObject<UStringTable>(GetTransientPackage(), "TestStrings");
+	Importer.PopulateAsset(Script, StringTable);
+
+	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
+	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
+	Dlg->Start();
+
+	// Speaker ID test
+	TestDialogueText(this, "Initial text", Dlg, "Player", "Hello there");
+	TestEqual("Initial player speaker name", Dlg->GetSpeakerDisplayName().ToString(), "Protagonist");
+	TestTrue("Continue", Dlg->Continue());
+	TestDialogueText(this, "Text 2", Dlg, "NPC", "Salutations fellow human");
+	TestEqual("Initial NPC speaker name", Dlg->GetSpeakerDisplayName().ToString(), "Just Some Guy");
+	TestTrue("Continue", Dlg->Continue());
+	TestDialogueText(this, "Text 3", Dlg, "ThirdGuy", "Sup");
+	TestEqual("Initial ThirdGuy speaker name", Dlg->GetSpeakerDisplayName().ToString(), "ThirdGuy");
+	TestTrue("Continue", Dlg->Continue());
+	TestDialogueText(this, "Text 4", Dlg, "NPC", "Aha!");
+	TestEqual("NPC speaker name should have changed", Dlg->GetSpeakerDisplayName().ToString(), "Actually A Villain");
+
+
+	// Tidy up string table
+	// Constructor registered this table
+	FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());
+	
+	return true;
+}
+
 PRAGMA_ENABLE_OPTIMIZATION

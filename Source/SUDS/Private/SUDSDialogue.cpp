@@ -165,7 +165,27 @@ FText USUDSDialogue::GetSpeakerDisplayName() const
 {
 	if (CurrentSpeakerDisplayName.IsEmpty())
 	{
-		// TODO: derive speaker display name
+		// Derive speaker display name
+		// Is just a special variable "SpeakerName.SpeakerID"
+		// or just the SpeakerID if none specified
+		static const FString SpeakerIDPrefix = "SpeakerName.";
+		FString Key = SpeakerIDPrefix + GetSpeakerID();
+		if (auto Arg = VariableState.Find(Key))
+		{
+			if (Arg->GetType() == EFormatArgumentType::Text)
+			{
+				CurrentSpeakerDisplayName = Arg->GetTextValue();
+			}
+			else
+			{
+				UE_LOG(LogSUDSDialogue, Error, TEXT("%s was set to a value that was not text, cannot use"), *Key);
+			}
+		}
+		if (CurrentSpeakerDisplayName.IsEmpty())
+		{
+			// If no display name was specified, use the (non-localised) speaker ID
+			CurrentSpeakerDisplayName = FText::FromString(GetSpeakerID());
+		}
 	}
 	return CurrentSpeakerDisplayName;
 }
