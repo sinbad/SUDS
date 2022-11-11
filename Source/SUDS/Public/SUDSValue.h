@@ -20,7 +20,8 @@ USTRUCT(BlueprintType)
 struct FSUDSValue
 {
 	GENERATED_BODY()
-private:
+protected:
+	UPROPERTY(BlueprintReadOnly)
 	ESUDSValueType Type;
 	union
 	{
