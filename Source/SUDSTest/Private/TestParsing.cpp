@@ -50,13 +50,13 @@ Player: This is the start
 		NPC: How rude, bye then
 		[goto end]
 	* Nested option
-		NPC: Some nesting
+		NPC: Some nested text with <Bounce>formatting</>
 		* Go to goodbye
 			Player: Gotta go!
 			[go to goodbye] 
 		* Skip
 			[goto secondchoice]
-		* This is a mistake
+		* This is a <Bounce>mistake</>
 			NPC: Oh no
 			[goto this_is_an_error]
 :secondchoice
@@ -435,7 +435,7 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 		{
 			TestEqual("Choice 2 node text type", NextNode->NodeType, ESUDSParsedNodeType::Text);
 			TestEqual("Choice 2 node text speaker", NextNode->Identifier, "NPC");
-			TestEqual("Choice 2 node text text", NextNode->Text, "Some nesting");
+			TestEqual("Choice 2 node text text", NextNode->Text, "Some nested text with <Bounce>formatting</>");
 			if (TestEqual("Choice 2 node text edges", NextNode->Edges.Num(), 1))
 			{
 				NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
@@ -492,7 +492,7 @@ bool FTestGotoParsing::RunTest(const FString& Parameters)
 										
 							}
 						}
-						TestEqual("Nested choice 2 text", NestedChoice->Edges[2].Text, "This is a mistake");
+						TestEqual("Nested choice 2 text", NestedChoice->Edges[2].Text, "This is a <Bounce>mistake</>");
 						NextNode = Importer.GetNode(NestedChoice->Edges[2].TargetNodeIdx);
 						if (TestNotNull("Should not be null", NextNode))
 						{
@@ -755,7 +755,7 @@ bool FTestConversionToRuntime::RunTest(const FString& Parameters)
 		
 		if (TestChoiceEdge(this, "Choice 2 text", ChoiceNode, 1, "Nested option", &NextNode))
 		{
-			TestTextNode(this, "Choice 2 node text type", NextNode, "NPC", "Some nesting");
+			TestTextNode(this, "Choice 2 node text type", NextNode, "NPC", "Some nested text with <Bounce>formatting</>");
 			if (TestEdge(this, "Choice 2 node text edges", NextNode, 0, &NextNode))
 			{
 				if (TestChoiceNode(this, "Goto End node type", NextNode, 3))
@@ -777,7 +777,7 @@ bool FTestConversionToRuntime::RunTest(const FString& Parameters)
 						TestTextNode(this, "Nested choice 1 goto", NextNode, "NPC", "Yep, this one too");
 					}
 
-					if (TestChoiceEdge(this, "Nested choice 2 text", NestedChoice, 2, "This is a mistake", &NextNode))
+					if (TestChoiceEdge(this, "Nested choice 2 text", NestedChoice, 2, "This is a <Bounce>mistake</>", &NextNode))
 					{
 						// there's a text node then a failed goto (nowhere)
 						TestTextNode(this, "Nested choice 2 node", NextNode, "NPC", "Oh no");
