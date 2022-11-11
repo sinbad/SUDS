@@ -27,3 +27,53 @@ USUDSDialogue* USUDSLibrary::CreateDialogueWithParticipants(UObject* Owner,
 	}
 	return nullptr;
 }
+
+bool USUDSLibrary::GetDialogueValueAsText(const FSUDSValue& Value, FText& TextValue)
+{
+	if (Value.GetType() == ESUDSValueType::Text)
+	{
+		TextValue = Value.GetTextValue();
+		return true;
+	}
+	return false;
+}
+
+bool USUDSLibrary::GetDialogueValueAsBoolean(const FSUDSValue& Value, bool& BoolValue)
+{
+	if (Value.GetType() == ESUDSValueType::Boolean)
+	{
+		BoolValue = Value.GetBooleanValue();
+		return true;
+	}
+	return false;
+}
+
+bool USUDSLibrary::GetDialogueValueAsInt(const FSUDSValue& Value, int& IntValue)
+{
+	if (Value.GetType() == ESUDSValueType::Int)
+	{
+		IntValue = Value.GetIntValue();
+		return true;
+	}
+	return false;
+}
+
+bool USUDSLibrary::GetDialogueValueAsFloat(const FSUDSValue& Value, float& FloatValue)
+{
+	if (Value.GetType() == ESUDSValueType::Float)
+	{
+		FloatValue = Value.GetFloatValue();
+		return true;
+	}
+	return false;
+}
+
+bool USUDSLibrary::GetDialogueValueAsGender(const FSUDSValue& Value, ETextGender& GenderValue)
+{
+	if (Value.GetType() == ESUDSValueType::Gender)
+	{
+		GenderValue = Value.GetGenderValue();
+		return true;
+	}
+	return false;
+}
