@@ -70,6 +70,8 @@ public:
 	FString TextID;
 	/// Variable literal value, for set nodes
 	FSUDSValue VarLiteral;
+	/// Event argument literals, for event nodes
+	TArray<FSUDSValue> EventArgsLiteral;
 	/// Labels which lead to this node
 	TArray<FString> Labels;
 	/// Edges leading to other nodes

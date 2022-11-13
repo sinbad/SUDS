@@ -2,6 +2,7 @@
 
 #include "SUDSScript.h"
 #include "SUDSScriptNode.h"
+#include "SUDSScriptNodeEvent.h"
 #include "SUDSScriptNodeSet.h"
 #include "SUDSScriptNodeText.h"
 #include "Internationalization/Regex.h"
@@ -561,13 +562,51 @@ bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line,
                                          bool bSilent)
 {
 	const FString LineStr(Line);
-	const FRegexPattern EventPattern(TEXT("^\\[event\\s+(\\S+)\\s+(.+)\\]$"));
+	// the event pattern is
+	// Prefix, capturing event keyword and event name:
+	// ^\[event\s+(\w+)
+	// Then a repeating patter to match arguments, up to 6 max (duplicated 6 times because regex can't loop)
+	// This captures either quoted strings (allowing spaces) or any sequence separated by spaces
+	// The entire match is optional and only the inner part minus whitespace is captured
+	// (?:\s+(\"[^\"]*\"|\S+))?
+	// Finally the end:
+	// \s*\]$
+	
+	const FRegexPattern EventPattern(TEXT("^\\[event\\s+(\\w+)(?:\\s+(\\\"[^\\\"]*\\\"|\\S+))?(?:\\s+(\\\"[^\\\"]*\\\"|\\S+))?(?:\\s+(\\\"[^\\\"]*\\\"|\\S+))?(?:\\s+(\\\"[^\\\"]*\\\"|\\S+))?(?:\\s+(\\\"[^\\\"]*\\\"|\\S+))?(?:\\s+(\\\"[^\\\"]*\\\"|\\S+))?\\s*\\]$"));
 	FRegexMatcher EventRegex(EventPattern, LineStr);
 	if (EventRegex.FindNext())
 	{
-		// TODO: Implement event lines
 		if (!bSilent)
 			UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: EVENT : %s"), LineNo, IndentLevel, *FString(Line));
+
+
+		FSUDSParsedNode Node(ESUDSParsedNodeType::Event, IndentLevel, LineNo);
+		
+		Node.Identifier = EventRegex.GetCaptureGroup(1);
+
+		for (int Grp = 2; Grp < 8; ++Grp)
+		{
+			if (EventRegex.GetCaptureGroupBeginning(Grp) == INDEX_NONE)
+				break;
+
+			FString ArgStr = EventRegex.GetCaptureGroup(Grp);
+			// TODO: support expressions
+			FSUDSValue Literal;
+			if (ParseLiteral(ArgStr, Literal))
+			{
+				// note: no localisation of event literals, they're just strings
+				// we assume the receiver of the event will set localised text to variables if they want
+				Node.EventArgsLiteral.Add(Literal);
+			}
+			else
+			{
+				UE_LOG(LogSUDSImporter, Warning, TEXT("Error in %s line %d: Literal argument '%s' invalid"), *NameForErrors, LineNo, *ArgStr);
+			}
+			
+		}
+
+		AppendNode(Tree, Node);
+
 		return true;
 	}
 	return false;
@@ -1037,6 +1076,14 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 						// TODO support expressions not just literals
 						SetNode->Init(InNode.Identifier, InNode.VarLiteral);
 						Node = SetNode;
+						break;
+					}
+				case ESUDSParsedNodeType::Event:
+					{
+						auto EvtNode = NewObject<USUDSScriptNodeEvent>(Asset);
+						// TODO support expressions not just literals
+						EvtNode->Init(InNode.Identifier, InNode.EventArgsLiteral);
+						Node = EvtNode;
 						break;
 					}
 				case ESUDSParsedNodeType::Goto:
