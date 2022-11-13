@@ -20,4 +20,5 @@ public:
 
 	
 	virtual void OnDialogueStarting_Implementation(USUDSDialogue* Dialogue, FName AtLabel) override;
+	virtual int GetDialogueParticipantPriority_Implementation() const override;
 };
