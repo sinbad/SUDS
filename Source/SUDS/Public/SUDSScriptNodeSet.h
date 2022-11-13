@@ -19,6 +19,7 @@ protected:
 	FString Identifier;
 	
 	/// Literal value, for set nodes
+	UPROPERTY(BlueprintReadOnly)
 	FSUDSValue Literal;
 
 public:
