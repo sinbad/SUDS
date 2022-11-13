@@ -60,6 +60,7 @@ public:
 	 * reference the choice.
 	 * Participants will be called before any dialogue event listeners.
 	 * @param Dialogue The dialogue
+	 * @param ChoiceIndex The index of the choice that was made
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="SUDS")
 	void OnDialogueChoiceMade(USUDSDialogue* Dialogue, int ChoiceIndex);	
