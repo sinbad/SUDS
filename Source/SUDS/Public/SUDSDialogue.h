@@ -200,6 +200,27 @@ public:
 		VariableState.Add(Name, Value);
 	}
 
+	/// Set a variable in dialogue state
+	/// This is mostly only useful if you happen to already have a general purpose FSUDSValue.
+	/// See SetDialogueText, SetDialogueInt etc for literal-friendly versions
+	UFUNCTION(BlueprintCallable)
+	void SetVariable(FString Name, FSUDSValue Value)
+	{
+		VariableState.Add(Name, Value);
+	}
+
+	/// Get a variable in dialogue state as a general value type
+	/// See GetDialogueText, GetDialogueInt etc for more type friendly versions, but if you want to access the state
+	/// as a type-flexible value then you can do so with this function.
+	UFUNCTION(BlueprintCallable)
+	FSUDSValue GetVariable(FString Name)
+	{
+		if (auto Arg = VariableState.Find(Name))
+		{
+			return *Arg;
+		}
+		return FSUDSValue();
+	}
 	/**
 	 * Set a text dialogue variable
 	 * @param Name The name of the variable
