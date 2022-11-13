@@ -1,6 +1,4 @@
-﻿// Copyright 2020 Old Doorways Ltd
-
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "SUDSParticipant.h"

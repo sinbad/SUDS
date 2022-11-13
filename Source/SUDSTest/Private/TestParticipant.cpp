@@ -1,6 +1,4 @@
-﻿// Copyright 2020 Old Doorways Ltd
-
-
+﻿
 #include "TestParticipant.h"
 
 #include "SUDSDialogue.h"
