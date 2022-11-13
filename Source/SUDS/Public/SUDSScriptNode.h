@@ -15,7 +15,9 @@ enum class ESUDSScriptNodeType : uint8
 	/// Select node, automatically selecting one which navigates to another node based on state
 	Select,
 	/// Set variable node
-	SetVariable
+	SetVariable,
+	/// Event node
+	Event
 };
 /**
  * A node in the script graph.

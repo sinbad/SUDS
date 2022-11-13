@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "SUDSScriptNode.h"
 #include "SUDSValue.h"
 #include "UObject/Object.h"
 #include "SUDSDialogue.generated.h"
@@ -76,8 +77,11 @@ protected:
 	void RaiseNewSpeakerLine();
 	void RaiseChoiceMade(int Index);
 	USUDSScriptNode* GetNextNode(const USUDSScriptNode* Node) const;
+	bool ShouldStopAtNodeType(ESUDSScriptNodeType Type);
+	USUDSScriptNode* RunNode(USUDSScriptNode* Node);
 	USUDSScriptNode* RunSelectNode(USUDSScriptNode* Node);
 	USUDSScriptNode* RunSetVariableNode(USUDSScriptNode* Node);
+	USUDSScriptNode* RunEventNode(USUDSScriptNode* Node);
 
 	const USUDSScriptNode* FindNextChoiceNode(const USUDSScriptNodeText* FromTextNode) const;
 	const TArray<FSUDSScriptEdge>* GetChoices(bool bOnlyValidChoices) const;

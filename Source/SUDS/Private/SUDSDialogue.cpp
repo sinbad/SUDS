@@ -70,34 +70,21 @@ void USUDSDialogue::RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* NextNode)
 	// We run through nodes which don't require a speaker line prompt
 	// E.g. set nodes, select nodes which are all automatically resolved
 	// Starting with this node
-	while (NextNode && NextNode->GetNodeType() != ESUDSScriptNodeType::Text)
+	while (NextNode && !ShouldStopAtNodeType(NextNode->GetNodeType()))
 	{
-		switch (NextNode->GetNodeType())
-		{
-		case ESUDSScriptNodeType::Text:
-			// Should not have got here, while condition
-			break;
-		case ESUDSScriptNodeType::Choice:
-			UE_LOG(LogSUDSDialogue, Error, TEXT("Error in %s: Choice node encountered but wasn't immediately following a text node"), *BaseScript->GetName());
-			NextNode = nullptr;
-			break;
-		case ESUDSScriptNodeType::Select:
-			NextNode = RunSelectNode(NextNode);
-			break;
-		case ESUDSScriptNodeType::SetVariable:
-			NextNode = RunSetVariableNode(NextNode);
-			break;
-		default: ;
-		}
-		
+		NextNode = RunNode(NextNode);
 	}
 
 	if (NextNode)
 	{
-		// This should be a given, since while will only exit when non-null in this case, but still
 		if (NextNode->GetNodeType() == ESUDSScriptNodeType::Text)
 		{
 			SetCurrentSpeakerNode(Cast<USUDSScriptNodeText>(NextNode));
+		}
+		else
+		{
+			// Should never happen unless there's a parsing error
+			UE_LOG(LogSUDSDialogue, Error, TEXT("Error in %s: Tried to run to next speaker node but encountered a stopping node of wrong type"), *BaseScript->GetName());
 		}
 	}
 	else
@@ -109,9 +96,32 @@ void USUDSDialogue::RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* NextNode)
 
 }
 
+USUDSScriptNode* USUDSDialogue::RunNode(USUDSScriptNode* Node)
+{
+	switch (Node->GetNodeType())
+	{
+	case ESUDSScriptNodeType::Select:
+		return RunSelectNode(Node);
+	case ESUDSScriptNodeType::SetVariable:
+		return RunSetVariableNode(Node);
+	case ESUDSScriptNodeType::Event:
+		return RunEventNode(Node);
+	default: ;
+	}
+
+	UE_LOG(LogSUDSDialogue, Error, TEXT("Attempted to run non-runnable node type"))
+	return nullptr;
+}
+
 USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node)
 {
 	// TODO: implement select
+	return GetNextNode(Node);
+}
+
+USUDSScriptNode* USUDSDialogue::RunEventNode(USUDSScriptNode* Node)
+{
+	// TODO: implement events
 	return GetNextNode(Node);
 }
 
@@ -211,16 +221,22 @@ USUDSScriptNode* USUDSDialogue::GetNextNode(const USUDSScriptNode* Node) const
 	return BaseScript->GetNextNode(Node);
 }
 
+bool USUDSDialogue::ShouldStopAtNodeType(ESUDSScriptNodeType Type)
+{
+	return Type != ESUDSScriptNodeType::SetVariable &&
+		Type != ESUDSScriptNodeType::Select &&
+		Type != ESUDSScriptNodeType::Event;
+}
+
 const USUDSScriptNode* USUDSDialogue::RunUntilNextChoiceNode(const USUDSScriptNodeText* FromTextNode)
 {
 	if (FromTextNode && FromTextNode->GetEdgeCount() == 1)
 	{
 		auto NextNode = GetNextNode(FromTextNode);
-		// We only skip over set nodes
-		while (NextNode &&
-			NextNode->GetNodeType() == ESUDSScriptNodeType::SetVariable)
+		// We skip over set nodes
+		while (NextNode && !ShouldStopAtNodeType(NextNode->GetNodeType()))
 		{
-			NextNode = RunSetVariableNode(NextNode);
+			NextNode = RunNode(NextNode);
 		}
 
 		return NextNode;

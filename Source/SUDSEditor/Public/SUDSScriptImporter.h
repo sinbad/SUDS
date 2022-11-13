@@ -51,6 +51,8 @@ enum class ESUDSParsedNodeType : uint8
 	Goto,
 	/// Set variable node
 	SetVariable,
+	/// Event node
+	Event
 };
 
 /// Intermediate parsed node from script text
