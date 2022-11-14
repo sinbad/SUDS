@@ -71,6 +71,7 @@ NPC: Wotcha
 		NPC: Surprise
 		[set ValetName "Kate"]
 		[set SomeGender feminine]
+		[set someint 101]
 Player: Well
 	
 )RAWSUD";
@@ -273,6 +274,8 @@ bool FTestSetVariableRunning::RunTest(const FString& Parameters)
 	TestDialogueText(this, "Final node", Dlg, "Player", "Well");
 	TestEqual("Gender should have changed", Dlg->GetVariableGender("SomeGender"), ETextGender::Feminine);
 	TestEqual("Valet name should have changed", Dlg->GetVariableText("ValetName").ToString(), "Kate");
+	TestEqual("Case insensitive set test", Dlg->GetVariableInt("SomeInt"), 101);
+	
 	TestFalse("Continue", Dlg->Continue());
 	TestTrue("At end", Dlg->IsEnded());
 	
