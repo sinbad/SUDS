@@ -11,7 +11,9 @@ enum class ESUDSValueType : uint8
 	Int,
 	Float,
 	Boolean,
-	Gender
+	Gender,
+	/// Access the value of another variable
+	Variable,
 };
 /// Struct which can hold any of the value types that SUDS needs to use, in a Blueprint friendly manner
 /// For getting / setting these values from blueprints, see blueprint library functions SetSUDSValue<Type>() / GetSUDSValue<Type>()
@@ -29,6 +31,7 @@ protected:
 		float FloatValue;
 	};
 	TOptional<FText> TextValue;
+	TOptional<FString> VariableName;
 public:
 
 	FSUDSValue() : Type(ESUDSValueType::Text), IntValue(0), TextValue(FText::GetEmpty()) {}
@@ -61,6 +64,13 @@ public:
 		: Type(ESUDSValueType::Boolean), IntValue(0)
 	{
 		IntValue = Value ? 1 : 0;
+	}
+
+	FSUDSValue(const FString& ReferencedVariableName)
+	: Type(ESUDSValueType::Variable),
+	  IntValue(0),
+	  VariableName(ReferencedVariableName)
+	{
 	}
 
 	FORCEINLINE ESUDSValueType GetType() const
@@ -107,6 +117,20 @@ public:
 
 		return IntValue != 0;
 	}
+
+	FORCEINLINE const FString& GetVariableNameValue() const
+	{
+		if (Type != ESUDSValueType::Variable)
+			UE_LOG(LogSUDS, Warning, TEXT("Getting value as variable name but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))
+
+		return VariableName.GetValue();
+	}
+
+	FORCEINLINE bool IsVariable() const
+	{
+		return Type == ESUDSValueType::Variable;
+	}
+
 
 	FFormatArgumentValue ToFormatArg() const
 	{

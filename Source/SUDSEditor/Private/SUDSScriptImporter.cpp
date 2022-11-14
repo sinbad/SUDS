@@ -532,6 +532,17 @@ bool FSUDSScriptImporter::ParseLiteral(const FString& ValueStr, FSUDSValue& OutV
 			return true;
 		}
 	}
+	// Try variable name
+	{
+		const FRegexPattern Pattern(TEXT("^\\{([^\\}]*)\\}$"));
+		FRegexMatcher Regex(Pattern, ValueStr);
+		if (Regex.FindNext())
+		{
+			const FString VariableName = Regex.GetCaptureGroup(1);
+			OutVal = FSUDSValue(VariableName);
+			return true;
+		}
+	}
 	// Try Numbers
 	{
 		float FloatVal;

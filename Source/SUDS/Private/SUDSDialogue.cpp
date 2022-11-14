@@ -130,7 +130,15 @@ USUDSScriptNode* USUDSDialogue::RunSetVariableNode(USUDSScriptNode* Node)
 	// TODO: support things other than literals
 	if (USUDSScriptNodeSet* SetNode = Cast<USUDSScriptNodeSet>(Node))
 	{
-		VariableState.Add(SetNode->GetIdentifier(), SetNode->GetLiteral());
+		if (SetNode->GetLiteral().IsVariable())
+		{
+			// Copying another variable
+			VariableState.Add(SetNode->GetIdentifier(), GetVariable(SetNode->GetLiteral().GetVariableNameValue()));
+		}
+		else
+		{
+			VariableState.Add(SetNode->GetIdentifier(), SetNode->GetLiteral());
+		}
 	}
 
 	// Always one edge

@@ -58,6 +58,9 @@ const FString SetVariableRunnerInput = R"RAWSUD(
 
 Player: Hello
 [set SomeInt 99]
+# Test that we can use variables in set and that ordering works
+[set SomeOtherFloat {SomeFloat}]
+[set SomeFloat 43.754]
 NPC: Wotcha
 # Test that inserting a set node in between text and choice doesn't break link 
 [set SomeGender masculine]
@@ -220,6 +223,11 @@ bool FTestSetVariableRunning::RunTest(const FString& Parameters)
 	// Set node should have run
 	TestEqual("Initial: Some int", Dlg->GetVariableInt("SomeInt"), 99);
 	TestDialogueText(this, "Node 2", Dlg, "NPC", "Wotcha");
+
+	// Test that setting a new variable from another variable worked
+	TestEqual("Some copied float", Dlg->GetVariableFloat("SomeOtherFloat"), 12.5f);
+	TestEqual("Original float", Dlg->GetVariableFloat("SomeFloat"), 43.754f);
+	
 	TestEqual("Choices count", Dlg->GetNumberOfChoices(), 2);
 	TestEqual("Choice 1 text", Dlg->GetChoiceText(0).ToString(), "Choice 1");
 	TestEqual("Choice 2 text", Dlg->GetChoiceText(1).ToString(), "Choice 2");
