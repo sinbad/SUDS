@@ -29,7 +29,7 @@ protected:
 	bool bHasChoices = false;
 	
 	mutable bool bFormatExtracted = false; 
-	mutable TArray<FString> ParameterNames;
+	mutable TArray<FName> ParameterNames;
 	mutable FTextFormat TextFormat;
 
 	void ExtractFormat() const;
@@ -41,7 +41,7 @@ public:
 
 	void Init(const FString& SpeakerID, const FText& Text);
 	const FTextFormat& GetTextFormat() const;
-	const TArray<FString>& GetParameterNames() const;	
+	const TArray<FName>& GetParameterNames() const;	
 	bool HasParameters() const;
 
 	void NotifyHasChoices() { bHasChoices = true; }

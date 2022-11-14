@@ -64,7 +64,16 @@ public:
 	 * @param ChoiceIndex The index of the choice that was made
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="SUDS")
-	void OnDialogueChoiceMade(USUDSDialogue* Dialogue, int ChoiceIndex);	
+	void OnDialogueChoiceMade(USUDSDialogue* Dialogue, int ChoiceIndex);
+
+	/**
+	 * Called when an event is raised from dialogue 
+	 * @param Dialogue The dialogue instance
+	 * @param EventName The name of the event that has been raised
+	 * @param Arguments 
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="SUDS")
+	void OnDialogueEvent(USUDSDialogue* Dialogue, FName EventName, const TArray<FSUDSValue>& Arguments);
 	
 	/**
 	 * Return the priority of this participant (default 0).

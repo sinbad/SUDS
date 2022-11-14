@@ -15,7 +15,7 @@ class SUDS_API USUDSScriptNodeEvent : public USUDSScriptNode
 protected:
 	// Variable identifier
 	UPROPERTY(BlueprintReadOnly)
-	FString EventName;
+	FName EventName;
 	
 	/// Literal arguments
 	UPROPERTY(BlueprintReadOnly)
@@ -24,7 +24,7 @@ protected:
 public:
 
 	void Init(const FString& EvtName, const TArray<FSUDSValue>& Args);
-	const FString& GetEventName() const { return EventName; }
+	FName GetEventName() const { return EventName; }
 	const TArray<FSUDSValue>& GetLiteralArgs() const { return LiteralArgs; }
 	
 	

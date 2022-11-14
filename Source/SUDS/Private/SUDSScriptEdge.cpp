@@ -5,7 +5,12 @@ void FSUDSScriptEdge::ExtractFormat() const
 	// Only do this on demand, and only once
 	TextFormat = Text;
 	ParameterNames.Empty();
-	TextFormat.GetFormatArgumentNames(ParameterNames);
+	TArray<FString> TextParams;
+	TextFormat.GetFormatArgumentNames(TextParams);
+	for (auto Param : TextParams)
+	{
+		ParameterNames.Add(FName(Param));
+	}
 	bFormatExtracted = true;
 }
 
@@ -25,7 +30,7 @@ const FTextFormat& FSUDSScriptEdge::GetTextFormat() const
 	
 }
 
-const TArray<FString>& FSUDSScriptEdge::GetParameterNames() const
+const TArray<FName>& FSUDSScriptEdge::GetParameterNames() const
 {
 	if (!bFormatExtracted)
 	{

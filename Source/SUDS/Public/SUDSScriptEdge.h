@@ -25,7 +25,7 @@ protected:
 	// TODO Add conditions
 
 	mutable bool bFormatExtracted = false; 
-	mutable TArray<FString> ParameterNames;
+	mutable TArray<FName> ParameterNames;
 	mutable FTextFormat TextFormat;
 
 	void ExtractFormat() const;
@@ -44,6 +44,6 @@ public:
 	void SetTargetNode(const TWeakObjectPtr<USUDSScriptNode>& InTargetNode) { TargetNode = InTargetNode; }
 
 	const FTextFormat& GetTextFormat() const;
-	const TArray<FString>& GetParameterNames() const;
+	const TArray<FName>& GetParameterNames() const;
 	bool HasParameters() const;
 };

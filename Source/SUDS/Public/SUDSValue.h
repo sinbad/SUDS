@@ -31,7 +31,7 @@ protected:
 		float FloatValue;
 	};
 	TOptional<FText> TextValue;
-	TOptional<FString> VariableName;
+	TOptional<FName> VariableName;
 public:
 
 	FSUDSValue() : Type(ESUDSValueType::Text), IntValue(0), TextValue(FText::GetEmpty()) {}
@@ -66,7 +66,7 @@ public:
 		IntValue = Value ? 1 : 0;
 	}
 
-	FSUDSValue(const FString& ReferencedVariableName)
+	FSUDSValue(const FName& ReferencedVariableName)
 	: Type(ESUDSValueType::Variable),
 	  IntValue(0),
 	  VariableName(ReferencedVariableName)
@@ -118,7 +118,7 @@ public:
 		return IntValue != 0;
 	}
 
-	FORCEINLINE const FString& GetVariableNameValue() const
+	FORCEINLINE FName GetVariableNameValue() const
 	{
 		if (Type != ESUDSValueType::Variable)
 			UE_LOG(LogSUDS, Warning, TEXT("Getting value as variable name but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))

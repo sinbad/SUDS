@@ -159,14 +159,14 @@ void USUDSDialogue::SetCurrentSpeakerNode(USUDSScriptNodeText* Node)
 
 }
 
-void USUDSDialogue::GetTextFormatArgs(const TArray<FString>& ArgNames, FFormatNamedArguments& OutArgs) const
+void USUDSDialogue::GetTextFormatArgs(const TArray<FName>& ArgNames, FFormatNamedArguments& OutArgs) const
 {
 	for (auto& Name : ArgNames)
 	{
 		if (const FSUDSValue* Value = VariableState.Find(Name))
 		{
 			// Use the operator conversion
-			OutArgs.Add(Name, Value->ToFormatArg());
+			OutArgs.Add(Name.ToString(), Value->ToFormatArg());
 		}
 	}
 }
@@ -203,7 +203,7 @@ FText USUDSDialogue::GetSpeakerDisplayName() const
 		// Is just a special variable "SpeakerName.SpeakerID"
 		// or just the SpeakerID if none specified
 		static const FString SpeakerIDPrefix = "SpeakerName.";
-		FString Key = SpeakerIDPrefix + GetSpeakerID();
+		FName Key(SpeakerIDPrefix + GetSpeakerID());
 		if (auto Arg = VariableState.Find(Key))
 		{
 			if (Arg->GetType() == ESUDSValueType::Text)
@@ -212,7 +212,7 @@ FText USUDSDialogue::GetSpeakerDisplayName() const
 			}
 			else
 			{
-				UE_LOG(LogSUDSDialogue, Error, TEXT("%s was set to a value that was not text, cannot use"), *Key);
+				UE_LOG(LogSUDSDialogue, Error, TEXT("%s was set to a value that was not text, cannot use"), *Key.ToString());
 			}
 		}
 		if (CurrentSpeakerDisplayName.IsEmpty())
@@ -448,7 +448,7 @@ void USUDSDialogue::Restart(bool bResetState, FName StartLabel)
 }
 
 
-TSet<FString> USUDSDialogue::GetParametersInUse()
+TSet<FName> USUDSDialogue::GetParametersInUse()
 {
 	// Build on demand, may not be needed
 	if (!bParamNamesExtracted)

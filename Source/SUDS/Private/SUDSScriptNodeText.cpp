@@ -19,7 +19,7 @@ const FTextFormat& USUDSScriptNodeText::GetTextFormat() const
 	return TextFormat;
 }
 
-const TArray<FString>& USUDSScriptNodeText::GetParameterNames() const
+const TArray<FName>& USUDSScriptNodeText::GetParameterNames() const
 {
 	if (!bFormatExtracted)
 	{
@@ -43,6 +43,12 @@ void USUDSScriptNodeText::ExtractFormat() const
 	// Only do this on demand, and only once
 	TextFormat = Text;
 	ParameterNames.Empty();
-	TextFormat.GetFormatArgumentNames(ParameterNames);
+
+	TArray<FString> TextParams;
+	TextFormat.GetFormatArgumentNames(TextParams);
+	for (auto Param : TextParams)
+	{
+		ParameterNames.Add(FName(Param));
+	}
 	bFormatExtracted = true;
 }

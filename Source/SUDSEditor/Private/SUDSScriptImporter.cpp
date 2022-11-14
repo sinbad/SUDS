@@ -538,7 +538,7 @@ bool FSUDSScriptImporter::ParseLiteral(const FString& ValueStr, FSUDSValue& OutV
 		FRegexMatcher Regex(Pattern, ValueStr);
 		if (Regex.FindNext())
 		{
-			const FString VariableName = Regex.GetCaptureGroup(1);
+			const FName VariableName(Regex.GetCaptureGroup(1));
 			OutVal = FSUDSValue(VariableName);
 			return true;
 		}

@@ -53,11 +53,11 @@ protected:
 	/// Dialogue variable state is all held locally. Dialogue participants can retrieve or set values in state.
 	/// All state is saved with the dialogue. Variables can be used as text substitution parameters, conditionals,
 	/// or communication with external state.
-	typedef TMap<FString, FSUDSValue, FDefaultSetAllocator, FLocKeyMapFuncs<FSUDSValue>> FSUDSValueMap;
+	typedef TMap<FName, FSUDSValue> FSUDSValueMap;
 	FSUDSValueMap VariableState;
 
 
-	TSet<FString> CurrentRequestedParamNames;
+	TSet<FName> CurrentRequestedParamNames;
 	bool bParamNamesExtracted;
 	
 	/// Cached derived info
@@ -86,7 +86,7 @@ protected:
 
 	const USUDSScriptNode* FindNextChoiceNode(const USUDSScriptNodeText* FromTextNode) const;
 	const TArray<FSUDSScriptEdge>* GetChoices(bool bOnlyValidChoices) const;
-	void GetTextFormatArgs(const TArray<FString>& ArgNames, FFormatNamedArguments& OutArgs) const;
+	void GetTextFormatArgs(const TArray<FName>& ArgNames, FFormatNamedArguments& OutArgs) const;
 public:
 	USUDSDialogue();
 	void Initialise(const USUDSScript* Script);
@@ -195,12 +195,12 @@ public:
 	/// Use this if you want to be more specific about what parameters you supply when ISUDSParticipant::UpdateDialogueParameters
 	/// is called.
 	UFUNCTION(BlueprintCallable)
-	TSet<FString> GetParametersInUse();
+	TSet<FName> GetParametersInUse();
 
 
 	/// Set a variable in dialogue state
 	template <typename T>
-	void SetVariable(const FString& Name, const T& Value)
+	void SetVariable(FName Name, const T& Value)
 	{
 		VariableState.Add(Name, Value);
 	}
@@ -209,7 +209,7 @@ public:
 	/// This is mostly only useful if you happen to already have a general purpose FSUDSValue.
 	/// See SetDialogueText, SetDialogueInt etc for literal-friendly versions
 	UFUNCTION(BlueprintCallable)
-	void SetVariable(FString Name, FSUDSValue Value)
+	void SetVariable(FName Name, FSUDSValue Value)
 	{
 		VariableState.Add(Name, Value);
 	}
@@ -218,9 +218,9 @@ public:
 	/// See GetDialogueText, GetDialogueInt etc for more type friendly versions, but if you want to access the state
 	/// as a type-flexible value then you can do so with this function.
 	UFUNCTION(BlueprintCallable)
-	FSUDSValue GetVariable(FString Name)
+	FSUDSValue GetVariable(FName Name)
 	{
-		if (auto Arg = VariableState.Find(Name))
+		if (const auto Arg = VariableState.Find(Name))
 		{
 			return *Arg;
 		}
@@ -232,7 +232,7 @@ public:
 	 * @param Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	void SetVariableText(FString Name, FText Value)
+	void SetVariableText(FName Name, FText Value)
 	{
 		VariableState.Add(Name, Value);
 	}
@@ -243,7 +243,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	FText GetVariableText(FString Name)
+	FText GetVariableText(FName Name)
 	{
 		if (auto Arg = VariableState.Find(Name))
 		{
@@ -253,7 +253,7 @@ public:
 			}
 			else
 			{
-				UE_LOG(LogSUDSDialogue, Error, TEXT("Requested variable %s of type text but was not a compatible type"), *Name);
+				UE_LOG(LogSUDSDialogue, Error, TEXT("Requested variable %s of type text but was not a compatible type"), *Name.ToString());
 			}
 		}
 		return FText();
@@ -265,7 +265,7 @@ public:
 	 * @param Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	void SetVariableInt(FString Name, int32 Value)
+	void SetVariableInt(FName Name, int32 Value)
 	{
 		VariableState.Add(Name, Value);
 	}
@@ -276,7 +276,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	int GetVariableInt(FString Name)
+	int GetVariableInt(FName Name)
 	{
 		if (auto Arg = VariableState.Find(Name))
 		{
@@ -285,12 +285,12 @@ public:
 			case ESUDSValueType::Int:
 				return Arg->GetIntValue();
 			case ESUDSValueType::Float:
-				UE_LOG(LogSUDSDialogue, Warning, TEXT("Casting variable %s to int, data loss may occur"), *Name);
+				UE_LOG(LogSUDSDialogue, Warning, TEXT("Casting variable %s to int, data loss may occur"), *Name.ToString());
 				return Arg->GetFloatValue();
 			default: 
 			case ESUDSValueType::Gender:
 			case ESUDSValueType::Text:
-				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible integer type"), *Name);
+				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible integer type"), *Name.ToString());
 			}
 		}
 		return 0;
@@ -302,7 +302,7 @@ public:
 	 * @param Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	void SetVariableFloat(FString Name, float Value)
+	void SetVariableFloat(FName Name, float Value)
 	{
 		VariableState.Add(Name, Value);
 	}
@@ -313,7 +313,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	float GetVariableFloat(FString Name)
+	float GetVariableFloat(FName Name)
 	{
 		if (auto Arg = VariableState.Find(Name))
 		{
@@ -326,7 +326,7 @@ public:
 			default: 
 			case ESUDSValueType::Gender:
 			case ESUDSValueType::Text:
-				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible float type"), *Name);
+				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible float type"), *Name.ToString());
 			}
 		}
 		return 0;
@@ -338,7 +338,7 @@ public:
 	 * @param Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	void SetVariableGender(FString Name, ETextGender Value)
+	void SetVariableGender(FName Name, ETextGender Value)
 	{
 		VariableState.Add(Name, Value);
 	}
@@ -349,7 +349,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	ETextGender GetVariableGender(FString Name)
+	ETextGender GetVariableGender(FName Name)
 	{
 		if (auto Arg = VariableState.Find(Name))
 		{
@@ -361,7 +361,7 @@ public:
 			case ESUDSValueType::Int:
 			case ESUDSValueType::Float:
 			case ESUDSValueType::Text:
-				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible gender type"), *Name);
+				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible gender type"), *Name.ToString());
 			}
 		}
 		return ETextGender::Neuter;
@@ -373,7 +373,7 @@ public:
 	 * @param Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	void SetVariableBoolean(FString Name, bool Value)
+	void SetVariableBoolean(FName Name, bool Value)
 	{
 		VariableState.Add(Name, Value);
 	}
@@ -384,7 +384,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	bool GetVariableBoolean(FString Name)
+	bool GetVariableBoolean(FName Name)
 	{
 		if (auto Arg = VariableState.Find(Name))
 		{
@@ -398,7 +398,7 @@ public:
 			case ESUDSValueType::Float:
 			case ESUDSValueType::Gender:
 			case ESUDSValueType::Text:
-				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible boolean type"), *Name);
+				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible boolean type"), *Name.ToString());
 			}
 		}
 		return false;

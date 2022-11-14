@@ -16,7 +16,7 @@ class SUDS_API USUDSScriptNodeSet : public USUDSScriptNode
 protected:
 	// Variable identifier
 	UPROPERTY(BlueprintReadOnly)
-	FString Identifier;
+	FName Identifier;
 	
 	/// Literal value, for set nodes
 	UPROPERTY(BlueprintReadOnly)
@@ -25,6 +25,6 @@ protected:
 public:
 
 	void Init(const FString& VarName, const FSUDSValue& LiteralValue);
-	const FString& GetIdentifier() const { return Identifier; }
+	const FName& GetIdentifier() const { return Identifier; }
 	const FSUDSValue& GetLiteral() const { return Literal; }
 };

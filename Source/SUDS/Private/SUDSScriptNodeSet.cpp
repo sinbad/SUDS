@@ -3,6 +3,6 @@
 void USUDSScriptNodeSet::Init(const FString& VarName, const FSUDSValue& LiteralValue)
 {
 	NodeType = ESUDSScriptNodeType::SetVariable;
-	Identifier = VarName;
+	Identifier = FName(VarName);
 	Literal = LiteralValue;
 }
