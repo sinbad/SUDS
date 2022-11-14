@@ -173,18 +173,22 @@ void USUDSDialogue::GetTextFormatArgs(const TArray<FName>& ArgNames, FFormatName
 
 FText USUDSDialogue::GetText() const
 {
-	if (CurrentSpeakerNode->HasParameters())
+	if (CurrentSpeakerNode)
 	{
-		// Need to make a temp arg list for compatibility
-		// Also lets us just set the ones we need to
-		FFormatNamedArguments Args;
-		GetTextFormatArgs(CurrentSpeakerNode->GetParameterNames(), Args);
-		return FText::Format(CurrentSpeakerNode->GetTextFormat(), Args);
+		if (CurrentSpeakerNode->HasParameters())
+		{
+			// Need to make a temp arg list for compatibility
+			// Also lets us just set the ones we need to
+			FFormatNamedArguments Args;
+			GetTextFormatArgs(CurrentSpeakerNode->GetParameterNames(), Args);
+			return FText::Format(CurrentSpeakerNode->GetTextFormat(), Args);
+		}
+		else
+		{
+			return CurrentSpeakerNode->GetText();
+		}
 	}
-	else
-	{
-		return CurrentSpeakerNode->GetText();
-	}
+	return DummyText;
 }
 
 const FString& USUDSDialogue::GetSpeakerID() const
