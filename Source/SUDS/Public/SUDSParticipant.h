@@ -58,6 +58,7 @@ public:
 	 * Called when a choice is made by the player.
 	 * At this point, the dialogue has not progressed as a result of that choice, so the index passed can be used to
 	 * reference the choice.
+	 * This event is ONLY raised if there's a choice of paths, not for just continuing a linear path.
 	 * Participants will be called before any dialogue event listeners.
 	 * @param Dialogue The dialogue
 	 * @param ChoiceIndex The index of the choice that was made

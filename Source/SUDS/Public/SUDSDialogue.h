@@ -34,6 +34,7 @@ public:
 	FOnDialogueSpeakerLine OnSpeakerLine;
 	/// Event raised when a choice is made in the dialogue by the player. At this point, the dialogue has not progressed
 	/// as a result of that choice so the index passed can be used to reference the choice
+	/// This event is ONLY raised if there's a choice of paths, not for just continuing a linear path.
 	FOnDialogueChoice OnChoice;
 	/// Event raised when the dialogue is starting, before the first speaker line
 	FOnDialogueStarting OnStarting;

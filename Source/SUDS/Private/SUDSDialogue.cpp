@@ -373,10 +373,15 @@ bool USUDSDialogue::Choose(int Index)
 	{
 		if (Choices && Choices->IsValidIndex(Index))
 		{
-			RaiseChoiceMade(Index);
-			// Run any e.g. set nodes between text and choice
-			// These can be set nodes directly under the text and before the first choice, which get run for all choices
-			RunUntilNextChoiceNode(CurrentSpeakerNode);
+			// ONLY run to choice node if there is one!
+			// This method is called for Continue() too, which has no choice node
+			if (CurrentSpeakerNode->HasChoices())
+			{
+				RaiseChoiceMade(Index);
+				// Run any e.g. set nodes between text and choice
+				// These can be set nodes directly under the text and before the first choice, which get run for all choices
+				RunUntilNextChoiceNode(CurrentSpeakerNode);
+			}
 			// Then choose path
 			RunUntilNextSpeakerNodeOrEnd((*Choices)[Index].GetTargetNode().Get());
 			return !IsEnded();
