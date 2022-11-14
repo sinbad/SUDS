@@ -18,6 +18,7 @@ NPC: Floating point {FloatVal} format test
 Player: Boolean test {BoolVal}?
 	* Choose, {SpeakerName.Player}!
 	* Is {NumCats} {NumCats}|plural(one=cat,other=cats) too many?
+		NPC: No, {numcats} is fine
 )RAWSUD";
 
 
@@ -62,6 +63,10 @@ bool FTestParameters::RunTest(const FString& Parameters)
 		TestEqual("Choice text 2", Dlg->GetChoiceText(1).ToString(), "Is 3 cats too many?");
 
 	}
+
+	// test case insensitivity, this next line uses {numcats} instead of {NumCats}
+	Dlg->Choose(1);
+	TestDialogueText(this, "Line 6", Dlg, "NPC", "No, 3 is fine");
 	
 
 	// Tidy up string table
