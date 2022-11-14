@@ -31,13 +31,13 @@ public:
 	*   could make sense to make the owner the NPC you're talking to for example.
 	* @param Script The script to base this dialogue on
 	* @param Participants List of participants, each of which must implement the ISUDSParticipant interface to be used.
-	*	Participants provide parameters, variables and speaker names.
+	*	Participants are objects that want to be closely involved in the dialogue to provide variables and receive events.
 	* @return The dialogue instance. 
 	*/
 	UFUNCTION(BlueprintCallable, Category="SUDS")
 	static USUDSDialogue* CreateDialogueWithParticipants(UObject* Owner,
 	                                                     USUDSScript* Script,
-	                                                     const TMap<FString, UObject*>& Participants);
+	                                                     const TArray<UObject*>& Participants);
 
 
 	/**

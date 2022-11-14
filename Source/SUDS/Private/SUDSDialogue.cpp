@@ -31,15 +31,15 @@ void USUDSDialogue::Start(FName Label)
 	Restart(false, Label);
 }
 
-void USUDSDialogue::SetParticipants(const TMap<FString, UObject*> InParticipants)
+void USUDSDialogue::SetParticipants(const TArray<UObject*> InParticipants)
 {
 	Participants = InParticipants;
 	SortParticipants();
 }
 
-void USUDSDialogue::AddParticipant(const FString& RoleName, UObject* Participant)
+void USUDSDialogue::AddParticipant(UObject* Participant)
 {
-	Participants.Add(RoleName, Participant);
+	Participants.Add(Participant);
 	SortParticipants();
 }
 
@@ -49,21 +49,13 @@ void USUDSDialogue::SortParticipants()
 	{
 		// We order by ascending priority so that higher priority values are later in the list
 		// Which means they're called last and get to override values set by earlier ones
-		Participants.ValueSort([](const UObject& A, const UObject& B)
+		// We'll do a stable sort so that otherwise order is maintained
+		Participants.StableSort([](const UObject& A, const UObject& B)
 		{
 			return ISUDSParticipant::Execute_GetDialogueParticipantPriority(&A) <
 				ISUDSParticipant::Execute_GetDialogueParticipantPriority(&B);
 		});
 	}
-}
-
-UObject* USUDSDialogue::GetParticipant(const FString& RoleName)
-{
-	if (auto pRet = Participants.Find(RoleName))
-	{
-		return *pRet;
-	}
-	return nullptr;
 }
 
 void USUDSDialogue::RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* NextNode)
@@ -134,11 +126,11 @@ USUDSScriptNode* USUDSDialogue::RunEventNode(USUDSScriptNode* Node)
 			}
 		}
 		
-		for (const auto& Pair : Participants)
+		for (const auto P : Participants)
 		{
-			if (Pair.Value->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
+			if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
 			{
-				ISUDSParticipant::Execute_OnDialogueEvent(Pair.Value, this, EvtNode->GetEventName(), ArgsCopy);
+				ISUDSParticipant::Execute_OnDialogueEvent(P, this, EvtNode->GetEventName(), ArgsCopy);
 			}
 		}
 		OnEvent.Broadcast(this, EvtNode->GetEventName(), ArgsCopy);
@@ -502,11 +494,11 @@ TSet<FName> USUDSDialogue::GetParametersInUse()
 
 void USUDSDialogue::RaiseStarting(FName StartLabel)
 {
-	for (const auto& Pair : Participants)
+	for (const auto P : Participants)
 	{
-		if (Pair.Value->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
+		if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
 		{
-			ISUDSParticipant::Execute_OnDialogueStarting(Pair.Value, this, StartLabel);
+			ISUDSParticipant::Execute_OnDialogueStarting(P, this, StartLabel);
 		}
 	}
 	OnStarting.Broadcast(this, StartLabel);
@@ -514,11 +506,11 @@ void USUDSDialogue::RaiseStarting(FName StartLabel)
 
 void USUDSDialogue::RaiseFinished()
 {
-	for (const auto& Pair : Participants)
+	for (const auto P : Participants)
 	{
-		if (Pair.Value->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
+		if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
 		{
-			ISUDSParticipant::Execute_OnDialogueFinished(Pair.Value, this);
+			ISUDSParticipant::Execute_OnDialogueFinished(P, this);
 		}
 	}
 	OnFinished.Broadcast(this);
@@ -527,11 +519,11 @@ void USUDSDialogue::RaiseFinished()
 
 void USUDSDialogue::RaiseNewSpeakerLine()
 {
-	for (const auto& Pair : Participants)
+	for (const auto P : Participants)
 	{
-		if (Pair.Value->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
+		if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
 		{
-			ISUDSParticipant::Execute_OnDialogueSpeakerLine(Pair.Value, this);
+			ISUDSParticipant::Execute_OnDialogueSpeakerLine(P, this);
 		}
 	}
 	
@@ -541,11 +533,11 @@ void USUDSDialogue::RaiseNewSpeakerLine()
 
 void USUDSDialogue::RaiseChoiceMade(int Index)
 {
-	for (const auto& Pair : Participants)
+	for (const auto P : Participants)
 	{
-		if (Pair.Value->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
+		if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
 		{
-			ISUDSParticipant::Execute_OnDialogueChoiceMade(Pair.Value, this, Index);
+			ISUDSParticipant::Execute_OnDialogueChoiceMade(P, this, Index);
 		}
 	}
 	// Event listeners get it after

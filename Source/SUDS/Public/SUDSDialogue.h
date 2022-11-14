@@ -48,9 +48,9 @@ protected:
 	const USUDSScript* BaseScript;
 	UPROPERTY()
 	USUDSScriptNodeText* CurrentSpeakerNode;
-	/// Map of role to participant
+	/// External objects which want to closely participate in the dialogue (not just listen to events)
 	UPROPERTY()
-	TMap<FString, UObject*> Participants;
+	TArray<UObject*> Participants;
 
 	/// All of the dialogue variables
 	/// Dialogue variable state is all held locally. Dialogue participants can retrieve or set values in state.
@@ -95,14 +95,6 @@ public:
 	void Initialise(const USUDSScript* Script);
 
 	/**
-	 * Set the complete list of participants for this dialogue instance.
-	 * Participants provide parameter values, variables, speaker names, and can receive events from the dialogue.
-	 * @param NewParticipants Map of role name referred to in the dialogue script to participant object.
-	 */
-	UFUNCTION(BlueprintCallable)
-	void SetParticipants(const TMap<FString, UObject*> NewParticipants);
-
-	/**
 	 * Begin the dialogue. Make sure you've added all participants before calling this.
 	 * This may not be the first time you've started this dialogue. All previous state is maintained to enable you
 	 * for example to take branching paths based on whether you've spoken to this character before.
@@ -116,17 +108,29 @@ public:
 
 	/**
 	 * Add a participant to this dialogue instance.
-	 * Participants provide parameter values, variables, speaker names, and can receive events from the dialogue.
-	 * @param RoleName The role name that this participant fulfils (may be referred to in the dialogue)
-	 * @param Participant The participant object
+	 * Participants are objects which want to be more closely involved in the dialogue. As opposed to event listeners,
+	 * participants get advance notice of events in the dialogue, and are also called in a known order, determined by
+	 * their priority. If you're providing variables to the dialogue, it is best to do it as a participant since it
+	 * gives you much more control.
+	 * @param Participant The participant object, which must implement ISUDSParticipant
 	 */
 	UFUNCTION(BlueprintCallable)
-	void AddParticipant(const FString& RoleName, UObject* Participant);
+	void AddParticipant(UObject* Participant);
 
-	/// Retrieve a participant from this dialogue
+	/// Retrieve participants from this dialogue
 	UFUNCTION(BlueprintCallable)
-	UObject* GetParticipant(const FString& RoleName);
+	const TArray<UObject*>& GetParticipants() const { return Participants; }
 	
+	/**
+	 * Set the complete list of participants for this dialogue instance.
+	 * Participants are objects which want to be more closely involved in the dialogue. As opposed to event listeners,
+	 * participants get advance notice of events in the dialogue, and are also called in a known order, determined by
+	 * their priority. If you're providing variables to the dialogue, it is best to do it as a participant since it
+	 * gives you much more control.
+	 * @param NewParticipants List of new participants. Each should implement ISUDSParticipant
+	 */
+	UFUNCTION(BlueprintCallable)
+	void SetParticipants(const TArray<UObject*> NewParticipants);
 	
 
 	/// Get the speech text for the current dialogue node

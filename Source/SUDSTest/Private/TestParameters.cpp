@@ -45,7 +45,7 @@ bool FTestParameters::RunTest(const FString& Parameters)
 	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
 	auto Participant = NewObject<UTestParticipant>();
 	Participant->TestNumber = 0;
-	Dlg->AddParticipant("Dummy", Participant);
+	Dlg->AddParticipant(Participant);
 	Dlg->Start();
 
 	TestDialogueText(this, "Line 1", Dlg, "Player", "Hello, I'm Protagonist");
@@ -102,9 +102,9 @@ bool FTestParametersPriority::RunTest(const FString& Parameters)
 	Participant2->TestNumber = 1; // priority 100
 	auto Participant3 = NewObject<UTestParticipant>();
 	Participant1->TestNumber = 2; // priority -200
-	Dlg->AddParticipant("Dummy1", Participant1);
-	Dlg->AddParticipant("Dummy2", Participant2);
-	Dlg->AddParticipant("Dummy3", Participant3);
+	Dlg->AddParticipant(Participant1);
+	Dlg->AddParticipant(Participant2);
+	Dlg->AddParticipant(Participant3);
 	Dlg->Start();
 
 	// Ordering of the participants should be from low to high, so variables from higher priority value participant should

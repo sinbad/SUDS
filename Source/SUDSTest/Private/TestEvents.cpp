@@ -47,7 +47,7 @@ bool FTestEvents::RunTest(const FString& Parameters)
 	// Participant
 	auto Participant = NewObject<UTestParticipant>();
 	Participant->TestNumber = 0;
-	Dlg->AddParticipant("Dummy", Participant);
+	Dlg->AddParticipant(Participant);
 
 	Dlg->Start();
 

@@ -12,15 +12,19 @@ class USUDSParticipant : public UInterface
 };
 
 /**
-* Interface to be implemented by any participant in a given dialogue.
-* A participant could be a speaker, or simply a provider of variables for the dialogue.
-* While any event listener on the dialogue can provide similar functionality, implementing this interface is a bit
-* simpler than subscribing, and participants are *guaranteed* to be called earlier than event listeners.
+* Interface to be implemented by participant objects in a given dialogue.
+* A participant is simply any object which wants to be closely involved in supplying data to, or retrieving data from,
+* the dialogue. Although you could do this simply by subscribing to the delegate events on a dialogue, the advantage
+* of making a participant is that you have better control over the ordering of multiple participants, in case for example
+* there's some common variable that they both want to set.
+* It's also a clearer interface to look for vs ad-hoc delegate hooks.
+* Generally we recommend that:
+*   - Objects providing data to the dialogue should implement ISUDSParticipant
+*   - Anything that just wants to observe the dialogue (like a UI) should just listen to events
+*   
+* Participants are *guaranteed* to be called earlier than delegates, which means you can set variables from the
+* Participant callback and when the UI delegate reads text back, all substitution variables will be up to date.
 *
-* Probably you want to implement providers of variables etc as ISUDSParticipant, and UIs on the dialogue as USUDSDialogue event
-* listeners.
-* implemented
-* 
 */
 class SUDS_API ISUDSParticipant
 {

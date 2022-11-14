@@ -18,7 +18,7 @@ USUDSDialogue* USUDSLibrary::CreateDialogue(UObject* Owner, USUDSScript* Script)
 
 USUDSDialogue* USUDSLibrary::CreateDialogueWithParticipants(UObject* Owner,
 	USUDSScript* Script,
-	const TMap<FString, UObject*>& Participants)
+	const TArray<UObject*>& Participants)
 {
 	if (auto Dlg = CreateDialogue(Owner, Script))
 	{
