@@ -573,47 +573,42 @@ bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line,
                                          bool bSilent)
 {
 	const FString LineStr(Line);
-	// the event pattern is
-	// Prefix, capturing event keyword and event name:
-	// ^\[event\s+(\w+)
-	// Then a repeating patter to match arguments, up to 6 max (duplicated 6 times because regex can't loop)
-	// This captures either quoted strings (allowing spaces) or any sequence separated by spaces
-	// The entire match is optional and only the inner part minus whitespace is captured
-	// (?:\s+(\"[^\"]*\"|\S+))?
-	// Finally the end:
-	// \s*\]$
-	
-	const FRegexPattern EventPattern(TEXT("^\\[event\\s+(\\w+)(?:\\s+(\\\"[^\\\"]*\\\"|\\S+))?(?:\\s+(\\\"[^\\\"]*\\\"|\\S+))?(?:\\s+(\\\"[^\\\"]*\\\"|\\S+))?(?:\\s+(\\\"[^\\\"]*\\\"|\\S+))?(?:\\s+(\\\"[^\\\"]*\\\"|\\S+))?(?:\\s+(\\\"[^\\\"]*\\\"|\\S+))?\\s*\\]$"));
+	const FRegexPattern EventPattern(TEXT("^\\[event\\s+(\\w+)([^\\]]*)\\]$"));
 	FRegexMatcher EventRegex(EventPattern, LineStr);
 	if (EventRegex.FindNext())
 	{
 		if (!bSilent)
 			UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: EVENT : %s"), LineNo, IndentLevel, *FString(Line));
 
-
 		FSUDSParsedNode Node(ESUDSParsedNodeType::Event, IndentLevel, LineNo);
 		
 		Node.Identifier = EventRegex.GetCaptureGroup(1);
 
-		for (int Grp = 2; Grp < 8; ++Grp)
+		if (EventRegex.GetCaptureGroupBeginning(2) != INDEX_NONE)
 		{
-			if (EventRegex.GetCaptureGroupBeginning(Grp) == INDEX_NONE)
-				break;
-
-			FString ArgStr = EventRegex.GetCaptureGroup(Grp);
-			// TODO: support expressions
-			FSUDSValue Literal;
-			if (ParseLiteral(ArgStr, Literal))
+			// Has arguments, all lumped together
+			// Capture using a sub-regex which can detect quoted strings or split by whitespace			
+			FString AllArgs = EventRegex.GetCaptureGroup(2).TrimStartAndEnd();
+			const FRegexPattern ArgPattern(TEXT("((\\\"[^\\\"]*\\\"|\\S+))"));
+			FRegexMatcher ArgRegex(ArgPattern, AllArgs);
+			while (ArgRegex.FindNext())
 			{
-				// note: no localisation of event literals, they're just strings
-				// we assume the receiver of the event will set localised text to variables if they want
-				Node.EventArgsLiteral.Add(Literal);
+				// then process the quote
+				FString ArgStr = ArgRegex.GetCaptureGroup(1);
+				// NOTE: we will NOT support expressions here, too complex
+				// If we support expressions in set commands, people should use those and set a variable first & pass that
+				FSUDSValue Literal;
+				if (ParseLiteral(ArgStr, Literal))
+				{
+					// note: no localisation of event literals, they're just strings
+					// we assume the receiver of the event will set localised text to variables if they want
+					Node.EventArgsLiteral.Add(Literal);
+				}
+				else
+				{
+					UE_LOG(LogSUDSImporter, Warning, TEXT("Error in %s line %d: Literal argument '%s' invalid"), *NameForErrors, LineNo, *ArgStr);
+				}
 			}
-			else
-			{
-				UE_LOG(LogSUDSImporter, Warning, TEXT("Error in %s line %d: Literal argument '%s' invalid"), *NameForErrors, LineNo, *ArgStr);
-			}
-			
 		}
 
 		AppendNode(Tree, Node);
@@ -777,11 +772,13 @@ int FSUDSScriptImporter::AppendNode(FSUDSScriptImporter::ParsedTree& Tree, const
 			// E.g. choice nodes get edges created for choice options, select nodes for conditions
 			// A new node with no pending edge following any other type may be connected via fallthrough at
 			// the end of parsing
-			if (PrevNode.NodeType == ESUDSParsedNodeType::Text ||
-				PrevNode.NodeType == ESUDSParsedNodeType::SetVariable)
+			if (PrevNode.NodeType != ESUDSParsedNodeType::Choice &&
+				PrevNode.NodeType != ESUDSParsedNodeType::Select)
 			{
 				PrevNode.Edges.Add(FSUDSParsedEdge(NewIndex, NewNode.SourceLineNo));
 			}
+			// Don't throw an error otherwise, because prev index can be a choice due to fallthrough
+			// This will be connected up at the end
 		}
 		Tree.EdgeInProgress = nullptr;
 	}

@@ -51,3 +51,10 @@ int UTestParticipant::GetDialogueParticipantPriority_Implementation() const
 	}
 }
 
+void UTestParticipant::OnDialogueEvent_Implementation(USUDSDialogue* Dialogue,
+	FName EventName,
+	const TArray<FSUDSValue>& Arguments)
+{
+	EventRecords.Add(FEventRecord { EventName, Arguments });
+}
+

@@ -150,6 +150,8 @@ public:
 		}
 	}
 
-	
-	
+	void SetValue(const FSUDSValue& RValue)
+	{
+		*this = RValue;
+	}
 };

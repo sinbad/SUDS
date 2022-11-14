@@ -16,6 +16,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogueSpeakerLine, class USUDSD
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDialogueChoice, class USUDSDialogue*, Dialogue, int, ChoiceIndex);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDialogueStarting, class USUDSDialogue*, Dialogue, FName, AtLabel);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogueFinished, class USUDSDialogue*, Dialogue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnDialogueEvent, class USUDSDialogue*, Dialogue, FName, EventName, const TArray<FSUDSValue>&, Arguments);
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSUDSDialogue, Verbose, All);
 /**
@@ -36,6 +37,8 @@ public:
 	/// as a result of that choice so the index passed can be used to reference the choice
 	/// This event is ONLY raised if there's a choice of paths, not for just continuing a linear path.
 	FOnDialogueChoice OnChoice;
+	/// Event raised when an event is sent from the dialogue script. Any listeners or participants can process the event.
+	FOnDialogueEvent OnEvent;
 	/// Event raised when the dialogue is starting, before the first speaker line
 	FOnDialogueStarting OnStarting;
 	/// Event raised when the dialogue finishes

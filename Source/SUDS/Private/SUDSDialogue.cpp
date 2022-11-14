@@ -3,6 +3,7 @@
 #include "SUDSParticipant.h"
 #include "SUDSScript.h"
 #include "SUDSScriptNode.h"
+#include "SUDSScriptNodeEvent.h"
 #include "SUDSScriptNodeSet.h"
 #include "SUDSScriptNodeText.h"
 
@@ -121,7 +122,27 @@ USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node)
 
 USUDSScriptNode* USUDSDialogue::RunEventNode(USUDSScriptNode* Node)
 {
-	// TODO: implement events
+	if (USUDSScriptNodeEvent* EvtNode = Cast<USUDSScriptNodeEvent>(Node))
+	{
+		// Build a separate args list, because we need to dereference any variable references in the args
+		TArray<FSUDSValue> ArgsCopy = EvtNode->GetLiteralArgs();
+		for (auto& Arg : ArgsCopy)
+		{
+			if (Arg.GetType() == ESUDSValueType::Variable)
+			{
+				Arg.SetValue(GetVariable(Arg.GetVariableNameValue()));
+			}
+		}
+		
+		for (const auto& Pair : Participants)
+		{
+			if (Pair.Value->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
+			{
+				ISUDSParticipant::Execute_OnDialogueEvent(Pair.Value, this, EvtNode->GetEventName(), ArgsCopy);
+			}
+		}
+		OnEvent.Broadcast(this, EvtNode->GetEventName(), ArgsCopy);
+	}
 	return GetNextNode(Node);
 }
 
