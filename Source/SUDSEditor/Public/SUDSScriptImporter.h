@@ -16,8 +16,8 @@ public:
 	/// The line this edge was created on
 	int SourceLineNo;
 
-	// TODO: Condition
-	FString TempCondition;
+	// TODO: Parse condition
+	FString ConditionString;
 
 	int TargetNodeIdx = -1;
 
@@ -129,11 +129,14 @@ protected:
 		int PreviousBlockIdx = -1;
 		/// Track whether we're in if/elseif/else
 		EConditionalStage Stage;
+		/// String of current condition 
+		FString ConditionStr;
 
-		ConditionalContext(int InParentNodeIdx, int InPrevBlockIdx, EConditionalStage InStage) :
+		ConditionalContext(int InParentNodeIdx, int InPrevBlockIdx, EConditionalStage InStage, const FString& InCondStr) :
 			ParentNodeIdx(InParentNodeIdx),
 			PreviousBlockIdx(InPrevBlockIdx),
-			Stage(InStage)
+			Stage(InStage),
+			ConditionStr(InCondStr)
 		{
 		}
 
@@ -192,8 +195,6 @@ protected:
 		TArray<ConditionalContext> ConditionalBlocks;
 		/// Index of the current conditional block, if any
 		int CurrentConditionalBlockIdx = -1;
-		/// Pending conditional; we've encountered an if/elseif/else but haven't done anything with it yet
-		TOptional<ConditionalContext> PendingConditional;
 
 		void Reset()
 		{
@@ -205,7 +206,6 @@ protected:
 			AliasedGotoLabels.Reset();
 			ConditionalBlocks.Reset();
 			CurrentConditionalBlockIdx = -1;
-			PendingConditional.Reset();
 		}
 	};
 
@@ -243,6 +243,7 @@ protected:
 	FString GetCurrentTreePath(ParsedTree& Tree);
 	FString GetCurrentTreeConditionalPath(ParsedTree& Tree);
 	int AppendNode(ParsedTree& Tree, const FSUDSParsedNode& NewNode);
+	bool SelectNodeHasElsePath(const FSUDSParsedNode& Node);
 	void ConnectRemainingNodes(ParsedTree& Tree, const FString& NameForErrors, bool bSilent);
 	int FindNextOutdentedNodeIndex(ParsedTree& Tree, int StartNodeIndex, int IndentLessThan, const FString& FromChoicePath, const FString& FromConditionalPath);
 	void RetrieveAndRemoveOrGenerateTextID(FStringView& InOutLine, FString& OutTextID);

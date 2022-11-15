@@ -326,6 +326,7 @@ bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line,
 				if (Block.Stage != EConditionalStage::ElseStage)
 				{
 					Block.Stage = EConditionalStage::ElseStage;
+					Block.ConditionStr = "";
 					const int NodeIdx = Block.ParentNodeIdx;
 				
 					auto& SelectOrChoiceNode = Tree.Nodes[NodeIdx];
@@ -362,8 +363,14 @@ bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line,
 		// ENDIF Line
 		if (Tree.ConditionalBlocks.IsValidIndex(Tree.CurrentConditionalBlockIdx))
 		{
+			// Endif finishes the current block
+			// BUT if there's no ELSE block, we should create a dangling edge so that there's some continuation
 			const auto& Block = Tree.ConditionalBlocks[Tree.CurrentConditionalBlockIdx];
 			Tree.CurrentConditionalBlockIdx = Block.PreviousBlockIdx;
+			// We must also clear the indent last node pointer, because we never want to auto-connect to conditionals
+			// We'll let the final fallthrough pass connect things
+			auto& Ctx = Tree.IndentLevelStack.Top();
+			Ctx.LastNodeIdx = -1;
 		}
 		else
 		{
@@ -391,10 +398,10 @@ bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line,
 			auto& SelectNode = Tree.Nodes[NewNodeIdx];
 			const int EdgeIdx = SelectNode.Edges.Add(FSUDSParsedEdge(-1, LineNo));
 			Tree.EdgeInProgress = &SelectNode.Edges[EdgeIdx];
-			Tree.EdgeInProgress->TempCondition = ConditionStr;
+			Tree.EdgeInProgress->ConditionString = ConditionStr;
 			
 			Tree.CurrentConditionalBlockIdx = Tree.ConditionalBlocks.Add(
-				ConditionalContext(NewNodeIdx, Tree.CurrentConditionalBlockIdx, EConditionalStage::IfStage));
+				ConditionalContext(NewNodeIdx, Tree.CurrentConditionalBlockIdx, EConditionalStage::IfStage, ConditionStr));
 			
 			if (!bSilent)
 				UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: IF    : %s"), LineNo, IndentLevel, *FString(Line));
@@ -407,7 +414,7 @@ bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line,
 			FRegexMatcher ElseIfRegex(ElseIfPattern, LineStr);
 			if (ElseIfRegex.FindNext())
 			{
-				const FString ConditionStr = IfRegex.GetCaptureGroup(1);
+				const FString ConditionStr = ElseIfRegex.GetCaptureGroup(1);
 
 				// "elseif" changes the current block state 
 				// Select or choice node should already be there
@@ -419,12 +426,13 @@ bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line,
 					if (Block.Stage != EConditionalStage::ElseStage)
 					{
 						Block.Stage = EConditionalStage::ElseIfStage;
+						Block.ConditionStr = ConditionStr;
 						const int NodeIdx = Block.ParentNodeIdx;
 				
 						auto& SelectOrChoiceNode = Tree.Nodes[NodeIdx];
 						const int EdgeIdx = SelectOrChoiceNode.Edges.Add(FSUDSParsedEdge(-1, LineNo));
 						Tree.EdgeInProgress = &SelectOrChoiceNode.Edges[EdgeIdx];
-						Tree.EdgeInProgress->TempCondition = ConditionStr;
+						Tree.EdgeInProgress->ConditionString = ConditionStr;
 			
 						
 					}
@@ -849,7 +857,10 @@ FString FSUDSScriptImporter::GetCurrentTreeConditionalPath(FSUDSScriptImporter::
 	// work backwards, hence prepend
 	while (BlockIdx != -1)
 	{
-		B.Prepend(FString::Printf(TEXT("%sS%03d"), *TreePathSeparator, BlockIdx));
+		const FString& ConditionStr = Tree.ConditionalBlocks[BlockIdx].ConditionStr;
+		// Note: add the "/" even if ConditionStr is empty, because it means it's an else level
+		// Not including it can cause an if block to fall through to its own else
+		B.Prepend(FString::Printf(TEXT("%s%s"), *TreePathSeparator, *ConditionStr));
 		BlockIdx = Tree.ConditionalBlocks[BlockIdx].PreviousBlockIdx;
 	}
 	return B.ToString();
@@ -868,18 +879,19 @@ int FSUDSScriptImporter::AppendNode(FSUDSScriptImporter::ParsedTree& Tree, const
 		N.ChoicePath = GetCurrentTreePath(Tree);
 		N.ConditionalPath = GetCurrentTreeConditionalPath(Tree);
 	}
-	
-	if (Tree.Nodes.IsValidIndex(Ctx.LastNodeIdx))
+
+	// Use pending edge if present; that could be because this is under a choice node, or a condition
+	if (Tree.EdgeInProgress)
 	{
-		// Append this node onto the last one
-		auto& PrevNode = Tree.Nodes[Ctx.LastNodeIdx];
-		// Use pending edge if present; that could be because this is under a choice node, or a condition
-		if (Tree.EdgeInProgress)
+		Tree.EdgeInProgress->TargetNodeIdx = NewIndex;
+		Tree.EdgeInProgress = nullptr;
+	}
+	else
+	{
+		if (Tree.Nodes.IsValidIndex(Ctx.LastNodeIdx))
 		{
-			Tree.EdgeInProgress->TargetNodeIdx = NewIndex;
-		}
-		else
-		{
+			// Append this node onto the last one
+			auto& PrevNode = Tree.Nodes[Ctx.LastNodeIdx];
 			// Auto-connect new nodes to previous nodes
 			// Valid for nodes with only one output node
 			// With choices / selects, we should be doing it via pending edges
@@ -894,7 +906,6 @@ int FSUDSScriptImporter::AppendNode(FSUDSScriptImporter::ParsedTree& Tree, const
 			// Don't throw an error otherwise, because prev index can be a choice due to fallthrough
 			// This will be connected up at the end
 		}
-		Tree.EdgeInProgress = nullptr;
 	}
 
 	// All goto labels in scope at this point now point to this node
@@ -909,6 +920,18 @@ int FSUDSScriptImporter::AppendNode(FSUDSScriptImporter::ParsedTree& Tree, const
 	
 
 	return NewIndex;
+}
+
+bool FSUDSScriptImporter::SelectNodeHasElsePath(const FSUDSParsedNode& Node)
+{
+	for (auto& E : Node.Edges)
+	{
+		if (E.ConditionString.IsEmpty())
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 void FSUDSScriptImporter::PopIndent(FSUDSScriptImporter::ParsedTree& Tree)
@@ -972,7 +995,10 @@ void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree&
 	for (int i = 0; i < Tree.Nodes.Num(); ++i)
 	{
 		auto& Node = Tree.Nodes[i];
-		if (Node.Edges.IsEmpty())
+		// We check for dead-end nodes, and for select nodes with no "else" (in case all conditions fail)
+		if (Node.Edges.IsEmpty() ||
+			(Node.NodeType == ESUDSParsedNodeType::Select &&
+			!SelectNodeHasElsePath(Node)))
 		{
 			if (Node.NodeType == ESUDSParsedNodeType::Goto)
 			{

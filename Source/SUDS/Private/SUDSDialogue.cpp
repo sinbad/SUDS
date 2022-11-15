@@ -109,6 +109,8 @@ USUDSScriptNode* USUDSDialogue::RunNode(USUDSScriptNode* Node)
 USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node)
 {
 	// TODO: implement select
+	// NOTE: if no valid path, go to end
+	// We've already created fall-through else nodes if possible
 	return GetNextNode(Node);
 }
 

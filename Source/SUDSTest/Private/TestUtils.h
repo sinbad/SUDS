@@ -107,6 +107,16 @@ FORCEINLINE bool TestParsedChoice(FAutomationTestBase* T, const FString& NameFor
 	}
 	return false;
 }
+FORCEINLINE bool TestParsedSelect(FAutomationTestBase* T, const FString& NameForTest, const FSUDSParsedNode* Node, int ExpectedNumEdges)
+{
+	if (T->TestNotNull(NameForTest, Node))
+	{
+		T->TestEqual(NameForTest, Node->NodeType, ESUDSParsedNodeType::Select);
+		T->TestEqual(NameForTest, Node->Edges.Num(), ExpectedNumEdges);
+		return true;
+	}
+	return false;
+}
 
 FORCEINLINE bool TestParsedChoiceEdge(FAutomationTestBase* T, const FString& NameForTest, const FSUDSParsedNode* Node, int EdgeIndex, const FString& Text, FSUDSScriptImporter& Importer, const FSUDSParsedNode** OutNode)
 {
@@ -124,6 +134,21 @@ FORCEINLINE bool TestParsedChoiceEdge(FAutomationTestBase* T, const FString& Nam
 	
 }
 
+FORCEINLINE bool TestParsedSelectEdge(FAutomationTestBase* T, const FString& NameForTest, const FSUDSParsedNode* Node, int EdgeIndex, const FString& ConditionStr, FSUDSScriptImporter& Importer, const FSUDSParsedNode** OutNode)
+{
+	*OutNode = nullptr;
+	if (Node && Node->Edges.Num() > EdgeIndex)
+	{
+		auto& Edge = Node->Edges[EdgeIndex];
+		T->TestEqual(NameForTest, Edge.ConditionString, ConditionStr);
+		const int Idx = Edge.TargetNodeIdx;
+		*OutNode = Importer.GetNode(Idx);
+		return true;
+	}
+	
+	return false;
+	
+}
 
 FORCEINLINE bool TestTextNode(FAutomationTestBase* T, const FString& NameForTest, const USUDSScriptNode* Node, const FString& Speaker, const FString& Text)
 {
