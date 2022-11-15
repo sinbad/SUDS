@@ -310,43 +310,139 @@ bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line,
                                                NameForErrors,
                                                bool bSilent)
 {
+	// ELSE Line
+
 	if (Line.Equals(TEXT("[else]")))
 	{
+		if (Tree.ConditionalBlocks.IsValidIndex(Tree.CurrentConditionalBlockIdx))
+		{
+			// "else" changes the current "if" or "elseif" block to "else" & creates a new condition-free edge
+			// Select or choice node should already be there
+			// Select node may be turned into a choice later if choice is the first thing encountered
+
+			if (Tree.ConditionalBlocks.IsValidIndex(Tree.CurrentConditionalBlockIdx))
+			{
+				auto& Block = Tree.ConditionalBlocks[Tree.CurrentConditionalBlockIdx];
+				if (Block.Stage != EConditionalStage::ElseStage)
+				{
+					Block.Stage = EConditionalStage::ElseStage;
+					const int NodeIdx = Block.ParentNodeIdx;
+				
+					auto& SelectOrChoiceNode = Tree.Nodes[NodeIdx];
+					const int EdgeIdx = SelectOrChoiceNode.Edges.Add(FSUDSParsedEdge(-1, LineNo));
+					Tree.EdgeInProgress = &SelectOrChoiceNode.Edges[EdgeIdx];
+					
+				}
+				else
+				{
+					if (!bSilent)
+						UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: cannot have more than one 'else'"), *NameForErrors, LineNo);
+				}
+					
+			}
+			else
+			{
+				if (!bSilent)
+					UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: 'elseif' with no matching 'if'"), *NameForErrors, LineNo);
+			}
+		}
+		else
+		{
+			if (!bSilent)
+				UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: 'else' with no matching 'if'"), *NameForErrors, LineNo);
+		}
+		
 		if (!bSilent)
 			UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: ELSE  : %s"), LineNo, IndentLevel, *FString(Line));
-		// TODO create else condition edge
 		return true;
 		
 	}
 	else if (Line.Equals(TEXT("[endif]")))
 	{
-		// TODO finish conditional
+		// ENDIF Line
+		if (Tree.ConditionalBlocks.IsValidIndex(Tree.CurrentConditionalBlockIdx))
+		{
+			const auto& Block = Tree.ConditionalBlocks[Tree.CurrentConditionalBlockIdx];
+			Tree.CurrentConditionalBlockIdx = Block.PreviousBlockIdx;
+		}
+		else
+		{
+			if (!bSilent)
+				UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: 'endif' with no matching 'if'"), *NameForErrors, LineNo);
+		}
 		if (!bSilent)
 			UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: ENDIF : %s"), LineNo, IndentLevel, *FString(Line));
 		return true;
 	}
 	else
 	{
-		// Unfortunately FRegexMatcher doesn't support FStringView
+		// IF Line
 		const FString LineStr(Line);
 		const FRegexPattern IfPattern(TEXT("^\\[if\\s+(.+)\\]$"));
 		FRegexMatcher IfRegex(IfPattern, LineStr);
 		if (IfRegex.FindNext())
 		{
-			// TODO parse condition
-			// If creates a select node
-			// Remember to connect up pending edges
+			const FString ConditionStr = IfRegex.GetCaptureGroup(1);
+			// "if" creates a new condition level always (nested)
+			// Always create a select node and pending edge
+			// Select node may be turned into a choice later if choice is the first thing encountered
+			
+			const int NewNodeIdx = AppendNode(Tree, FSUDSParsedNode(ESUDSParsedNodeType::Select, IndentLevel, LineNo));
+			auto& SelectNode = Tree.Nodes[NewNodeIdx];
+			const int EdgeIdx = SelectNode.Edges.Add(FSUDSParsedEdge(-1, LineNo));
+			Tree.EdgeInProgress = &SelectNode.Edges[EdgeIdx];
+			Tree.EdgeInProgress->TempCondition = ConditionStr;
+			
+			Tree.CurrentConditionalBlockIdx = Tree.ConditionalBlocks.Add(
+				ConditionalContext(NewNodeIdx, Tree.CurrentConditionalBlockIdx, EConditionalStage::IfStage));
+			
 			if (!bSilent)
 				UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: IF    : %s"), LineNo, IndentLevel, *FString(Line));
 			return true;
 		}
 		else
 		{
+			// ELSEIF Line
 			const FRegexPattern ElseIfPattern(TEXT("^\\[elseif\\s+(.+)\\]$"));
 			FRegexMatcher ElseIfRegex(ElseIfPattern, LineStr);
 			if (ElseIfRegex.FindNext())
 			{
-				// TODO parse condition
+				const FString ConditionStr = IfRegex.GetCaptureGroup(1);
+
+				// "elseif" changes the current block state 
+				// Select or choice node should already be there
+				// Select node may be turned into a choice later if choice is the first thing encountered
+
+				if (Tree.ConditionalBlocks.IsValidIndex(Tree.CurrentConditionalBlockIdx))
+				{
+					auto& Block = Tree.ConditionalBlocks[Tree.CurrentConditionalBlockIdx];
+					if (Block.Stage != EConditionalStage::ElseStage)
+					{
+						Block.Stage = EConditionalStage::ElseIfStage;
+						const int NodeIdx = Block.ParentNodeIdx;
+				
+						auto& SelectOrChoiceNode = Tree.Nodes[NodeIdx];
+						const int EdgeIdx = SelectOrChoiceNode.Edges.Add(FSUDSParsedEdge(-1, LineNo));
+						Tree.EdgeInProgress = &SelectOrChoiceNode.Edges[EdgeIdx];
+						Tree.EdgeInProgress->TempCondition = ConditionStr;
+			
+						
+					}
+					else
+					{
+						if (!bSilent)
+							UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: 'elseif' occurs after 'else'"), *NameForErrors, LineNo);
+						
+					}
+					
+				}
+				else
+				{
+					if (!bSilent)
+						UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: 'elseif' with no matching 'if'"), *NameForErrors, LineNo);
+				}
+				
+
 				if (!bSilent)
 					UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: ELSEIF: %s"), LineNo, IndentLevel, *FString(Line));
 				return true;
@@ -743,6 +839,23 @@ FString FSUDSScriptImporter::GetCurrentTreePath(FSUDSScriptImporter::ParsedTree&
 	return B.ToString();
 }
 
+FString FSUDSScriptImporter::GetCurrentTreeConditionalPath(FSUDSScriptImporter::ParsedTree& Tree)
+{
+	// Like GetCurrentTreePath, but for conditional blocks
+	// Cannot fall through to blocks that aren't on the same conditional path
+	FStringBuilderBase B;
+	int BlockIdx = Tree.CurrentConditionalBlockIdx;
+	B.Append("/");
+	// work backwards, hence prepend
+	while (BlockIdx != -1)
+	{
+		B.Prepend(FString::Printf(TEXT("%sS%03d"), *TreePathSeparator, BlockIdx));
+		BlockIdx = Tree.ConditionalBlocks[BlockIdx].PreviousBlockIdx;
+	}
+	return B.ToString();
+	
+}
+
 int FSUDSScriptImporter::AppendNode(FSUDSScriptImporter::ParsedTree& Tree, const FSUDSParsedNode& NewNode)
 {
 	auto& Ctx = Tree.IndentLevelStack.Top();
@@ -752,7 +865,8 @@ int FSUDSScriptImporter::AppendNode(FSUDSScriptImporter::ParsedTree& Tree, const
 	// Set the tree path of the node (post-add)
 	{
 		auto& N = Tree.Nodes[NewIndex];
-		N.TreePath = GetCurrentTreePath(Tree);
+		N.ChoicePath = GetCurrentTreePath(Tree);
+		N.ConditionalPath = GetCurrentTreeConditionalPath(Tree);
 	}
 	
 	if (Tree.Nodes.IsValidIndex(Ctx.LastNodeIdx))
@@ -839,7 +953,7 @@ FStringView FSUDSScriptImporter::TrimLine(const FStringView& Line, int& OutInden
 
 void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree& Tree, const FString& NameForErrors, bool bSilent)
 {
-	// Now we go through all nodes, resolving gotos, and finding links that don't go anywhere * making
+	// Now we go through all nodes, resolving gotos, and finding links that don't go anywhere & making
 	// them fall through to the next appropriate outdented node (or the end)
 
 	// Firstly turn all the alias gotos into final gotos
@@ -880,7 +994,7 @@ void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree&
 			else
 			{
 				// Find the next node which is at a higher indent level than this
-				const auto FallthroughIdx = FindNextOutdentedNodeIndex(Tree, i+1, Node.OriginalIndent, Node.TreePath);
+				const auto FallthroughIdx = FindNextOutdentedNodeIndex(Tree, i+1, Node.OriginalIndent, Node.ChoicePath, Node.ConditionalPath);
 				if (Tree.Nodes.IsValidIndex(FallthroughIdx))
 				{
 					Node.Edges.Add(FSUDSParsedEdge(FallthroughIdx, Node.SourceLineNo));
@@ -898,7 +1012,7 @@ void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree&
 				if (!Tree.Nodes.IsValidIndex(Edge.TargetNodeIdx))
 				{
 					// Usually this is a choice line without anything under it, or a condition with nothing in it
-					const auto FallthroughIdx = FindNextOutdentedNodeIndex(Tree, i+1, Node.OriginalIndent, Node.TreePath);
+					const auto FallthroughIdx = FindNextOutdentedNodeIndex(Tree, i+1, Node.OriginalIndent, Node.ChoicePath, Node.ConditionalPath);
 					if (Tree.Nodes.IsValidIndex(FallthroughIdx))
 					{
 						Edge.TargetNodeIdx = FallthroughIdx;
@@ -914,7 +1028,11 @@ void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree&
 	}
 }
 
-int FSUDSScriptImporter::FindNextOutdentedNodeIndex(FSUDSScriptImporter::ParsedTree& Tree, int StartNodeIndex, int IndentLessThan, const FString& FromPath)
+int FSUDSScriptImporter::FindNextOutdentedNodeIndex(FSUDSScriptImporter::ParsedTree& Tree,
+                                                    int StartNodeIndex,
+                                                    int IndentLessThan,
+                                                    const FString& FromChoicePath,
+                                                    const FString& FromConditionalPath)
 {
 	// In order to be a valid fallthrough, also needs to be on the same choice (or select) path
 	// E.g. it's possible to have:
@@ -954,7 +1072,8 @@ int FSUDSScriptImporter::FindNextOutdentedNodeIndex(FSUDSScriptImporter::ParsedT
 	{
 		auto N = Tree.Nodes[i];
 		if (N.OriginalIndent < IndentLessThan &&
-			FromPath.StartsWith(N.TreePath))
+			FromChoicePath.StartsWith(N.ChoicePath) &&
+			FromConditionalPath.StartsWith(N.ConditionalPath))
 		{
 			return i;
 		}

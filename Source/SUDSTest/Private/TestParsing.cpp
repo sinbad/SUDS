@@ -155,7 +155,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 	TestEqual("Root node type", RootNode->NodeType, ESUDSParsedNodeType::Text);
 	TestEqual("Root node speaker", RootNode->Identifier, "Player");
 	TestEqual("Root node text", RootNode->Text, "Excuse me?");
-	TestEqual("Root node path", RootNode->TreePath, "/");
+	TestEqual("Root node path", RootNode->ChoicePath, "/");
 	TestEqual("Root node edges", RootNode->Edges.Num(), 1);
 
 	auto NextNode = Importer.GetNode(RootNode->Edges[0].TargetNodeIdx);
@@ -165,7 +165,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 	TestEqual("Second node type", NextNode->NodeType, ESUDSParsedNodeType::Text);
 	TestEqual("Second node speaker", NextNode->Identifier, "NPC");
 	TestEqual("Second node text", NextNode->Text, "Well, hello there. This is a test.");
-	TestEqual("Second node path", RootNode->TreePath, "/");
+	TestEqual("Second node path", RootNode->ChoicePath, "/");
 	TestEqual("Second node edges", NextNode->Edges.Num(), 1);
 
 	NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
@@ -173,7 +173,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 		return false;
 	TestEqual("Third node type", NextNode->NodeType, ESUDSParsedNodeType::Choice);
 	// Choice itself is still at root, only the edges (individual choices) introduce new path levels
-	TestEqual("Third node path", NextNode->TreePath, "/");
+	TestEqual("Third node path", NextNode->ChoicePath, "/");
 	TestEqual("Third node edges", NextNode->Edges.Num(), 2);
 
 	auto Choice1Node = NextNode;
@@ -189,7 +189,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 			TestEqual("Choice 1 1st text node type", NextNode->NodeType, ESUDSParsedNodeType::Text);
 			TestEqual("Choice 1 1st text node speaker", NextNode->Identifier, "NPC");
 			TestEqual("Choice 1 1st text node text", NextNode->Text, "Yes, a test. This is some indented continuation text.");
-			TestEqual("Choice 1 1st text node path", NextNode->TreePath, "/C001/");
+			TestEqual("Choice 1 1st text node path", NextNode->ChoicePath, "/C001/");
 			TestEqual("Choice 1 1st text node edges", NextNode->Edges.Num(), 1);
 			NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
 			if (TestNotNull("Next node should exist", NextNode))
@@ -197,7 +197,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 				TestEqual("Choice 1 2nd text node type", NextNode->NodeType, ESUDSParsedNodeType::Text);
 				TestEqual("Choice 1 2nd text node speaker", NextNode->Identifier, "Player");
 				TestEqual("Choice 1 2nd text node text", NextNode->Text, "Oh I see, thank you.");
-				TestEqual("Choice 1 2nd text node path", NextNode->TreePath, "/C001/");
+				TestEqual("Choice 1 2nd text node path", NextNode->ChoicePath, "/C001/");
 				TestEqual("Choice 1 2nd text node edges", NextNode->Edges.Num(), 1);
 				NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
 				if (TestNotNull("Next node should exist", NextNode))
@@ -205,7 +205,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 					TestEqual("Choice 1 3rd text node type", NextNode->NodeType, ESUDSParsedNodeType::Text);
 					TestEqual("Choice 1 3rd text node speaker", NextNode->Identifier, "NPC");
 					TestEqual("Choice 1 3rd text node text", NextNode->Text, "You're welcome.");
-					TestEqual("Choice 1 3rd text node path", NextNode->TreePath, "/C001/");
+					TestEqual("Choice 1 3rd text node path", NextNode->ChoicePath, "/C001/");
 
 					// Should fall through, all the way to the end and not to "level 2 fallthrough" since that's deeper level
 					TestEqual("Choice 1 3rd text node edges", NextNode->Edges.Num(), 1);
@@ -231,7 +231,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 		TestEqual("Choice 2 1st text node type", NextNode->NodeType, ESUDSParsedNodeType::Text);
 		TestEqual("Choice 2 1st text node speaker", NextNode->Identifier, "NPC");
 		TestEqual("Choice 2 1st text node text", NextNode->Text, "This is another option with an embedded choice.");
-		TestEqual("Choice 2 2nd text node path", NextNode->TreePath, "/C002/");
+		TestEqual("Choice 2 2nd text node path", NextNode->ChoicePath, "/C002/");
 		TestEqual("Choice 2 1st text node edges", NextNode->Edges.Num(), 1);
 		NextNode = Importer.GetNode(NextNode->Edges[0].TargetNodeIdx);
 		if (!TestNotNull("Next node should exist", NextNode))
@@ -253,7 +253,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 				TestEqual("Nested Choice 1st text node text", NextNode->Text, "Theoretically forever but who knows?");
 				// Choice edges are assigned unique numbers in ascending order, but nested
 				// This helps with fallthrough
-				TestEqual("Nested Choice 1st text node path", NextNode->TreePath, "/C002/C003/");
+				TestEqual("Nested Choice 1st text node path", NextNode->ChoicePath, "/C002/C003/");
 
 				if (TestEqual("Nested Choice 1st text node edges", NextNode->Edges.Num(), 1))
 				{
@@ -273,7 +273,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 				TestEqual("Nested Choice 2nd text node type", NextNode->NodeType, ESUDSParsedNodeType::Text);
 				TestEqual("Nested Choice 2nd text node speaker", NextNode->Identifier, "NPC");
 				TestEqual("Nested Choice 2nd text node text", NextNode->Text, "That should have been added to the previous choice");
-				TestEqual("Nested Choice 2nd text node path", NextNode->TreePath, "/C002/C004/");
+				TestEqual("Nested Choice 2nd text node path", NextNode->ChoicePath, "/C002/C004/");
 				TestEqual("Nested Choice 2nd text node edges", NextNode->Edges.Num(), 1);
 				if (TestEqual("Nested Choice 2nd text node edges", NextNode->Edges.Num(), 1))
 				{
@@ -293,7 +293,7 @@ bool FTestSimpleParsing::RunTest(const FString& Parameters)
 				TestEqual("Nested Choice 3rd text node type", NextNode->NodeType, ESUDSParsedNodeType::Text);
 				TestEqual("Nested Choice 3rd text node speaker", NextNode->Identifier, "NPC");
 				TestEqual("Nested Choice 3rd text node text", NextNode->Text, "Yep, this one too");
-				TestEqual("Nested Choice 3rd text node path", NextNode->TreePath, "/C002/C005/");
+				TestEqual("Nested Choice 3rd text node path", NextNode->ChoicePath, "/C002/C005/");
 				if (TestEqual("Nested Choice 3rd text node edges", NextNode->Edges.Num(), 1))
 				{
 					// Double nested

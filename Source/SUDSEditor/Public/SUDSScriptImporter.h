@@ -16,7 +16,8 @@ public:
 	/// The line this edge was created on
 	int SourceLineNo;
 
-	// TODO: Conditions
+	// TODO: Condition
+	FString TempCondition;
 
 	int TargetNodeIdx = -1;
 
@@ -29,7 +30,7 @@ public:
 		  TargetNodeIdx(ToNodeIdx)
 	{
 	}
-
+	
 	void Reset()
 	{
 		*this = FSUDSParsedEdge(-1);
@@ -79,9 +80,12 @@ public:
 	/// The line this node was created on
 	int SourceLineNo;
 
-	// Path hierarchy of choice/selects leading to this node, of the form "/002/006" etc, not including this node index
+	// Path hierarchy of choice nodes leading to this node, of the form "/C002/C006" etc, not including this node index
 	// This helps us identify valid fallthroughs
-	FString TreePath;
+	FString ChoicePath;
+	// Path hierarchy of select nodes leading to this node, of the form "/S002/S006" etc, not including this node index
+	// This helps us identify valid fallthroughs
+	FString ConditionalPath;
 
 	FSUDSParsedNode(ESUDSParsedNodeType InNodeType, int Indent, int LineNo) : NodeType(InNodeType), OriginalIndent(Indent), SourceLineNo(LineNo) {}
 	FSUDSParsedNode(const FString& InSpeaker, const FString& InText, const FString& InTextID, int Indent, int LineNo)
@@ -102,6 +106,39 @@ public:
 	static const FString EndGotoLabel;
 protected:
 	static const FString TreePathSeparator;
+
+	enum class EConditionalStage : uint8
+	{
+		IfStage,
+		ElseIfStage,
+		ElseStage
+	};
+	enum class EConditionalParent : uint8
+	{
+		Select,
+		ElseIfStage,
+		ElseStage
+	};
+	
+	// Struct for tracking if/elseif blocks
+	struct ConditionalContext
+	{
+		/// Index of parent conditional node (select or choice) where else will be added
+		int ParentNodeIdx = -1;
+		/// Previous block index (parent for nesting)
+		int PreviousBlockIdx = -1;
+		/// Track whether we're in if/elseif/else
+		EConditionalStage Stage;
+
+		ConditionalContext(int InParentNodeIdx, int InPrevBlockIdx, EConditionalStage InStage) :
+			ParentNodeIdx(InParentNodeIdx),
+			PreviousBlockIdx(InPrevBlockIdx),
+			Stage(InStage)
+		{
+		}
+
+	};
+	
 	/// Struct for tracking indents
 	struct IndentContext
 	{
@@ -147,6 +184,17 @@ protected:
 		/// Goto labels that lead directly to another goto and thus are just aliases
 		TMap<FString, FString> AliasedGotoLabels;
 
+		/// Conditional blocks
+		/// "if" creates a new context, uses current as parent
+		/// "elseif" and "else" also create new contexts, but copies parent from current (sibling)
+		/// "endif" ends the context
+		/// You cannot have conditionals that were started in an indent context ending outside it
+		TArray<ConditionalContext> ConditionalBlocks;
+		/// Index of the current conditional block, if any
+		int CurrentConditionalBlockIdx = -1;
+		/// Pending conditional; we've encountered an if/elseif/else but haven't done anything with it yet
+		TOptional<ConditionalContext> PendingConditional;
+
 		void Reset()
 		{
 			IndentLevelStack.Reset();
@@ -155,6 +203,9 @@ protected:
 			GotoLabelList.Reset();
 			PendingGotoLabels.Reset();
 			AliasedGotoLabels.Reset();
+			ConditionalBlocks.Reset();
+			CurrentConditionalBlockIdx = -1;
+			PendingConditional.Reset();
 		}
 	};
 
@@ -190,9 +241,10 @@ protected:
 	void PopIndent(ParsedTree& Tree);
 	void PushIndent(ParsedTree& Tree, int NodeIdx, int Indent, const FString& Path);
 	FString GetCurrentTreePath(ParsedTree& Tree);
+	FString GetCurrentTreeConditionalPath(ParsedTree& Tree);
 	int AppendNode(ParsedTree& Tree, const FSUDSParsedNode& NewNode);
 	void ConnectRemainingNodes(ParsedTree& Tree, const FString& NameForErrors, bool bSilent);
-	int FindNextOutdentedNodeIndex(ParsedTree& Tree, int StartNodeIndex, int IndentLessThan, const FString& FromPath);
+	int FindNextOutdentedNodeIndex(ParsedTree& Tree, int StartNodeIndex, int IndentLessThan, const FString& FromChoicePath, const FString& FromConditionalPath);
 	void RetrieveAndRemoveOrGenerateTextID(FStringView& InOutLine, FString& OutTextID);
 	bool RetrieveAndRemoveTextID(FStringView& InOutLine, FString& OutTextID);
 	FString GenerateTextID(const FStringView& Line);
