@@ -15,8 +15,7 @@ public:
 	FString TextID;
 	/// The line this edge was created on
 	int SourceLineNo;
-
-	// TODO: Parse condition
+	/// String version of condition that applies to this edge (for select nodes)
 	FString ConditionString;
 
 	int TargetNodeIdx = -1;
@@ -123,8 +122,8 @@ protected:
 	// Struct for tracking if/elseif blocks
 	struct ConditionalContext
 	{
-		/// Index of parent conditional node (select or choice) where else will be added
-		int ParentNodeIdx = -1;
+		/// Index of parent select node where else will be added
+		int SelectNodeIdx = -1;
 		/// Previous block index (parent for nesting)
 		int PreviousBlockIdx = -1;
 		/// Track whether we're in if/elseif/else
@@ -132,8 +131,8 @@ protected:
 		/// String of current condition 
 		FString ConditionStr;
 
-		ConditionalContext(int InParentNodeIdx, int InPrevBlockIdx, EConditionalStage InStage, const FString& InCondStr) :
-			ParentNodeIdx(InParentNodeIdx),
+		ConditionalContext(int InSelectNodeIdx, int InPrevBlockIdx, EConditionalStage InStage, const FString& InCondStr) :
+			SelectNodeIdx(InSelectNodeIdx),
 			PreviousBlockIdx(InPrevBlockIdx),
 			Stage(InStage),
 			ConditionStr(InCondStr)
@@ -228,8 +227,19 @@ protected:
 	bool ParseLine(const FStringView& Line, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseHeaderLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseBodyLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool IsLastNodeOfType(const ParsedTree& Tree, ESUDSParsedNodeType Type);
 	bool ParseChoiceLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseConditionalLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool ParseIfElseIfLine(const FStringView& Line,
+	                       ParsedTree& Tree,
+	                       EConditionalStage ConditionalStage,
+	                       const FString& ConditionStr,
+	                       int IndentLevel,
+	                       int LineNo,
+	                       const FString& NameForErrors,
+	                       bool bSilent);
+	bool ParseElseLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool ParseEndIfLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseGotoLabelLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseGotoLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseSetLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
