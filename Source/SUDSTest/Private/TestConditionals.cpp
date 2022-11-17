@@ -1,5 +1,6 @@
 ﻿#include "SUDSScriptImporter.h"
 #include "TestUtils.h"
+#include "Tests/FbxAutomationCommon.h"
 PRAGMA_DISABLE_OPTIMIZATION
 
 const FString BasicConditionalInput = R"RAWSUD(
@@ -151,6 +152,46 @@ bool FTestConditionalChoices::RunTest(const FString& Parameters)
     if (!TestNotNull("Root node should exist", NextNode))
         return false;
 
+    TestParsedText(this, "First node", NextNode, "NPC", "Hello");
+    TestGetParsedNextNode(this, "Get next", NextNode, Importer, false, &NextNode);
+    // This will have one choice edge for the unconditional choice, then an edge to the select node
+    if (TestParsedChoice(this, "First choice node", NextNode, 2))
+    {
+        auto ChoiceNode = NextNode;
+        TestParsedChoiceEdge(this, "First choice edge 1", ChoiceNode, 0, "First choice", Importer, &NextNode);
+        TestParsedText(this, "First choice edge 1 text", NextNode, "Player", "I took the 1.1 choice");
+        // Second edge has no text because it's going to a select for other choices
+        TestParsedChoiceEdge(this, "First choice edge 2", ChoiceNode, 1, "", Importer, &NextNode);
+        // 2 edges because only if/else
+        if (TestParsedSelect(this, "First choice edge 2 should link to select", NextNode, 2))
+        {
+            auto SelectNode = NextNode;
+            TestParsedSelectEdge(this, "Select edge 0", SelectNode, 0, "{y} == 2", Importer, &NextNode);
+            // 2 choices in this if clause
+            if (TestParsedChoice(this, "Choice node under first if", NextNode, 2))
+            {
+                auto Choice2 = NextNode;
+                TestParsedChoiceEdge(this, "y == 2 choice edge 1", Choice2, 0, "Second choice (conditional)", Importer, &NextNode);
+                TestParsedText(this, "y == 2 choice edge 1 text", NextNode, "Player", "I took the 1.2 choice");
+                // This should fall through to text node after the choices
+                TestGetParsedNextNode(this, "Get next", NextNode, Importer, false, &NextNode);
+                TestParsedText(this, "Fallthrough to next text", NextNode, "NPC", "OK next question");
+
+                TestParsedChoiceEdge(this, "y == 2 choice edge 2", Choice2, 1, "Third choice (conditional)", Importer, &NextNode);
+                TestParsedText(this, "y == 2 choice edge 2 text", NextNode, "Player", "I took the 1.3 choice");
+                // This should fall through to text node after the choices
+                TestGetParsedNextNode(this, "Get next", NextNode, Importer, false, &NextNode);
+                TestParsedText(this, "Fallthrough to next text", NextNode, "NPC", "OK next question");
+
+            }
+            TestParsedSelectEdge(this, "Select edge 1 (else)", SelectNode, 1, "", Importer, &NextNode);
+            TestParsedText(this, "Else edge text", NextNode, "Player", "I took the alt 1.2 choice");
+            
+        }
+        
+    }
+    
+    
     return true;
 }
 
