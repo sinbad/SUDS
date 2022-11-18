@@ -90,6 +90,9 @@ public:
 	// This helps us identify valid fallthroughs
 	FString ConditionalPath;
 
+	/// Although multiple edges can lead here, this index is for the auto-connected parent (may be nothing)
+	int ParentNodeIdx = -1;
+
 	FSUDSParsedNode(ESUDSParsedNodeType InNodeType, int Indent, int LineNo) : NodeType(InNodeType), OriginalIndent(Indent), SourceLineNo(LineNo) {}
 	FSUDSParsedNode(const FString& InSpeaker, const FString& InText, const FString& InTextID, int Indent, int LineNo)
 		:NodeType(ESUDSParsedNodeType::Text), OriginalIndent(Indent), Identifier(InSpeaker), Text(InText), TextID(InTextID), SourceLineNo(LineNo) {}
@@ -179,7 +182,8 @@ protected:
 		TArray<IndentContext> IndentLevelStack;
 		/// When encountering conditions and choice lines, we are building up details for an edge to another node, but
 		/// we currently don't know the target node. We keep these pending details here
-		FSUDSParsedEdge* EdgeInProgress = nullptr;
+		int EdgeInProgressNodeIdx = -1;
+		int EdgeInProgressEdgeIdx = -1;
 		/// List of all nodes, appended to as parsing progresses
 		/// Ordering is important, these nodes must be in the order encountered in the file 
 		TArray<FSUDSParsedNode> Nodes;
@@ -202,7 +206,7 @@ protected:
 		void Reset()
 		{
 			IndentLevelStack.Reset();
-			EdgeInProgress = nullptr;
+			EdgeInProgressNodeIdx = EdgeInProgressEdgeIdx -1;
 			Nodes.Reset();
 			GotoLabelList.Reset();
 			PendingGotoLabels.Reset();
@@ -233,6 +237,8 @@ protected:
 	bool ParseBodyLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool IsLastNodeOfType(const ParsedTree& Tree, ESUDSParsedNodeType Type);
 	bool ParseChoiceLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	FSUDSParsedEdge* GetEdgeInProgress(ParsedTree& Tree);
+	void EnsureChoiceNodeExistsAboveSelect(ParsedTree& Tree, int IndentLevel, int LineNo);
 	static bool IsConditionalLine(const FStringView& Line);
 	bool ParseConditionalLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseIfLine(const FStringView& Line,

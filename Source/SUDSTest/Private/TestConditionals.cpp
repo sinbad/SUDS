@@ -205,44 +205,73 @@ bool FTestConditionalChoices::RunTest(const FString& Parameters)
             TestParsedText(this, "Fallthrough to next question", NextNode, "NPC", "OK next question");
             
             TestGetParsedNextNode(this, "Get next", NextNode, Importer, false, &NextNode);
-            // This time because the first choice is already in the select, the select comes first
-            // There's an if, elseif, and else edge 
-            if (TestParsedSelect(this, "Select node under next question", NextNode, 3))
+            // This time the first choice is already in the select, BUT we should have inserted an extra choice anyway
+            // Should be 2 edges because the last common choice should have attached itself
+            if (TestParsedChoice(this, "Inserted choice before select", NextNode, 2))
             {
-                auto SelectNode2 = NextNode;
-                TestParsedSelectEdge(this, "Select edge 0", SelectNode2, 0, "{y} == 0", Importer, &NextNode);
-                // Choice node under if, only 1 in this section
-                if (TestParsedChoice(this, "Choice node under select", NextNode, 1))
-                {
-                    TestParsedChoiceEdge(this, "First choice edge", NextNode, 0, "First conditional choice", Importer, &NextNode);
-                    TestParsedText(this, "First choice text", NextNode, "Player", "I took the 2.1 choice");
-                    TestGetParsedNextNode(this, "Get next", NextNode, Importer, false, &NextNode);
-                    TestParsedText(this, "Final fallthrough", NextNode, "NPC", "Bye");
-                    
-                }
-                TestParsedSelectEdge(this, "Select edge 1", SelectNode2, 1, "{y} == 1", Importer, &NextNode);
-                // Choice node under elseif, only 1 in this section
-                if (TestParsedChoice(this, "Choice node under select 2", NextNode, 2))
-                {
-                    auto Choice4 = NextNode;
-                    TestParsedChoiceEdge(this, "Second choice edge 1", Choice4, 0, "Second conditional choice", Importer, &NextNode);
-                    TestParsedText(this, "First choice text", NextNode, "Player", "I took the 2.2 choice");
-                    TestGetParsedNextNode(this, "Get next", NextNode, Importer, false, &NextNode);
-                    TestParsedText(this, "Final fallthrough", NextNode, "NPC", "Bye");
-
-                    // Next edge goes to a select
-                    TestParsedChoiceEdge(this, "Second choice edge 2", Choice4, 1, "", Importer, &NextNode);
-                    // There is only an "if" in this nested select. No implicit "else" edge should exist because it's a choice node 
-                    if (TestParsedSelect(this, "Select node under next question", NextNode, 1))
-                    {
-                    }
-                    
-                }
-                
-                
-            }
+                auto InsertedChoice = NextNode;
+                TestParsedChoiceEdge(this, "Inserted choice edge 1", InsertedChoice, 0, "", Importer, &NextNode);
             
+                // There's an if, elseif, and else edge
+                if (TestParsedSelect(this, "Select node under next question", NextNode, 3))
+                {
+                    auto SelectNode2 = NextNode;
+                    TestParsedSelectEdge(this, "Select edge 0", SelectNode2, 0, "{y} == 0", Importer, &NextNode);
+                    // Choice node under if, only 1 in this section
+                    if (TestParsedChoice(this, "Choice node under select", NextNode, 1))
+                    {
+                        TestParsedChoiceEdge(this, "First choice edge", NextNode, 0, "First conditional choice", Importer, &NextNode);
+                        TestParsedText(this, "First choice text", NextNode, "Player", "I took the 2.1 choice");
+                        TestGetParsedNextNode(this, "Get next", NextNode, Importer, false, &NextNode);
+                        TestParsedText(this, "Final fallthrough", NextNode, "NPC", "Bye");
+                    
+                    }
+                    TestParsedSelectEdge(this, "Select edge 1", SelectNode2, 1, "{y} == 1", Importer, &NextNode);
+                    // Choice node under elseif, only 1 in this section
+                    if (TestParsedChoice(this, "Choice node under select 2", NextNode, 2))
+                    {
+                        auto Choice4 = NextNode;
+                        TestParsedChoiceEdge(this, "Second choice edge 1", Choice4, 0, "Second conditional choice", Importer, &NextNode);
+                        TestParsedText(this, "First choice text", NextNode, "Player", "I took the 2.2 choice");
+                        TestGetParsedNextNode(this, "Get next", NextNode, Importer, false, &NextNode);
+                        TestParsedText(this, "Final fallthrough", NextNode, "NPC", "Bye");
 
+                        // Next edge goes to a select
+                        TestParsedChoiceEdge(this, "Second choice edge 2", Choice4, 1, "", Importer, &NextNode);
+                        // There is only an "if" in this nested select. No implicit "else" edge should exist because it's a choice node 
+                        if (TestParsedSelect(this, "Select node under next question", NextNode, 1))
+                        {
+                            TestParsedSelectEdge(this, "Nested select edge 1", NextNode, 0, "{q} == 10", Importer, &NextNode);
+                            if (TestParsedChoice(this, "Choice node under nested select", NextNode, 1))
+                            {
+                                TestParsedChoiceEdge(this, "Nested choice edge 1", NextNode, 0, "Nested conditional choice", Importer, &NextNode);
+                                TestParsedText(this, "First choice text", NextNode, "Player", "I took the 2.2.1 choice");
+                                TestGetParsedNextNode(this, "Get next", NextNode, Importer, false, &NextNode);
+                                TestParsedText(this, "Final fallthrough", NextNode, "NPC", "Bye");
+                            }
+                        }
+                    
+                    }
+                    TestParsedSelectEdge(this, "Select edge 2", SelectNode2, 2, "", Importer, &NextNode);
+                    // Choice node under elseif, only 1 in this section
+                    if (TestParsedChoice(this, "Choice node under select 3", NextNode, 1))
+                    {
+                        TestParsedChoiceEdge(this, "Choice under select 3 edge", NextNode, 0, "Third conditional choice", Importer, &NextNode);
+                        TestParsedText(this, "First choice text", NextNode, "Player", "I took the 2.3 choice");
+                        TestGetParsedNextNode(this, "Get next", NextNode, Importer, false, &NextNode);
+                        TestParsedText(this, "Final fallthrough", NextNode, "NPC", "Bye");
+                    }
+                
+                
+                }
+
+                // Finally the last catch-all choice which attached itself to the choice node we created above the select
+                TestParsedChoiceEdge(this, "Inserted choice edge 2", InsertedChoice, 1, "Final common choice", Importer, &NextNode);
+                TestParsedText(this, "First choice text", NextNode, "Player", "I took the 2.4 choice");
+                TestGetParsedNextNode(this, "Get next", NextNode, Importer, false, &NextNode);
+                TestParsedText(this, "Final fallthrough", NextNode, "NPC", "Bye");
+
+            }
             
         }
         

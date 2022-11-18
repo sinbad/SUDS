@@ -314,14 +314,22 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line,
 		// If the current indent context node is NOT a choice, create a choice node, and connect to previous node (using pending edge if needed)
 		if (ChoiceNodeIdx == -1)
 		{
-			// Last node was not a choice node, so to add edge for this choice we first need to create the choice node
+			// Didn't find a choice node we can connect to, so create one
+			
+			// However, before we do that, if our parent is a select node, we must ensure that its parent is a choice node
+			// This is just so that we have a choice node outside the select that any choices that come after the [endif]
+			// can attach to. If a non-conditional choice was encountered first, it'll already be there. But if the first
+			// choice was conditional, the select node will have been created first.
+			// We still create a choice node here too, underneath the select, to act as a holder for potentially multiple
+			// choices within this select condition
+			EnsureChoiceNodeExistsAboveSelect(Tree, IndentLevel, LineNo);
 			ChoiceNodeIdx = AppendNode(Tree, FSUDSParsedNode(ESUDSParsedNodeType::Choice, IndentLevel, LineNo));
 		}
-		if (Tree.EdgeInProgress)
+		if (Tree.EdgeInProgressNodeIdx != -1)
 		{
 			// Must already have been a choice node but previous pending edge wasn't resolved
 			// This means it's a fallthrough, will be resolved at end
-			Tree.EdgeInProgress = nullptr;			
+			Tree.EdgeInProgressNodeIdx = Tree.EdgeInProgressEdgeIdx = -1;
 		}
 
 		auto& ChoiceNode = Tree.Nodes[ChoiceNodeIdx];
@@ -336,11 +344,108 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line,
 		auto ChoiceTextView = Line.SubStr(1, Line.Len() - 1).TrimStart();
 		RetrieveAndRemoveOrGenerateTextID(ChoiceTextView, ChoiceTextID);
 		const int EdgeIdx = ChoiceNode.Edges.Add(FSUDSParsedEdge(ChoiceNodeIdx, -1, LineNo, FString(ChoiceTextView), ChoiceTextID));
-		Tree.EdgeInProgress = &ChoiceNode.Edges[EdgeIdx];
+		Tree.EdgeInProgressNodeIdx = ChoiceNodeIdx;
+		Tree.EdgeInProgressEdgeIdx = EdgeIdx;
 		
 		return true;
 	}
 	return false;
+}
+
+FSUDSParsedEdge* FSUDSScriptImporter::GetEdgeInProgress(ParsedTree& Tree)
+{
+	if (Tree.Nodes.IsValidIndex(Tree.EdgeInProgressNodeIdx))
+	{
+		auto& N = Tree.Nodes[Tree.EdgeInProgressNodeIdx];
+		if (N.Edges.IsValidIndex(Tree.EdgeInProgressEdgeIdx))
+		{
+			return &N.Edges[Tree.EdgeInProgressEdgeIdx];
+		}
+	}
+	return nullptr;
+}
+void FSUDSScriptImporter::EnsureChoiceNodeExistsAboveSelect(ParsedTree& Tree, int IndentLevel, int LineNo)
+{
+	auto& Ctx = Tree.IndentLevelStack.Top();
+	int ParentIdx = -1;
+	// Inserting is going to mess up EdgeInProgress
+	if (auto E = GetEdgeInProgress(Tree))
+	{
+		ParentIdx = E->SourceNodeIdx;
+	}
+	else
+	{
+		ParentIdx = Ctx.LastNodeIdx;
+	}
+
+	// Nothing to do if immediate parent isn't select
+	if (!Tree.Nodes.IsValidIndex(ParentIdx) || Tree.Nodes[ParentIdx].NodeType != ESUDSParsedNodeType::Select)
+		return;
+
+	// Find the node above the top of potentially nested select chain
+	while (Tree.Nodes.IsValidIndex(ParentIdx) && Tree.Nodes[ParentIdx].NodeType == ESUDSParsedNodeType::Select)
+	{
+		ParentIdx = Tree.Nodes[ParentIdx].ParentNodeIdx;
+	}
+
+	if (Tree.Nodes.IsValidIndex(ParentIdx) &&  Tree.Nodes[ParentIdx].NodeType == ESUDSParsedNodeType::Choice)
+	{
+		// OK we found a choice above the select, this is OK
+		return;
+	}
+
+	// If we got here, we navigated to the point above the select(s) and didn't end up on a root choice
+	// So we need to insert one, after this index
+	const int InsertIdx = ParentIdx + 1; // this happens to return 0 for having hit the start of the tree (-1), which is fine
+
+	Tree.Nodes.Insert(FSUDSParsedNode(ESUDSParsedNodeType::Choice, IndentLevel, LineNo), InsertIdx);
+	auto& NewChoice = Tree.Nodes[InsertIdx];
+	auto& SelectNode = Tree.Nodes[InsertIdx + 1];
+	// Add edge to the select, fixup the parent nodes for both
+	NewChoice.Edges.Add(FSUDSParsedEdge(InsertIdx, InsertIdx + 1, LineNo));
+	NewChoice.ParentNodeIdx = SelectNode.ParentNodeIdx;
+	NewChoice.ChoicePath = SelectNode.ChoicePath;
+	NewChoice.ConditionalPath = SelectNode.ConditionalPath;
+
+	// Now for every other node after this, we have to fix up indexes that are >= InsertIdx
+	// We don't fix up anything before, because we want things that pointed forward to the select to now point at the choice
+	for (int i = InsertIdx + 1; i < Tree.Nodes.Num(); ++i)
+	{
+		if (i != InsertIdx)
+		{
+			auto& N = Tree.Nodes[i];
+			if (N.ParentNodeIdx >= InsertIdx)
+				++N.ParentNodeIdx;
+			for (auto& E : N.Edges)
+			{
+				if (E.SourceNodeIdx >= InsertIdx)
+					++E.SourceNodeIdx;
+				if (E.TargetNodeIdx >= InsertIdx)
+					++E.TargetNodeIdx;
+			}
+		}
+	}
+
+	// Also fix indent contexts
+	for (auto& I : Tree.IndentLevelStack)
+	{
+		if (I.LastNodeIdx >= InsertIdx)
+			++I.LastNodeIdx;
+	}
+	// Also conditional blocks
+	for (auto& CB : Tree.ConditionalBlocks)
+	{
+		if (CB.SelectNodeIdx >= InsertIdx)
+			++CB.SelectNodeIdx;
+	}
+	// Fixup edge in progress
+	if (Tree.EdgeInProgressNodeIdx >= InsertIdx)
+		++Tree.EdgeInProgressNodeIdx;
+
+
+	// Manually change the select node parent index afterwards (if we change it before it'll get adjusted again)
+	SelectNode.ParentNodeIdx = InsertIdx;
+	
 }
 
 bool FSUDSScriptImporter::IsConditionalLine(const FStringView& Line)
@@ -374,7 +479,8 @@ bool FSUDSScriptImporter::ParseElseLine(const FStringView& Line,
 				
 				auto& SelectNode = Tree.Nodes[NodeIdx];
 				const int EdgeIdx = SelectNode.Edges.Add(FSUDSParsedEdge(NodeIdx, -1, LineNo));
-				Tree.EdgeInProgress = &SelectNode.Edges[EdgeIdx];
+				Tree.EdgeInProgressNodeIdx = NodeIdx;
+				Tree.EdgeInProgressEdgeIdx = EdgeIdx;
 				// Wind back the last node to select
 				auto& Ctx = Tree.IndentLevelStack.Top();
 				Ctx.LastNodeIdx = NodeIdx;
@@ -447,8 +553,10 @@ bool FSUDSScriptImporter::ParseIfLine(const FStringView& Line,
 	const int NewNodeIdx = AppendNode(Tree, FSUDSParsedNode(ESUDSParsedNodeType::Select, IndentLevel, LineNo));
 	auto& SelectNode = Tree.Nodes[NewNodeIdx];
 	const int EdgeIdx = SelectNode.Edges.Add(FSUDSParsedEdge(NewNodeIdx, -1, LineNo));
-	Tree.EdgeInProgress = &SelectNode.Edges[EdgeIdx];
-	Tree.EdgeInProgress->ConditionString = ConditionStr;
+	auto E = &SelectNode.Edges[EdgeIdx];
+	E->ConditionString = ConditionStr;
+	Tree.EdgeInProgressNodeIdx = NewNodeIdx;
+	Tree.EdgeInProgressEdgeIdx = EdgeIdx;
 			
 	Tree.CurrentConditionalBlockIdx = Tree.ConditionalBlocks.Add(
 		ConditionalContext(NewNodeIdx, Tree.CurrentConditionalBlockIdx, EConditionalStage::IfStage, ConditionStr));
@@ -482,8 +590,10 @@ bool FSUDSScriptImporter::ParseElseIfLine(const FStringView& Line,
 				
 			auto& SelectOrChoiceNode = Tree.Nodes[NodeIdx];
 			const int EdgeIdx = SelectOrChoiceNode.Edges.Add(FSUDSParsedEdge(NodeIdx, -1, LineNo));
-			Tree.EdgeInProgress = &SelectOrChoiceNode.Edges[EdgeIdx];
-			Tree.EdgeInProgress->ConditionString = ConditionStr;
+			auto E = &SelectOrChoiceNode.Edges[EdgeIdx];
+			E->ConditionString = ConditionStr;
+			Tree.EdgeInProgressNodeIdx = NodeIdx;
+			Tree.EdgeInProgressEdgeIdx = EdgeIdx;
 		}
 		else
 		{
@@ -1000,13 +1110,15 @@ int FSUDSScriptImporter::AppendNode(FSUDSScriptImporter::ParsedTree& Tree, const
 	NewNode.ConditionalPath = GetCurrentTreeConditionalPath(Tree);
 
 	// Use pending edge if present; that could be because this is under a choice node, or a condition
-	if (Tree.EdgeInProgress)
+	if (auto E = GetEdgeInProgress(Tree))
 	{
-		Tree.EdgeInProgress->TargetNodeIdx = NewIndex;
+		E->TargetNodeIdx = NewIndex;
 
-		const int PrevNodeIdx = Tree.EdgeInProgress->SourceNodeIdx;
+		const int PrevNodeIdx = E->SourceNodeIdx;
 		SetFallthroughForNewNode(Tree, NewNode, PrevNodeIdx);
-		Tree.EdgeInProgress = nullptr;
+		NewNode.ParentNodeIdx = PrevNodeIdx;
+		Tree.EdgeInProgressNodeIdx = -1;
+		Tree.EdgeInProgressEdgeIdx = -1;
 	}
 	else
 	{
@@ -1024,6 +1136,7 @@ int FSUDSScriptImporter::AppendNode(FSUDSScriptImporter::ParsedTree& Tree, const
 			 	(NewNode.NodeType == ESUDSParsedNodeType::Select))
 			{
 				PrevNode.Edges.Add(FSUDSParsedEdge(PrevNodeIdx, NewIndex, InNode.SourceLineNo));
+				NewNode.ParentNodeIdx = PrevNodeIdx;
 			}
 
 			// Don't throw an error otherwise, because prev index can be a choice due to fallthrough
