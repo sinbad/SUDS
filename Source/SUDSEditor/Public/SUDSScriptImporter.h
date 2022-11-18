@@ -265,7 +265,7 @@ protected:
 	void PushIndent(ParsedTree& Tree, int NodeIdx, int Indent, const FString& Path);
 	FString GetCurrentTreePath(const FSUDSScriptImporter::ParsedTree& Tree);
 	FString GetCurrentTreeConditionalPath(const FSUDSScriptImporter::ParsedTree& Tree);
-	void SetFallthroughForNewNode(FSUDSParsedNode& NewNode, const FSUDSParsedNode& PrevNode);
+	void SetFallthroughForNewNode(const FSUDSScriptImporter::ParsedTree& Tree, FSUDSParsedNode& NewNode, int PrevNodeIdx);
 	int AppendNode(ParsedTree& Tree, const FSUDSParsedNode& InNode);
 	bool SelectNodeHasElsePath(const FSUDSParsedNode& Node);
 	void ConnectRemainingNodes(ParsedTree& Tree, const FString& NameForErrors, bool bSilent);

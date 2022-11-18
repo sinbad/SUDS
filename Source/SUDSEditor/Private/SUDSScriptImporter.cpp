@@ -960,15 +960,33 @@ FString FSUDSScriptImporter::GetCurrentTreeConditionalPath(const FSUDSScriptImpo
 	
 }
 
-void FSUDSScriptImporter::SetFallthroughForNewNode(FSUDSParsedNode& NewNode, const FSUDSParsedNode& PrevNode)
+void FSUDSScriptImporter::SetFallthroughForNewNode(const FSUDSScriptImporter::ParsedTree& Tree, FSUDSParsedNode& NewNode, int PrevNodeIdx)
 {
-	// Do not allow fallthrough to this node for selects or choices that are themselves children of other selects or other choices
-	// It means they're compound conditionals / choices and we should only fall through to the root of that
-	if ((NewNode.NodeType == ESUDSParsedNodeType::Choice || NewNode.NodeType == ESUDSParsedNodeType::Select) &&
-		(PrevNode.NodeType == ESUDSParsedNodeType::Choice || PrevNode.NodeType == ESUDSParsedNodeType::Select))
+	// Never fall through to choice nodes
+	// This does limit your ability to use a dangling text line and have it fall through to a common choice,
+	// but you CAN do it with an explicit goto instead. It's just too ambiguous otherwise when you combine nested
+	// conditions and choices
+	if (NewNode.NodeType == ESUDSParsedNodeType::Choice)
 	{
 		NewNode.AllowFallthrough = false;
 	}
+	else
+	{
+		if (Tree.Nodes.IsValidIndex(PrevNodeIdx))
+		{
+			// Append this node onto the last one
+			auto& PrevNode = Tree.Nodes[PrevNodeIdx];
+
+			// Do not allow fallthrough to this node for selects that are themselves children of other selects or choices
+			// It means they're compound conditionals / choices and we should only fall through to the root of that
+			if (NewNode.NodeType == ESUDSParsedNodeType::Select &&
+				(PrevNode.NodeType == ESUDSParsedNodeType::Choice || PrevNode.NodeType == ESUDSParsedNodeType::Select))
+			{
+				NewNode.AllowFallthrough = false;
+			}
+		}
+	}
+	
 }
 
 int FSUDSScriptImporter::AppendNode(FSUDSScriptImporter::ParsedTree& Tree, const FSUDSParsedNode& InNode)
@@ -988,13 +1006,7 @@ int FSUDSScriptImporter::AppendNode(FSUDSScriptImporter::ParsedTree& Tree, const
 		Tree.EdgeInProgress->TargetNodeIdx = NewIndex;
 
 		const int PrevNodeIdx = Tree.EdgeInProgress->SourceNodeIdx;
-		if (Tree.Nodes.IsValidIndex(PrevNodeIdx))
-		{
-			// Append this node onto the last one
-			auto& PrevNode = Tree.Nodes[PrevNodeIdx];
-
-			SetFallthroughForNewNode(NewNode, PrevNode);
-		}
+		SetFallthroughForNewNode(Tree, NewNode, PrevNodeIdx);
 		Tree.EdgeInProgress = nullptr;
 	}
 	else
@@ -1018,10 +1030,10 @@ int FSUDSScriptImporter::AppendNode(FSUDSScriptImporter::ParsedTree& Tree, const
 			// Don't throw an error otherwise, because prev index can be a choice due to fallthrough
 			// This will be connected up at the end
 
-			SetFallthroughForNewNode(NewNode, PrevNode);
 		}
 
-		// If no previous node, then allow fallthrough
+		SetFallthroughForNewNode(Tree, NewNode, PrevNodeIdx);
+
 	}
 
 	// All goto labels in scope at this point now point to this node
