@@ -155,7 +155,7 @@ bool FTestConditionalChoices::RunTest(const FString& Parameters)
     TestParsedText(this, "First node", NextNode, "NPC", "Hello");
     TestGetParsedNextNode(this, "Get next", NextNode, Importer, false, &NextNode);
     // This will have one choice edge for the unconditional choice, then an edge to the select node
-    if (TestParsedChoice(this, "First choice node", NextNode, 2))
+    if (TestParsedChoice(this, "First choice node", NextNode, 3))
     {
         auto ChoiceNode = NextNode;
         TestParsedChoiceEdge(this, "First choice edge 1", ChoiceNode, 0, "First choice", Importer, &NextNode);
@@ -185,7 +185,18 @@ bool FTestConditionalChoices::RunTest(const FString& Parameters)
 
             }
             TestParsedSelectEdge(this, "Select edge 1 (else)", SelectNode, 1, "", Importer, &NextNode);
-            TestParsedText(this, "Else edge text", NextNode, "Player", "I took the alt 1.2 choice");
+            // 1 choice under this else section
+            if (TestParsedChoice(this, "Choice node under first else", NextNode, 1))
+            {
+                auto Choice3 = NextNode;
+                TestParsedChoiceEdge(this, "y == 2 choice edge 1", Choice3, 0, "Second Alt Choice", Importer, &NextNode);
+                TestParsedText(this, "Else edge text", NextNode, "Player", "I took the alt 1.2 choice");
+            }
+
+            // Final fallthrough choice, unconditional
+            TestParsedChoiceEdge(this, "First choice edge 3", ChoiceNode, 2, "Common last choice", Importer, &NextNode);
+            TestParsedText(this, "Fallthrough to next text", NextNode, "Player", "I took the 1.4 choice");
+
             
         }
         
