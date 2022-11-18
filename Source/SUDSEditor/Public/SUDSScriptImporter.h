@@ -260,10 +260,11 @@ protected:
 	bool ParseLiteral(const FString& ValueStr, FSUDSValue& OutVal);
 	bool IsCommentLine(const FStringView& TrimmedLine);
 	FStringView TrimLine(const FStringView& Line, int& OutIndentLevel) const;
+	int FindLastChoiceNode(const ParsedTree& Tree, int IndentLevel);
 	void PopIndent(ParsedTree& Tree);
 	void PushIndent(ParsedTree& Tree, int NodeIdx, int Indent, const FString& Path);
-	FString GetCurrentTreePath(ParsedTree& Tree);
-	FString GetCurrentTreeConditionalPath(ParsedTree& Tree);
+	FString GetCurrentTreePath(const FSUDSScriptImporter::ParsedTree& Tree);
+	FString GetCurrentTreeConditionalPath(const FSUDSScriptImporter::ParsedTree& Tree);
 	void SetFallthroughForNewNode(FSUDSParsedNode& NewNode, const FSUDSParsedNode& PrevNode);
 	int AppendNode(ParsedTree& Tree, const FSUDSParsedNode& InNode);
 	bool SelectNodeHasElsePath(const FSUDSParsedNode& Node);

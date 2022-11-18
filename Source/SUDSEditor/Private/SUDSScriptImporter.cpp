@@ -260,6 +260,36 @@ bool FSUDSScriptImporter::IsLastNodeOfType(const FSUDSScriptImporter::ParsedTree
 }
 
 
+int FSUDSScriptImporter::FindLastChoiceNode(const ParsedTree& Tree, int IndentLevel)
+{
+	// Scan backwards from end of tree looking for a choice node which has the same or higher indent and condition state as current
+	// But abort if we hit text nodes on that path
+	const FString CurrentConditionTree = GetCurrentTreeConditionalPath(Tree);
+
+	for (int i = Tree.Nodes.Num() - 1; i >= 0; --i)
+	{
+		auto& Node = Tree.Nodes[i];
+		// Only consider nodes on the same conditional path
+		// Note: NOT containing the conditional path. We don't want to skip over an intervening select node
+		if (CurrentConditionTree == Node.ConditionalPath)
+		{
+			if (Node.NodeType == ESUDSParsedNodeType::Text && Node.OriginalIndent <= IndentLevel)
+			{
+				// We hit a parent text node, we can't go back any further
+				return -1;
+			}
+
+			// note that we allow indents < as well as ==
+			// This is so that if you choose to aesthetically indent choices it still works
+			if (Node.NodeType == ESUDSParsedNodeType::Choice && Node.OriginalIndent <= IndentLevel)
+			{
+				return i;
+			}
+		}
+	}
+	return -1;
+}
+
 bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line,
                                           FSUDSScriptImporter::ParsedTree& Tree,
                                           int IndentLevel,
@@ -275,11 +305,15 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line,
 		
 		auto& Ctx = Tree.IndentLevelStack.Top();
 
+		// How about: try to find the previous choice at the right level by scanning upward in nodes
+		// stop if we hit a text node < Indent
+		// ignore anything on a different conditional node
+		int ChoiceNodeIdx = FindLastChoiceNode(Tree, IndentLevel);
 		// If the current indent context node is NOT a choice, create a choice node, and connect to previous node (using pending edge if needed)
-		if (!IsLastNodeOfType(Tree, ESUDSParsedNodeType::Choice))
+		if (ChoiceNodeIdx == -1)
 		{
 			// Last node was not a choice node, so to add edge for this choice we first need to create the choice node
-			AppendNode(Tree, FSUDSParsedNode(ESUDSParsedNodeType::Choice, IndentLevel, LineNo));
+			ChoiceNodeIdx = AppendNode(Tree, FSUDSParsedNode(ESUDSParsedNodeType::Choice, IndentLevel, LineNo));
 		}
 		if (Tree.EdgeInProgress)
 		{
@@ -288,7 +322,6 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line,
 			Tree.EdgeInProgress = nullptr;			
 		}
 
-		const int ChoiceNodeIdx = Ctx.LastNodeIdx;
 		auto& ChoiceNode = Tree.Nodes[ChoiceNodeIdx];
 		
 		// Inside each choice, everything should be indented at least as much as 1 character inside the *
@@ -887,7 +920,7 @@ FString FSUDSScriptImporter::GenerateTextID(const FStringView& Line)
 	return FString::Printf(TEXT("@%x@"), ++TextIDHighestNumber);
 }
 
-FString FSUDSScriptImporter::GetCurrentTreePath(FSUDSScriptImporter::ParsedTree& Tree)
+FString FSUDSScriptImporter::GetCurrentTreePath(const FSUDSScriptImporter::ParsedTree& Tree)
 {
 	// This is just a path of all the choice / select nodes AND their edges leading to this point, for fallthrough
 	// * Choice (/C000/)
@@ -905,7 +938,7 @@ FString FSUDSScriptImporter::GetCurrentTreePath(FSUDSScriptImporter::ParsedTree&
 	return B.ToString();
 }
 
-FString FSUDSScriptImporter::GetCurrentTreeConditionalPath(FSUDSScriptImporter::ParsedTree& Tree)
+FString FSUDSScriptImporter::GetCurrentTreeConditionalPath(const FSUDSScriptImporter::ParsedTree& Tree)
 {
 	// Like GetCurrentTreePath, but for conditional blocks
 	// Cannot fall through to blocks that aren't on the same conditional path
