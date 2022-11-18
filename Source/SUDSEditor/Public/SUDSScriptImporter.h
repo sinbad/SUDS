@@ -267,7 +267,7 @@ protected:
 	FString GetCurrentTreeConditionalPath(const FSUDSScriptImporter::ParsedTree& Tree);
 	void SetFallthroughForNewNode(const FSUDSScriptImporter::ParsedTree& Tree, FSUDSParsedNode& NewNode, int PrevNodeIdx);
 	int AppendNode(ParsedTree& Tree, const FSUDSParsedNode& InNode);
-	bool SelectNodeHasElsePath(const FSUDSParsedNode& Node);
+	bool SelectNodeIsMissingElsePath(const FSUDSScriptImporter::ParsedTree& Tree, const FSUDSParsedNode& Node);
 	void ConnectRemainingNodes(ParsedTree& Tree, const FString& NameForErrors, bool bSilent);
 	int FindFallthroughNodeIndex(ParsedTree& Tree, int StartNodeIndex, int IndentLessThan, const FString& FromChoicePath, const FString& FromConditionalPath);
 	void RetrieveAndRemoveOrGenerateTextID(FStringView& InOutLine, FString& OutTextID);

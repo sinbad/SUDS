@@ -416,7 +416,6 @@ bool FSUDSScriptImporter::ParseEndIfLine(const FStringView& Line,
 	if (Tree.ConditionalBlocks.IsValidIndex(Tree.CurrentConditionalBlockIdx))
 	{
 		// Endif finishes the current block
-		// BUT if there's no ELSE block, we should create a dangling edge so that there's some continuation
 		const auto& Block = Tree.ConditionalBlocks[Tree.CurrentConditionalBlockIdx];
 		Tree.CurrentConditionalBlockIdx = Block.PreviousBlockIdx;
 		// We must also clear the indent last node pointer, because we never want to auto-connect to conditionals
@@ -1050,16 +1049,52 @@ int FSUDSScriptImporter::AppendNode(FSUDSScriptImporter::ParsedTree& Tree, const
 	return NewIndex;
 }
 
-bool FSUDSScriptImporter::SelectNodeHasElsePath(const FSUDSParsedNode& Node)
+bool FSUDSScriptImporter::SelectNodeIsMissingElsePath(const FSUDSScriptImporter::ParsedTree& Tree, const FSUDSParsedNode& Node)
 {
 	for (auto& E : Node.Edges)
 	{
 		if (E.ConditionString.IsEmpty())
 		{
-			return true;
+			// This is an else
+			return false;
 		}
 	}
-	return false;
+
+	// If the first node the select points to (other than a nested select) is a choice, we never add an else
+	// note: you should never have an if/else where one branch has a set/text node and the other has a choice node, this is badly formed
+	// perhaps we should validate that
+	if (Node.Edges.Num() > 0)
+	{
+		int NextIdx = Node.Edges[0].TargetNodeIdx;
+		// While so that we can follow nested selects to first resolved
+		while (Tree.Nodes.IsValidIndex(NextIdx))
+		{
+			auto N = Tree.Nodes[NextIdx];
+			if (N.NodeType == ESUDSParsedNodeType::Select)
+			{
+				// Nested select, cascade down
+				if (N.Edges.Num() > 0)
+				{
+					NextIdx = N.Edges[0].TargetNodeIdx;
+				}
+				else
+				{
+					NextIdx = -1;
+				}
+			}
+			else
+			{
+				if (N.NodeType == ESUDSParsedNodeType::Choice)
+				{
+					// We never add fallthrough else paths for selection between choices
+					return false;
+				}
+				NextIdx = -1;
+			}
+		}
+	}
+	
+	return true;
 }
 
 void FSUDSScriptImporter::PopIndent(FSUDSScriptImporter::ParsedTree& Tree)
@@ -1125,8 +1160,7 @@ void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree&
 		auto& Node = Tree.Nodes[i];
 		// We check for dead-end nodes, and for select nodes with no "else" (in case all conditions fail)
 		if (Node.Edges.IsEmpty() ||
-			(Node.NodeType == ESUDSParsedNodeType::Select &&
-			!SelectNodeHasElsePath(Node)))
+			(Node.NodeType == ESUDSParsedNodeType::Select && SelectNodeIsMissingElsePath(Tree, Node)))
 		{
 			if (Node.NodeType == ESUDSParsedNodeType::Goto)
 			{
