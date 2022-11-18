@@ -269,16 +269,18 @@ int FSUDSScriptImporter::FindLastChoiceNode(const ParsedTree& Tree, int IndentLe
 	for (int i = Tree.Nodes.Num() - 1; i >= 0; --i)
 	{
 		auto& Node = Tree.Nodes[i];
+
+		if (CurrentConditionTree.StartsWith(Node.ConditionalPath) &&
+			Node.NodeType == ESUDSParsedNodeType::Text &&
+			Node.OriginalIndent <= IndentLevel)
+		{
+			// We hit a parent text node, we can't go back any further
+			return -1;
+		}
 		// Only consider nodes on the same conditional path
 		// Note: NOT containing the conditional path. We don't want to skip over an intervening select node
 		if (CurrentConditionTree == Node.ConditionalPath)
 		{
-			if (Node.NodeType == ESUDSParsedNodeType::Text && Node.OriginalIndent <= IndentLevel)
-			{
-				// We hit a parent text node, we can't go back any further
-				return -1;
-			}
-
 			// note that we allow indents < as well as ==
 			// This is so that if you choose to aesthetically indent choices it still works
 			if (Node.NodeType == ESUDSParsedNodeType::Choice && Node.OriginalIndent <= IndentLevel)
