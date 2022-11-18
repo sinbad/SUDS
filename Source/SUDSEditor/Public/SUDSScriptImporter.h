@@ -18,14 +18,16 @@ public:
 	/// String version of condition that applies to this edge (for select nodes)
 	FString ConditionString;
 
+	int SourceNodeIdx = -1;
 	int TargetNodeIdx = -1;
 
 	FSUDSParsedEdge(int LineNo) : SourceLineNo(LineNo){}
 
-	FSUDSParsedEdge(int ToNodeIdx, int LineNo, const FString& InText = "", const FString& InTextID = "")
+	FSUDSParsedEdge(int FromNodeIdx, int ToNodeIdx, int LineNo, const FString& InText = "", const FString& InTextID = "")
 		: Text(InText),
 		  TextID(InTextID),
 		  SourceLineNo(LineNo),
+		  SourceNodeIdx(FromNodeIdx),
 		  TargetNodeIdx(ToNodeIdx)
 	{
 	}
@@ -78,6 +80,8 @@ public:
 	TArray<FSUDSParsedEdge> Edges;
 	/// The line this node was created on
 	int SourceLineNo;
+	/// Whether this is a valid fall-through target
+	bool AllowFallthrough = true;
 
 	// Path hierarchy of choice nodes leading to this node, of the form "/C002/C006" etc, not including this node index
 	// This helps us identify valid fallthroughs
@@ -260,10 +264,11 @@ protected:
 	void PushIndent(ParsedTree& Tree, int NodeIdx, int Indent, const FString& Path);
 	FString GetCurrentTreePath(ParsedTree& Tree);
 	FString GetCurrentTreeConditionalPath(ParsedTree& Tree);
-	int AppendNode(ParsedTree& Tree, const FSUDSParsedNode& NewNode);
+	void SetFallthroughForNewNode(FSUDSParsedNode& NewNode, const FSUDSParsedNode& PrevNode);
+	int AppendNode(ParsedTree& Tree, const FSUDSParsedNode& InNode);
 	bool SelectNodeHasElsePath(const FSUDSParsedNode& Node);
 	void ConnectRemainingNodes(ParsedTree& Tree, const FString& NameForErrors, bool bSilent);
-	int FindNextOutdentedNodeIndex(ParsedTree& Tree, int StartNodeIndex, int IndentLessThan, const FString& FromChoicePath, const FString& FromConditionalPath);
+	int FindFallthroughNodeIndex(ParsedTree& Tree, int StartNodeIndex, int IndentLessThan, const FString& FromChoicePath, const FString& FromConditionalPath);
 	void RetrieveAndRemoveOrGenerateTextID(FStringView& InOutLine, FString& OutTextID);
 	bool RetrieveAndRemoveTextID(FStringView& InOutLine, FString& OutTextID);
 	FString GenerateTextID(const FStringView& Line);
