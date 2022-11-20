@@ -1544,7 +1544,7 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 				{
 					// This normally happens with the final node in the script
 					// Make it an edge to nullptr for consistency
-					Node->AddEdge(FSUDSScriptEdge(nullptr));
+					Node->AddEdge(FSUDSScriptEdge(nullptr, ESUDSEdgeType::Continue));
 				}
 				else
 				{
@@ -1552,13 +1552,51 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 					{
 						FSUDSScriptEdge NewEdge;
 
+						const FSUDSParsedNode *InTargetNode = GetNode(Tree, InEdge.TargetNodeIdx);				
+
+						switch (InNode.NodeType)
+						{
+						case ESUDSParsedNodeType::Text:
+							if (InTargetNode && InTargetNode->NodeType == ESUDSParsedNodeType::Choice)
+							{
+								// Text -> Choice is chained
+								NewEdge.SetType(ESUDSEdgeType::Chained);
+							}
+							else
+							{
+								NewEdge.SetType(ESUDSEdgeType::Continue);
+							}
+							break;
+						case ESUDSParsedNodeType::Choice:
+							if (InEdge.Text.IsEmpty() && InTargetNode && InTargetNode->NodeType == ESUDSParsedNodeType::Select)
+							{
+								// Choice->Select with no text is chained
+								NewEdge.SetType(ESUDSEdgeType::Chained);
+							}
+							else
+							{
+								NewEdge.SetType(ESUDSEdgeType::Decision);
+							}
+							break;
+						case ESUDSParsedNodeType::Select:
+							// All edges under selects are conditions
+							NewEdge.SetType(ESUDSEdgeType::Condition);
+							break;
+						default:
+						case ESUDSParsedNodeType::SetVariable:
+						case ESUDSParsedNodeType::Goto:
+						case ESUDSParsedNodeType::Event:
+							NewEdge.SetType(ESUDSEdgeType::Continue);
+							break;
+						};
+
 						if (!InEdge.TextID.IsEmpty() && !InEdge.Text.IsEmpty())
 						{
 							StringTable->GetMutableStringTable()->SetSourceString(InEdge.TextID, InEdge.Text);
 							NewEdge.SetText(FText::FromStringTable(StringTable->GetStringTableId(), InEdge.TextID));
 						}
 						
-						if (const FSUDSParsedNode *InTargetNode = GetNode(Tree, InEdge.TargetNodeIdx))
+						if (InTargetNode)
 						{
 							
 							if (InTargetNode->NodeType == ESUDSParsedNodeType::Goto)
