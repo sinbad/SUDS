@@ -1503,7 +1503,15 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 					{
 						auto SetNode = NewObject<USUDSScriptNodeSet>(Asset);
 						// TODO support expressions not just literals
-						SetNode->Init(InNode.Identifier, InNode.VarLiteral);
+
+						// For text literals, re-point to string table
+						FSUDSValue Literal = InNode.VarLiteral;
+						if (Literal.GetType() == ESUDSValueType::Text)
+						{
+							StringTable->GetMutableStringTable()->SetSourceString(InNode.TextID, InNode.VarLiteral.GetTextValue().ToString());
+							Literal.SetValue(FText::FromStringTable (StringTable->GetStringTableId(), InNode.TextID));
+						}
+						SetNode->Init(InNode.Identifier, Literal);
 						Node = SetNode;
 						break;
 					}
