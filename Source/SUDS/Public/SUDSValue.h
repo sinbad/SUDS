@@ -169,7 +169,12 @@ public:
 	FSUDSValue operator*(const FSUDSValue& Rhs) const
 	{
 		check(IsNumeric() && Rhs.IsNumeric());
-		// We'll let the type widening handle mixed types for us
+		// If both int, keep int
+		if (Type == ESUDSValueType::Int && Rhs.Type == Type)
+		{
+			return FSUDSValue(GetIntValue() * Rhs.GetIntValue());
+		}
+		// Otherwise we'll let the type widening handle mixed types for us (ternary will always resolve to float)
 		return FSUDSValue(
 			(Type == ESUDSValueType::Int ? GetIntValue() : GetFloatValue())
 			*
@@ -178,7 +183,12 @@ public:
 	FSUDSValue operator/(const FSUDSValue& Rhs) const
 	{
 		check(IsNumeric() && Rhs.IsNumeric());
-		// We'll let the type widening handle mixed types for us
+		// If both int, keep int
+		if (Type == ESUDSValueType::Int && Rhs.Type == Type)
+		{
+			return FSUDSValue(GetIntValue() / Rhs.GetIntValue());
+		}
+		// Otherwise we'll let the type widening handle mixed types for us (ternary will always resolve to float)
 		return FSUDSValue(
 			(Type == ESUDSValueType::Int ? GetIntValue() : GetFloatValue())
 			/
@@ -187,7 +197,12 @@ public:
 	FSUDSValue operator+(const FSUDSValue& Rhs) const
 	{
 		check(IsNumeric() && Rhs.IsNumeric());
-		// We'll let the type widening handle mixed types for us
+		// If both int, keep int
+		if (Type == ESUDSValueType::Int && Rhs.Type == Type)
+		{
+			return FSUDSValue(GetIntValue() + Rhs.GetIntValue());
+		}
+		// Otherwise we'll let the type widening handle mixed types for us (ternary will always resolve to float)
 		return FSUDSValue(
 			(Type == ESUDSValueType::Int ? GetIntValue() : GetFloatValue())
 			+
@@ -196,7 +211,12 @@ public:
 	FSUDSValue operator-(const FSUDSValue& Rhs) const
 	{
 		check(IsNumeric() && Rhs.IsNumeric());
-		// We'll let the type widening handle mixed types for us
+		// If both int, keep int
+		if (Type == ESUDSValueType::Int && Rhs.Type == Type)
+		{
+			return FSUDSValue(GetIntValue() - Rhs.GetIntValue());
+		}
+		// Otherwise we'll let the type widening handle mixed types for us (ternary will always resolve to float)
 		return FSUDSValue(
 			(Type == ESUDSValueType::Int ? GetIntValue() : GetFloatValue())
 			-
@@ -205,7 +225,7 @@ public:
 	FSUDSValue operator<(const FSUDSValue& Rhs) const
 	{
 		check(IsNumeric() && Rhs.IsNumeric());
-		// We'll let the type widening handle mixed types for us
+		// result is boolean so no need to protect types
 		return FSUDSValue(
 			(Type == ESUDSValueType::Int ? GetIntValue() : GetFloatValue())
 			<
@@ -230,6 +250,8 @@ public:
 		}
 		else 
 		{
+			// no auto conversion here
+			check(Type == Rhs.Type);
 			switch (GetType())
 			{
 			case ESUDSValueType::Text:
