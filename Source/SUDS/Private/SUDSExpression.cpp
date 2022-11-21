@@ -2,6 +2,8 @@
 
 #include "Misc/DefaultValueHelper.h"
 
+PRAGMA_DISABLE_OPTIMIZATION
+
 bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& ErrorContext)
 {
 	// Assume invalid until we've parsed something
@@ -23,22 +25,22 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 	const FRegexPattern Pattern(TEXT("(\\{\\w+\\}|[-+*\\/\\(\\)]|\\d+(?:\\.\\d*)?|and|&&|\\|\\||or|not|\\<\\>|!=|!|\\<=?|\\>=?|==?|\\\"([^\\\"]*)\\\")"));
 	FRegexMatcher Regex(Pattern, Expression);
 	// Stacks that we use to construct
-	TArray<ESUDSExpressionNodeType> OperatorStack;
+	TArray<ESUDSExpressionItemType> OperatorStack;
 	bool bParsedSomething = false;
 	bool bErrors = false;
 	while (Regex.FindNext())
 	{
 		FString Str = Regex.GetCaptureGroup(1);
-		ESUDSExpressionNodeType OpType = ParseOperator(Str);
-		if (OpType != ESUDSExpressionNodeType::Null)
+		ESUDSExpressionItemType OpType = ParseOperator(Str);
+		if (OpType != ESUDSExpressionItemType::Null)
 		{
 			bParsedSomething = true;
 
-			if (OpType == ESUDSExpressionNodeType::LParens)
+			if (OpType == ESUDSExpressionItemType::LParens)
 			{
 				OperatorStack.Push(OpType);
 			}
-			else if (OpType == ESUDSExpressionNodeType::RParens)
+			else if (OpType == ESUDSExpressionItemType::RParens)
 			{
 				if (OperatorStack.IsEmpty())
 				{
@@ -47,7 +49,7 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 					break;
 				}
 					
-				while (OperatorStack.Num() > 0 && OperatorStack.Top() != ESUDSExpressionNodeType::LParens)
+				while (OperatorStack.Num() > 0 && OperatorStack.Top() != ESUDSExpressionItemType::LParens)
 				{
 					Queue.Add(FSUDSExpressionItem(OperatorStack.Pop()));
 				}
@@ -67,7 +69,7 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 			else
 			{
 				// All operators are left-associative except not
-				const bool bLeftAssociative = OpType != ESUDSExpressionNodeType::Not;
+				const bool bLeftAssociative = OpType != ESUDSExpressionItemType::Not;
 				// Valid operator
 				// Apply anything on the operator stack which is higher / equal precedence
 				while (OperatorStack.Num() > 0 &&
@@ -100,8 +102,8 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 	// finish up
 	while (OperatorStack.Num() > 0)
 	{
-		if (OperatorStack.Top() == ESUDSExpressionNodeType::LParens ||
-			OperatorStack.Top() == ESUDSExpressionNodeType::RParens)
+		if (OperatorStack.Top() == ESUDSExpressionItemType::LParens ||
+			OperatorStack.Top() == ESUDSExpressionItemType::RParens)
 		{
 			bErrors = true;
 			UE_LOG(LogSUDS, Error, TEXT("Error in %s: mismatched parentheses"), *ErrorContext);
@@ -117,9 +119,40 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 }
 
 
-ESUDSExpressionNodeType FSUDSExpression::ParseOperator(const FString& OpStr)
+ESUDSExpressionItemType FSUDSExpression::ParseOperator(const FString& OpStr)
 {
-	return ESUDSExpressionNodeType::Null;
+	if (OpStr == "+")
+		return ESUDSExpressionItemType::Add;
+	if (OpStr == "-")
+		return ESUDSExpressionItemType::Subtract;
+	if (OpStr == "*")
+		return ESUDSExpressionItemType::Multiply;
+	if (OpStr == "/")
+		return ESUDSExpressionItemType::Divide;
+	if (OpStr == "and" || OpStr == "&&")
+		return ESUDSExpressionItemType::And;
+	if (OpStr == "or" || OpStr == "||")
+		return ESUDSExpressionItemType::Or;
+	if (OpStr == "not" || OpStr == "!")
+		return ESUDSExpressionItemType::Not;
+	if (OpStr == "==" || OpStr == "=")
+		return ESUDSExpressionItemType::Equal;
+	if (OpStr == ">=")
+		return ESUDSExpressionItemType::GreaterEqual;
+	if (OpStr == ">")
+		return ESUDSExpressionItemType::Greater;
+	if (OpStr == "<=")
+		return ESUDSExpressionItemType::LessEqual;
+	if (OpStr == "<")
+		return ESUDSExpressionItemType::Less;
+	if (OpStr == "<>" || OpStr == "!=")
+		return ESUDSExpressionItemType::NotEqual;
+	if (OpStr == "(")
+		return ESUDSExpressionItemType::LParens;
+	if (OpStr == ")")
+		return ESUDSExpressionItemType::RParens;
+
+	return ESUDSExpressionItemType::Null;
 }
 
 bool FSUDSExpression::ParseOperand(const FString& ValueStr, FSUDSValue& OutVal)
@@ -204,7 +237,7 @@ FSUDSValue FSUDSExpression::Execute(const TMap<FName, FSUDSValue>& Variables) co
 	checkf(bIsValid, TEXT("Cannot execute an invalid expression tree"));
 
 	// Short-circuit simplest case
-	if (Queue.Num() == 1 && Queue[0].GetType() == ESUDSExpressionNodeType::Operand)
+	if (Queue.Num() == 1 && Queue[0].GetType() == ESUDSExpressionItemType::Operand)
 	{
 		return Queue[0].GetOperandValue();
 	}
@@ -212,3 +245,5 @@ FSUDSValue FSUDSExpression::Execute(const TMap<FName, FSUDSValue>& Variables) co
 	// Placeholder
 	return FSUDSValue();
 }
+
+PRAGMA_ENABLE_OPTIMIZATION

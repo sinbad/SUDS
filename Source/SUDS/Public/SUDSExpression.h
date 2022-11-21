@@ -3,7 +3,7 @@
 #include "SUDSExpression.generated.h"
 
 UENUM(BlueprintType)
-enum class ESUDSExpressionNodeType : uint8
+enum class ESUDSExpressionItemType : uint8
 {
 	Null = 0 UMETA(Hidden),
 	// Operators (must be 0-127, in order of precedence, highest first - gaps left in case we need them)
@@ -37,7 +37,7 @@ struct SUDS_API FSUDSExpressionItem
 
 protected:
 	UPROPERTY(BlueprintReadOnly)
-	ESUDSExpressionNodeType Type;
+	ESUDSExpressionItemType Type;
 
 	// Value if an operand node
 	UPROPERTY(BlueprintReadOnly)
@@ -45,16 +45,16 @@ protected:
 
 public:
 
-	FSUDSExpressionItem() : Type(ESUDSExpressionNodeType::Operand) {}
-	FSUDSExpressionItem(ESUDSExpressionNodeType Operator) : Type(Operator) {}
+	FSUDSExpressionItem() : Type(ESUDSExpressionItemType::Operand) {}
+	FSUDSExpressionItem(ESUDSExpressionItemType Operator) : Type(Operator) {}
 
 	FSUDSExpressionItem(const FSUDSValue& LiteralOrVariable)
-		: Type(ESUDSExpressionNodeType::Operand),
+		: Type(ESUDSExpressionItemType::Operand),
 		  OperandValue(LiteralOrVariable)
 	{
 	}
 
-	ESUDSExpressionNodeType GetType() const { return Type; }
+	ESUDSExpressionItemType GetType() const { return Type; }
 	// Only valid if optype is operand
 	FSUDSValue GetOperandValue() const { return OperandValue; }
 
@@ -111,7 +111,10 @@ public:
 	static bool ParseOperand(const FString& ValueStr, FSUDSValue& OutVal);
 	
 	// Attempt to parse an operator from an incoming string
-	static ESUDSExpressionNodeType ParseOperator(const FString& OpStr);
+	static ESUDSExpressionItemType ParseOperator(const FString& OpStr);
+
+	/// Access the internal RPN execution queue
+	const TArray<FSUDSExpressionItem>& GetQueue() { return Queue; }
 
 };
 
