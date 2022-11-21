@@ -48,7 +48,9 @@ protected:
 	void ExtractFormat() const;
 	
 public:
-	FSUDSScriptEdge() {}
+	FSUDSScriptEdge(): Type(ESUDSEdgeType::Continue)
+	{
+	}
 
 	FSUDSScriptEdge(USUDSScriptNode* ToNode, ESUDSEdgeType InType) : Type(InType), TargetNode(ToNode) {}
 
