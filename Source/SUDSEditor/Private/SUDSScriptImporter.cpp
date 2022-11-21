@@ -1,5 +1,6 @@
 ﻿#include "SUDSScriptImporter.h"
 
+#include "SUDSExpression.h"
 #include "SUDSScript.h"
 #include "SUDSScriptNode.h"
 #include "SUDSScriptNodeEvent.h"
@@ -8,7 +9,6 @@
 #include "Internationalization/Regex.h"
 #include "Internationalization/StringTable.h"
 #include "Internationalization/StringTableCore.h"
-#include "Misc/DefaultValueHelper.h"
 
 PRAGMA_DISABLE_OPTIMIZATION
 
@@ -767,22 +767,22 @@ bool FSUDSScriptImporter::ParseSetLine(const FStringView& InLine,
 		FString ValueStr = SetRegex.GetCaptureGroup(2).TrimStartAndEnd(); // trim because capture accepts spaces in quotes
 
 		// Parse literal argument
-		// TODO: support references to other variables, expressions
-		FSUDSValue LiteralValue;
-		if (ParseLiteral(ValueStr, LiteralValue))
+		// TODO: support expressions
+		FSUDSValue Value;
+		if (FSUDSExpression::ParseOperand(ValueStr, Value))
 		{
-			if (LiteralValue.GetType() == ESUDSValueType::Text)
+			if (Value.GetType() == ESUDSValueType::Text)
 			{
 				// Text must be localised
 				if (TextID.IsEmpty())
 				{
 					TextID = GenerateTextID(InLine);
 				}
-				AppendNode(Tree, FSUDSParsedNode(Name, LiteralValue, TextID, IndentLevel, LineNo));
+				AppendNode(Tree, FSUDSParsedNode(Name, Value, TextID, IndentLevel, LineNo));
 			}
 			else
 			{
-				AppendNode(Tree, FSUDSParsedNode(Name, LiteralValue, IndentLevel, LineNo));
+				AppendNode(Tree, FSUDSParsedNode(Name, Value, IndentLevel, LineNo));
 			}
 			return true;
 		}
@@ -794,81 +794,6 @@ bool FSUDSScriptImporter::ParseSetLine(const FStringView& InLine,
 	return false;
 }
 
-bool FSUDSScriptImporter::ParseLiteral(const FString& ValueStr, FSUDSValue& OutVal)
-{
-	// Try Boolean first since only 2 options
-	{
-		if (ValueStr.Compare("true", ESearchCase::IgnoreCase) == 0)
-		{
-			OutVal = FSUDSValue(true);
-			return true;
-		}
-		if (ValueStr.Compare("false", ESearchCase::IgnoreCase) == 0)
-		{
-			OutVal = FSUDSValue(false);
-			return true;
-		}
-	}
-	// Try gender
-	{
-		if (ValueStr.Compare("masculine", ESearchCase::IgnoreCase) == 0)
-		{
-			OutVal = FSUDSValue(ETextGender::Masculine);
-			return true;
-		}
-		if (ValueStr.Compare("feminine", ESearchCase::IgnoreCase) == 0)
-		{
-			OutVal = FSUDSValue(ETextGender::Feminine);
-			return true;
-		}
-		if (ValueStr.Compare("neuter", ESearchCase::IgnoreCase) == 0)
-		{
-			OutVal = FSUDSValue(ETextGender::Neuter);
-			return true;
-		}
-	}
-	// Try quoted text (will be localised later in asset conversion)
-	{
-		const FRegexPattern Pattern(TEXT("^\\\"([^\\\"]*)\\\"$"));
-		FRegexMatcher Regex(Pattern, ValueStr);
-		if (Regex.FindNext())
-		{
-			const FString Val = Regex.GetCaptureGroup(1);
-			OutVal = FSUDSValue(FText::FromString(Val));
-			return true;
-		}
-	}
-	// Try variable name
-	{
-		const FRegexPattern Pattern(TEXT("^\\{([^\\}]*)\\}$"));
-		FRegexMatcher Regex(Pattern, ValueStr);
-		if (Regex.FindNext())
-		{
-			const FName VariableName(Regex.GetCaptureGroup(1));
-			OutVal = FSUDSValue(VariableName);
-			return true;
-		}
-	}
-	// Try Numbers
-	{
-		float FloatVal;
-		int IntVal;
-		// look for int first; anything with a decimal point will fail
-		if (FDefaultValueHelper::ParseInt(ValueStr, IntVal))
-		{
-			OutVal = FSUDSValue(IntVal);	
-			return true;
-		}
-		if (FDefaultValueHelper::ParseFloat(ValueStr, FloatVal))
-		{
-			OutVal = FSUDSValue(FloatVal);	
-			return true;
-		}
-	}
-
-	return false;
-	
-}
 
 bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line,
                                          FSUDSScriptImporter::ParsedTree& Tree,
@@ -904,7 +829,7 @@ bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line,
 				// NOTE: we will NOT support expressions here, too complex
 				// If we support expressions in set commands, people should use those and set a variable first & pass that
 				FSUDSValue Literal;
-				if (ParseLiteral(ArgStr, Literal))
+				if (FSUDSExpression::ParseOperand(ArgStr, Literal))
 				{
 					// note: no localisation of event literals, they're just strings
 					// we assume the receiver of the event will set localised text to variables if they want

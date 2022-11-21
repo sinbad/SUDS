@@ -263,7 +263,6 @@ protected:
 	bool ParseSetLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseEventLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseTextLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseLiteral(const FString& ValueStr, FSUDSValue& OutVal);
 	bool IsCommentLine(const FStringView& TrimmedLine);
 	FStringView TrimLine(const FStringView& Line, int& OutIndentLevel) const;
 	int FindLastChoiceNode(const ParsedTree& Tree, int IndentLevel);
