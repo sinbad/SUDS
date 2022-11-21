@@ -232,7 +232,7 @@ bool FSUDSExpression::ParseOperand(const FString& ValueStr, FSUDSValue& OutVal)
 }
 
 
-FSUDSValue FSUDSExpression::Execute(const TMap<FName, FSUDSValue>& Variables) const
+FSUDSValue FSUDSExpression::Evaluate(const TMap<FName, FSUDSValue>& Variables) const
 {
 	checkf(bIsValid, TEXT("Cannot execute an invalid expression tree"));
 
@@ -242,8 +242,98 @@ FSUDSValue FSUDSExpression::Execute(const TMap<FName, FSUDSValue>& Variables) co
 		return Queue[0].GetOperandValue();
 	}
 
-	// Placeholder
-	return FSUDSValue();
+	// Otherwise, evaluate
+	TArray<FSUDSExpressionItem> EvalStack;
+	// We could pre-optimise all literal expressions, but let's not for now
+	for (auto& Item : Queue)
+	{
+		if (Item.IsOperator())
+		{
+			FSUDSExpressionItem Arg1, Arg2;
+			Arg1 = EvalStack.Pop();
+			if (Item.IsBinaryOperator())
+			{
+				Arg2 = EvalStack.Pop();
+			}
+			EvalStack.Push(EvaluateOperator(Item.GetType(), Arg1, Arg2, Variables));
+		}
+		else
+		{
+			EvalStack.Push(Item);
+		}
+	}
+	
+	checkf(EvalStack.Num() == 1, TEXT("We should end with a single item in the eval stack and it should be an operand"));
+
+	return EvaluateOperand(EvalStack.Top().GetOperandValue(), Variables);
+}
+
+FSUDSExpressionItem FSUDSExpression::EvaluateOperator(ESUDSExpressionItemType Op,
+	const FSUDSExpressionItem& Arg1,
+	const FSUDSExpressionItem& Arg2,
+	const TMap<FName, FSUDSValue>& Variables) const
+{
+	const FSUDSValue Val1 = EvaluateOperand(Arg1.GetOperandValue(), Variables);
+	FSUDSValue Val2;
+	if (Arg1.IsBinaryOperator())
+	{
+		Val2 = EvaluateOperand(Arg2.GetOperandValue(), Variables);
+	}
+
+	switch (Op)
+	{
+	case ESUDSExpressionItemType::Not:
+		return FSUDSExpressionItem(!Val1);
+	case ESUDSExpressionItemType::Multiply:
+		return FSUDSExpressionItem(Val1 * Val2);
+	case ESUDSExpressionItemType::Divide:
+		return FSUDSExpressionItem(Val1 / Val2);
+	case ESUDSExpressionItemType::Add:
+		return FSUDSExpressionItem(Val1 + Val2);
+	case ESUDSExpressionItemType::Subtract:
+		return FSUDSExpressionItem(Val1 - Val2);
+	case ESUDSExpressionItemType::Less:
+		return FSUDSExpressionItem(Val1 < Val2);
+	case ESUDSExpressionItemType::LessEqual:
+		return FSUDSExpressionItem(Val1 <= Val2);
+	case ESUDSExpressionItemType::Greater:
+		return FSUDSExpressionItem(Val1 > Val2);
+	case ESUDSExpressionItemType::GreaterEqual:
+		return FSUDSExpressionItem(Val1 >= Val2);
+	case ESUDSExpressionItemType::Equal:
+		return FSUDSExpressionItem(Val1 == Val2);
+	case ESUDSExpressionItemType::NotEqual:
+		return FSUDSExpressionItem(Val1 != Val2);
+	case ESUDSExpressionItemType::And:
+		return FSUDSExpressionItem(Val1 && Val2);
+	case ESUDSExpressionItemType::Or:
+		return FSUDSExpressionItem(Val1 || Val2);
+
+		
+	default: // these won't occur
+	case ESUDSExpressionItemType::Null:
+	case ESUDSExpressionItemType::Operand:
+	case ESUDSExpressionItemType::LParens:
+	case ESUDSExpressionItemType::RParens:
+		return FSUDSExpressionItem();
+	};
+	
+}
+
+FSUDSValue FSUDSExpression::EvaluateOperand(const FSUDSValue& Operand,
+	const TMap<FName, FSUDSValue>& Variables) const
+{
+	// Simplify conversion to variable values
+	if (Operand.IsVariable())
+	{
+		if (const auto Var = Variables.Find(Operand.GetVariableNameValue()))
+		{
+			return *Var;
+		}
+		UE_LOG(LogSUDS, Error, TEXT("Variable state for %s missing, cannot evaluate"), *Operand.GetVariableNameValue().ToString());
+	}
+
+	return Operand;
 }
 
 PRAGMA_ENABLE_OPTIMIZATION

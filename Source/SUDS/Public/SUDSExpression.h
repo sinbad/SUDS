@@ -60,6 +60,11 @@ public:
 
 	bool IsOperator() const { return (static_cast<uint8>(Type) & 0x0F) > 0; }
 	bool IsOperand() const { return !IsOperator(); }
+	bool IsBinaryOperator() const
+	{
+		// Only not is unary right now
+		return Type != ESUDSExpressionItemType::Not;
+	}
 };
 
 
@@ -77,6 +82,12 @@ protected:
 	/// Whether the tree is valid to execute
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsValid;
+
+	FSUDSExpressionItem EvaluateOperator(ESUDSExpressionItemType Op,
+	                                       const FSUDSExpressionItem& Arg1,
+	                                       const FSUDSExpressionItem& Arg2,
+	                                       const TMap<FName, FSUDSValue>& Variables) const;
+	FSUDSValue EvaluateOperand(const FSUDSValue& Operand, const TMap<FName, FSUDSValue>& Variables) const;
 
 public:
 
@@ -97,8 +108,8 @@ public:
 	 */
 	bool ParseFromString(const FString& Expression, const FString& ErrorContext);
 
-	/// Execute the expression and return the result, using a given variable state 
-	FSUDSValue Execute(const TMap<FName, FSUDSValue>& Variables) const;
+	/// Evaluate the expression and return the result, using a given variable state 
+	FSUDSValue Evaluate(const TMap<FName, FSUDSValue>& Variables) const;
 
 
 	/**

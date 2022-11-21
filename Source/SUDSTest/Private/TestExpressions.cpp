@@ -33,7 +33,7 @@ bool FTestExpressionsStandalone::RunTest(const FString& Parameters)
 		TestEqual("Queue 6", RPN[6].GetType(), ESUDSExpressionItemType::Add);
 	}
 
-	//TestEqual("Execute", Expr.Execute(Variables).GetIntValue(), 28);
+	TestEqual("Execute", Expr.Evaluate(Variables).GetIntValue(), 28);
 	
 	return true;
 };

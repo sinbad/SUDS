@@ -131,6 +131,10 @@ public:
 		return Type == ESUDSValueType::Variable;
 	}
 
+	bool IsNumeric() const
+	{
+		return Type == ESUDSValueType::Float || Type == ESUDSValueType::Int;
+	}
 
 	FFormatArgumentValue ToFormatArg() const
 	{
@@ -154,4 +158,132 @@ public:
 	{
 		*this = RValue;
 	}
+
+	/// Not operation, only valid on booleans
+	FSUDSValue operator!() const
+	{
+		check(Type == ESUDSValueType::Boolean);
+		return FSUDSValue(!GetBooleanValue());
+	}
+
+	FSUDSValue operator*(const FSUDSValue& Rhs) const
+	{
+		check(IsNumeric() && Rhs.IsNumeric());
+		// We'll let the type widening handle mixed types for us
+		return FSUDSValue(
+			(Type == ESUDSValueType::Int ? GetIntValue() : GetFloatValue())
+			*
+			(Rhs.GetType() == ESUDSValueType::Int ? Rhs.GetIntValue() : Rhs.GetFloatValue()));
+	}
+	FSUDSValue operator/(const FSUDSValue& Rhs) const
+	{
+		check(IsNumeric() && Rhs.IsNumeric());
+		// We'll let the type widening handle mixed types for us
+		return FSUDSValue(
+			(Type == ESUDSValueType::Int ? GetIntValue() : GetFloatValue())
+			/
+			(Rhs.GetType() == ESUDSValueType::Int ? Rhs.GetIntValue() : Rhs.GetFloatValue()));
+	}
+	FSUDSValue operator+(const FSUDSValue& Rhs) const
+	{
+		check(IsNumeric() && Rhs.IsNumeric());
+		// We'll let the type widening handle mixed types for us
+		return FSUDSValue(
+			(Type == ESUDSValueType::Int ? GetIntValue() : GetFloatValue())
+			+
+			(Rhs.GetType() == ESUDSValueType::Int ? Rhs.GetIntValue() : Rhs.GetFloatValue()));
+	}
+	FSUDSValue operator-(const FSUDSValue& Rhs) const
+	{
+		check(IsNumeric() && Rhs.IsNumeric());
+		// We'll let the type widening handle mixed types for us
+		return FSUDSValue(
+			(Type == ESUDSValueType::Int ? GetIntValue() : GetFloatValue())
+			-
+			(Rhs.GetType() == ESUDSValueType::Int ? Rhs.GetIntValue() : Rhs.GetFloatValue()));
+	}
+	FSUDSValue operator<(const FSUDSValue& Rhs) const
+	{
+		check(IsNumeric() && Rhs.IsNumeric());
+		// We'll let the type widening handle mixed types for us
+		return FSUDSValue(
+			(Type == ESUDSValueType::Int ? GetIntValue() : GetFloatValue())
+			<
+			(Rhs.GetType() == ESUDSValueType::Int ? Rhs.GetIntValue() : Rhs.GetFloatValue()));
+	}
+	FSUDSValue operator==(const FSUDSValue& Rhs) const
+	{
+		if (IsNumeric())
+		{
+			check(Rhs.IsNumeric());
+			if (GetType() == ESUDSValueType::Float || Rhs.GetType() == ESUDSValueType::Float)
+			{
+				// For floats, use tolerance
+				return FSUDSValue(FMath::IsNearlyEqual(
+					GetType() == ESUDSValueType::Int ? (float)GetIntValue() : GetFloatValue(),
+					Rhs.GetType() == ESUDSValueType::Int ? (float)Rhs.GetIntValue() : Rhs.GetFloatValue()));
+			}
+			else
+			{
+				return FSUDSValue(GetIntValue() == Rhs.GetIntValue());
+			}
+		}
+		else 
+		{
+			switch (GetType())
+			{
+			case ESUDSValueType::Text:
+				FSUDSValue(GetTextValue().EqualTo(Rhs.GetTextValue()));
+			case ESUDSValueType::Boolean:
+				return FSUDSValue(GetBooleanValue() == Rhs.GetBooleanValue());
+			case ESUDSValueType::Gender:
+				return FSUDSValue(GetGenderValue() == Rhs.GetGenderValue());
+			case ESUDSValueType::Variable:
+				return FSUDSValue(GetVariableNameValue() == Rhs.GetVariableNameValue());
+			default:
+			case ESUDSValueType::Int:
+			case ESUDSValueType::Float:
+				// dealt with
+				break;
+			};
+		}
+		return FSUDSValue(false);
+	}
+	FSUDSValue operator<=(const FSUDSValue& Rhs) const
+	{
+		if ((*this < Rhs).GetBooleanValue())
+			return FSUDSValue(true);
+		return (*this == Rhs);
+	}
+
+	FSUDSValue operator>(const FSUDSValue& Rhs) const
+	{
+		return Rhs < *this;
+	}
+
+	FSUDSValue operator>=(const FSUDSValue& Rhs) const
+	{
+		return Rhs <= *this;
+	}
+
+	FSUDSValue operator!=(const FSUDSValue& Rhs) const
+	{
+		return !(*this == Rhs);
+	}
+
+	FSUDSValue operator&&(const FSUDSValue& Rhs) const
+	{
+		check(Type == ESUDSValueType::Boolean);
+		check(Rhs.Type == ESUDSValueType::Boolean);
+		return FSUDSValue(GetBooleanValue() && Rhs.GetBooleanValue());
+	}
+
+	FSUDSValue operator||(const FSUDSValue& Rhs) const
+	{
+		check(Type == ESUDSValueType::Boolean);
+		check(Rhs.Type == ESUDSValueType::Boolean);
+		return FSUDSValue(GetBooleanValue() || Rhs.GetBooleanValue());
+	}
+
 };
+
