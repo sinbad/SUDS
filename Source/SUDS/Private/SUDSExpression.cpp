@@ -20,7 +20,7 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 	// - Literal numbers (with or without decimal point)
 	// - Boolean operators & comparisions
 	// - Quoted strings (group 1 includes quotes, group 2 is trimmed)
-	const FRegexPattern Pattern(TEXT("(\\{\\w+}|[-+*/\\(\\)]|\\d+(?:\\.\\d*)?|and|&&|\\|\\||or|not|\\<\\>|!=|\\<=?|\\>=?|==?)|\\\"([^\\\"]*)\\\""));
+	const FRegexPattern Pattern(TEXT("(\\{\\w+\\}|[-+*\\/\\(\\)]|\\d+(?:\\.\\d*)?|and|&&|\\|\\||or|not|\\<\\>|!=|!|\\<=?|\\>=?|==?|\\\"([^\\\"]*)\\\")"));
 	FRegexMatcher Regex(Pattern, Expression);
 	// Stacks that we use to construct
 	TArray<ESUDSExpressionNodeType> OperatorStack;
