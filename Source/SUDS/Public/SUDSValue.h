@@ -255,7 +255,7 @@ public:
 			switch (GetType())
 			{
 			case ESUDSValueType::Text:
-				FSUDSValue(GetTextValue().EqualTo(Rhs.GetTextValue()));
+				return FSUDSValue(GetTextValue().EqualTo(Rhs.GetTextValue()));
 			case ESUDSValueType::Boolean:
 				return FSUDSValue(GetBooleanValue() == Rhs.GetBooleanValue());
 			case ESUDSValueType::Gender:
