@@ -236,13 +236,6 @@ FSUDSValue FSUDSExpression::Evaluate(const TMap<FName, FSUDSValue>& Variables) c
 {
 	checkf(bIsValid, TEXT("Cannot execute an invalid expression tree"));
 
-	// Short-circuit simplest case
-	if (Queue.Num() == 1 && Queue[0].GetType() == ESUDSExpressionItemType::Operand)
-	{
-		return Queue[0].GetOperandValue();
-	}
-
-	// Otherwise, evaluate
 	TArray<FSUDSExpressionItem> EvalStack;
 	// We could pre-optimise all literal expressions, but let's not for now
 	for (auto& Item : Queue)
