@@ -21,8 +21,9 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 	// - Arithmetic operators & parentheses
 	// - Literal numbers (with or without decimal point)
 	// - Boolean operators & comparisions
+	// - Predefined constants (Masculine, feminine, true, false etc)
 	// - Quoted strings (group 1 includes quotes, group 2 is trimmed)
-	const FRegexPattern Pattern(TEXT("(\\{\\w+\\}|[-+*\\/\\(\\)]|\\d+(?:\\.\\d*)?|and|&&|\\|\\||or|not|\\<\\>|!=|!|\\<=?|\\>=?|==?|[mM]asculine|[fF]eminine|[nN]euter|\\\"([^\\\"]*)\\\")"));
+	const FRegexPattern Pattern(TEXT("(\\{\\w+\\}|[-+*\\/\\(\\)]|\\d+(?:\\.\\d*)?|and|&&|\\|\\||or|not|\\<\\>|!=|!|\\<=?|\\>=?|==?|[mM]asculine|[fF]eminine|[nN]euter|[tT]rue|[fF]alse|\\\"([^\\\"]*)\\\")"));
 	FRegexMatcher Regex(Pattern, Expression);
 	// Stacks that we use to construct
 	TArray<ESUDSExpressionItemType> OperatorStack;
