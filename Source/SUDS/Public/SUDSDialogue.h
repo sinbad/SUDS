@@ -382,7 +382,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetVariableBoolean(FName Name, bool Value)
 	{
-		VariableState.Add(Name, Value);
+		// Use explicit FSUDSValue constructor to avoid default int conversion
+		VariableState.Add(Name, FSUDSValue(Value));
 	}
 
 	/**
