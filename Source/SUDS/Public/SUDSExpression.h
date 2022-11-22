@@ -85,6 +85,10 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsValid;
 
+	/// The original string version of the expression, for reference 
+	UPROPERTY(BlueprintReadOnly)
+	FString SourceString;
+
 	FSUDSExpressionItem EvaluateOperator(ESUDSExpressionItemType Op,
 	                                       const FSUDSExpressionItem& Arg1,
 	                                       const FSUDSExpressionItem& Arg2,
@@ -93,7 +97,7 @@ protected:
 
 public:
 
-	FSUDSExpression() : bIsValid(false) {}
+	FSUDSExpression() : bIsValid(true) {}
 	
 	/// Initialise an expression tree just with a single literal or variable
 	FSUDSExpression(const FSUDSValue& LiteralOrVariable)
@@ -113,8 +117,14 @@ public:
 	/// Evaluate the expression and return the result, using a given variable state 
 	FSUDSValue Evaluate(const TMap<FName, FSUDSValue>& Variables) const;
 
-	// Whether this expression can be run
+	/// Get the original source of the expression as a string
+	const FString& GetSourceString() const { return SourceString; }
+
+	/// Whether this expression can be run (or is empty)
 	bool IsValid() const { return bIsValid; }
+
+	/// Whether this expression is blank
+	bool IsEmpty() const { return Queue.IsEmpty(); }
 
 
 	/**

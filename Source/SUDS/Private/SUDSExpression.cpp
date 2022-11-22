@@ -9,6 +9,7 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 	// Assume invalid until we've parsed something
 	bIsValid = false;
 	Queue.Empty();
+	SourceString = Expression;
 	
 	// Shunting-yard algorithm
 	// Thanks to Nathan Reed https://www.reedbeta.com/blog/the-shunting-yard-algorithm/
@@ -236,6 +237,10 @@ bool FSUDSExpression::ParseOperand(const FString& ValueStr, FSUDSValue& OutVal)
 FSUDSValue FSUDSExpression::Evaluate(const TMap<FName, FSUDSValue>& Variables) const
 {
 	checkf(bIsValid, TEXT("Cannot execute an invalid expression tree"));
+
+	// Blanks are mostly used for conditionals, for simplicity always return true
+	if (Queue.IsEmpty())
+		return FSUDSValue(true);
 
 	TArray<FSUDSExpressionItem> EvalStack;
 	// We could pre-optimise all literal expressions, but let's not for now

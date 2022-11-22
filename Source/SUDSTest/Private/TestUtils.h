@@ -147,7 +147,7 @@ FORCEINLINE bool TestParsedSelectEdge(FAutomationTestBase* T, const FString& Nam
 	if (Node && Node->Edges.Num() > EdgeIndex)
 	{
 		auto& Edge = Node->Edges[EdgeIndex];
-		T->TestEqual(NameForTest, Edge.ConditionString, ConditionStr);
+		T->TestEqual(NameForTest, Edge.ConditionExpression.GetSourceString(), ConditionStr);
 		const int Idx = Edge.TargetNodeIdx;
 		*OutNode = Importer.GetNode(Idx);
 		return true;

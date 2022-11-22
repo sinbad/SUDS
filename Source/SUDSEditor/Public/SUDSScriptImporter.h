@@ -16,8 +16,8 @@ public:
 	FString TextID;
 	/// The line this edge was created on
 	int SourceLineNo;
-	/// String version of condition that applies to this edge (for select nodes)
-	FString ConditionString;
+	/// Condition expression that applies to this edge (for select nodes)
+	FSUDSExpression ConditionExpression;
 
 	int SourceNodeIdx = -1;
 	int TargetNodeIdx = -1;

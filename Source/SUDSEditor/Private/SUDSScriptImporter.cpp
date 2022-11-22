@@ -554,7 +554,7 @@ bool FSUDSScriptImporter::ParseIfLine(const FStringView& Line,
 	auto& SelectNode = Tree.Nodes[NewNodeIdx];
 	const int EdgeIdx = SelectNode.Edges.Add(FSUDSParsedEdge(NewNodeIdx, -1, LineNo));
 	auto E = &SelectNode.Edges[EdgeIdx];
-	E->ConditionString = ConditionStr;
+	E->ConditionExpression.ParseFromString(ConditionStr, FString::Printf(TEXT("Error in %s line %d: "), *NameForErrors, LineNo));
 	Tree.EdgeInProgressNodeIdx = NewNodeIdx;
 	Tree.EdgeInProgressEdgeIdx = EdgeIdx;
 			
@@ -591,7 +591,7 @@ bool FSUDSScriptImporter::ParseElseIfLine(const FStringView& Line,
 			auto& SelectOrChoiceNode = Tree.Nodes[NodeIdx];
 			const int EdgeIdx = SelectOrChoiceNode.Edges.Add(FSUDSParsedEdge(NodeIdx, -1, LineNo));
 			auto E = &SelectOrChoiceNode.Edges[EdgeIdx];
-			E->ConditionString = ConditionStr;
+			E->ConditionExpression.ParseFromString(ConditionStr, FString::Printf(TEXT("Error in %s line %d: "), *NameForErrors, LineNo));
 			Tree.EdgeInProgressNodeIdx = NodeIdx;
 			Tree.EdgeInProgressEdgeIdx = EdgeIdx;
 		}
@@ -1093,7 +1093,7 @@ bool FSUDSScriptImporter::SelectNodeIsMissingElsePath(const FSUDSScriptImporter:
 {
 	for (auto& E : Node.Edges)
 	{
-		if (E.ConditionString.IsEmpty())
+		if (E.ConditionExpression.IsEmpty())
 		{
 			// This is an else
 			return false;
@@ -1476,6 +1476,7 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 					for (auto& InEdge : InNode.Edges)
 					{
 						FSUDSScriptEdge NewEdge;
+						NewEdge.SetCondition(InEdge.ConditionExpression);
 
 						const FSUDSParsedNode *InTargetNode = GetNode(Tree, InEdge.TargetNodeIdx);				
 

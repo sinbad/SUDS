@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "SUDSExpression.h"
 #include "SUDSScriptEdge.generated.h"
 
 class USUDSScriptNode;
@@ -39,7 +40,8 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	TWeakObjectPtr<USUDSScriptNode> TargetNode;
 
-	// TODO Add conditions
+	UPROPERTY(BlueprintReadOnly)
+	FSUDSExpression Condition;
 
 	mutable bool bFormatExtracted = false; 
 	mutable TArray<FName> ParameterNames;
@@ -56,15 +58,16 @@ public:
 
 	FSUDSScriptEdge(const FText& InText, USUDSScriptNode* ToNode) : Text(InText), Type(ESUDSEdgeType::Decision), TargetNode(ToNode) {}
 
-	[[nodiscard]] FText GetText() const { return Text; }
+	FText GetText() const { return Text; }
 	ESUDSEdgeType GetType() const { return Type; }
-	[[nodiscard]] TWeakObjectPtr<USUDSScriptNode> GetTargetNode() const { return TargetNode; }
+	TWeakObjectPtr<USUDSScriptNode> GetTargetNode() const { return TargetNode; }
+	const FSUDSExpression& GetCondition() const { return Condition; }
 
 	void SetText(const FText& Text);
 	void SetType(ESUDSEdgeType InType) { Type = InType; } 
 	void SetTargetNode(const TWeakObjectPtr<USUDSScriptNode>& InTargetNode) { TargetNode = InTargetNode; }
+	void SetCondition(const FSUDSExpression& InCondition) { Condition = InCondition; }
 
-	
 	const FTextFormat& GetTextFormat() const;
 	const TArray<FName>& GetParameterNames() const;
 	bool HasParameters() const;
