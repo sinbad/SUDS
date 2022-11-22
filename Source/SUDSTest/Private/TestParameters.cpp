@@ -38,8 +38,8 @@ bool FTestParameters::RunTest(const FString& Parameters)
 	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(ParamsInput), ParamsInput.Len(), "ParamsInput", true));
 
 	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
-	auto StringTable = NewObject<UStringTable>(GetTransientPackage(), "TestStrings");
-	Importer.PopulateAsset(Script, StringTable);
+	const ScopedStringTableHolder StringTableHolder;
+	Importer.PopulateAsset(Script, StringTableHolder.StringTable);
 
 	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
 	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
@@ -68,10 +68,6 @@ bool FTestParameters::RunTest(const FString& Parameters)
 	Dlg->Choose(1);
 	TestDialogueText(this, "Line 6", Dlg, "NPC", "No, 3 is fine");
 	
-
-	// Tidy up string table
-	// Constructor registered this table
-	FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());
 	
 	return true;
 }
@@ -91,8 +87,8 @@ bool FTestParametersPriority::RunTest(const FString& Parameters)
 	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(ParamsInput), ParamsInput.Len(), "ParamsInput", true));
 
 	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
-	auto StringTable = NewObject<UStringTable>(GetTransientPackage(), "TestStrings");
-	Importer.PopulateAsset(Script, StringTable);
+	const ScopedStringTableHolder StringTableHolder;
+	Importer.PopulateAsset(Script, StringTableHolder.StringTable);
 
 	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
 	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
@@ -125,11 +121,6 @@ bool FTestParametersPriority::RunTest(const FString& Parameters)
 
 	// Check that there's a variable from Participant2 which no-one else set
 	TestEqual("Participant3 should have set something", Dlg->GetVariableInt("SomethingUniqueTo3"), 120);
-	
-
-	// Tidy up string table
-	// Constructor registered this table
-	FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());
 	
 	return true;	
 }

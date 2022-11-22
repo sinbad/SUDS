@@ -93,8 +93,8 @@ bool FTestSimpleRunning::RunTest(const FString& Parameters)
 	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SimpleRunnerInput), SimpleRunnerInput.Len(), "SimpleRunnerInput", true));
 
 	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
-	auto StringTable = NewObject<UStringTable>(GetTransientPackage(), "TestStrings");
-	Importer.PopulateAsset(Script, StringTable);
+	const ScopedStringTableHolder StringTableHolder;
+	Importer.PopulateAsset(Script, StringTableHolder.StringTable);
 
 	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
 	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
@@ -182,10 +182,6 @@ bool FTestSimpleRunning::RunTest(const FString& Parameters)
 	// Should have fallen through
 	TestDialogueText(this, "Direct goto", Dlg, "Player", "This is the latter half of the discussion");
 
-
-	// Tidy up string table
-	// Constructor registered this table
-	FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());
 	
 	return true;
 }
@@ -204,8 +200,8 @@ bool FTestSetVariableRunning::RunTest(const FString& Parameters)
 	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SetVariableRunnerInput), SetVariableRunnerInput.Len(), "SetVariableRunnerInput", true));
 
 	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
-	auto StringTable = NewObject<UStringTable>(GetTransientPackage(), "TestStrings");
-	Importer.PopulateAsset(Script, StringTable);
+	const ScopedStringTableHolder StringTableHolder;
+	Importer.PopulateAsset(Script, StringTableHolder.StringTable);
 
 	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
 	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
@@ -284,9 +280,6 @@ bool FTestSetVariableRunning::RunTest(const FString& Parameters)
 	TestFalse("Continue", Dlg->Continue());
 	TestTrue("At end", Dlg->IsEnded());
 	
-	// Tidy up string table
-	// Constructor registered this table
-	FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());
 
 	return true;
 
@@ -318,8 +311,8 @@ bool FTestSpeakerNames::RunTest(const FString& Parameters)
 	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SpeakerNamesInput), SpeakerNamesInput.Len(), "SpeakerNamesInput", true));
 
 	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
-	auto StringTable = NewObject<UStringTable>(GetTransientPackage(), "TestStrings");
-	Importer.PopulateAsset(Script, StringTable);
+	const ScopedStringTableHolder StringTableHolder;
+	Importer.PopulateAsset(Script, StringTableHolder.StringTable);
 
 	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
 	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
@@ -339,9 +332,6 @@ bool FTestSpeakerNames::RunTest(const FString& Parameters)
 	TestEqual("NPC speaker name should have changed", Dlg->GetSpeakerDisplayName().ToString(), "Actually A Villain");
 
 
-	// Tidy up string table
-	// Constructor registered this table
-	FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());
 	
 	return true;
 }

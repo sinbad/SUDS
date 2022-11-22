@@ -711,14 +711,12 @@ bool FTestConversionToRuntime::RunTest(const FString& Parameters)
 	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(GotoParsingInput), GotoParsingInput.Len(), "GotoParsingInput", true));
 
 	auto Asset = NewObject<USUDSScript>(GetTransientPackage(), "Test");
-	auto StringTable = NewObject<UStringTable>(GetTransientPackage(), "TestStrings");
-	Importer.PopulateAsset(Asset, StringTable);
+	const ScopedStringTableHolder StringTableHolder;
+	Importer.PopulateAsset(Asset, StringTableHolder.StringTable);
 
 	auto StartNode = Asset->GetFirstNode();
 	if (!TestNotNull("Start node should be true", StartNode))
 	{
-		// Constructor registered this table
-		FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());
 		return false;
 	}
 
@@ -727,14 +725,12 @@ bool FTestConversionToRuntime::RunTest(const FString& Parameters)
 	auto NextNode = StartNode;
 	if (!TestEqual("Start node edges", NextNode->GetEdgeCount(), 1))
 	{
-		FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());
 		return false;
 	}
 	
 	auto pEdge = NextNode->GetEdge(0);
 	if (!TestNotNull("Start node edge", pEdge))
 	{
-		FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());
 		return false;
 	}
 	
@@ -849,9 +845,6 @@ bool FTestConversionToRuntime::RunTest(const FString& Parameters)
 	TestEqual("Num speakers", Asset->GetSpeakers().Num(), 2);
 	TestTrue("Speaker 1", Asset->GetSpeakers().Contains("Player"));
 	TestTrue("Speaker 2", Asset->GetSpeakers().Contains("NPC"));
-
-	// Tidy up string table
-	FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());
 
 	return true;
 }

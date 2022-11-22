@@ -35,8 +35,8 @@ bool FTestEvents::RunTest(const FString& Parameters)
 	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(EventParsingInput), EventParsingInput.Len(), "EventParsingInput", true));
 
 	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
-	auto StringTable = NewObject<UStringTable>(GetTransientPackage(), "TestStrings");
-	Importer.PopulateAsset(Script, StringTable);
+	const ScopedStringTableHolder StringTableHolder;
+	Importer.PopulateAsset(Script, StringTableHolder.StringTable);
 
 	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
 	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
@@ -148,11 +148,6 @@ bool FTestEvents::RunTest(const FString& Parameters)
 		
 	}
 	
-
-
-	// Tidy up string table
-	// Constructor registered this table
-	FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());
 	
 	return true;
 }
