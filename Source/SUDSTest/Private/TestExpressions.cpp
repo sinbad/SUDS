@@ -60,6 +60,83 @@ bool FTestExpressionsStandalone::RunTest(const FString& Parameters)
 	TestTrue("BoolCompound7", Expr.ParseFromString("not ({SomethingFalse} and {SomethingElseFalse}) and {SomethingTrue}", "BoolCompound7"));
 	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
 
+	Variables.Add("Seven", 7);
+	TestTrue("Comparisons", Expr.ParseFromString("{Six} == 6", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Six} = 6", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Six} >= 6", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Six} > 6", ""));
+	TestFalse("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Six} < 6", ""));
+	TestFalse("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Six} <= 6", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Six} < {Seven}", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Seven} > {Six}", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Seven} != {Six}", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Seven} != {Seven}", ""));
+	TestFalse("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+
+	// Mixed float/int comparisons
+	Variables.Add("EightFloat", 8.1f);
+	TestTrue("Comparisons", Expr.ParseFromString("{EightFloat} > 8", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{EightFloat} > {Seven}", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Six} < {EightFloat}", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	// Fuzzy float comparisons
+	Variables.Add("EightFloatPlusMargin", 8.1000002f);
+	TestTrue("Comparisons", Expr.ParseFromString("{EightFloat} == 8.1", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{EightFloat} == 8.15", ""));
+	TestFalse("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{EightFloatPlusMargin} == 8.1", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{EightFloat} == 8.1000005", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{EightFloatPlusMargin} == 8.1000005", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+
+	// Other type comparisons
+	Variables.Add("SomeText", FText::FromString("Hello"));
+	TestTrue("Comparisons", Expr.ParseFromString("{SomeText} == \"Hello\"", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{SomeText} == \"Hi\"", ""));
+	TestFalse("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	
+	Variables.Add("Male", ETextGender::Masculine);
+	Variables.Add("Female", ETextGender::Feminine);
+	Variables.Add("AlsoFemale", ETextGender::Feminine);
+	Variables.Add("Neuter", ETextGender::Neuter);
+	TestTrue("Comparisons", Expr.ParseFromString("{Male} == masculine", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Male} == Masculine", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Male} == feminine", ""));
+	TestFalse("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Male} == Feminine", ""));
+	TestFalse("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Female} == Feminine", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Female} != feminine", ""));
+	TestFalse("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Female} == {AlsoFemale}", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Female} != {Neuter}", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Neuter} == neuter", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	TestTrue("Comparisons", Expr.ParseFromString("{Neuter} == Neuter", ""));
+	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	
+
+	
 	return true;
 };
 
