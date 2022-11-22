@@ -330,7 +330,8 @@ FSUDSValue FSUDSExpression::EvaluateOperand(const FSUDSValue& Operand,
 		{
 			return *Var;
 		}
-		UE_LOG(LogSUDS, Error, TEXT("Variable state for %s missing, cannot evaluate"), *Operand.GetVariableNameValue().ToString());
+		// Will use the default value if variable unset
+		UE_LOG(LogSUDS, VeryVerbose, TEXT("Variable state for %s missing, using default"), *Operand.GetVariableNameValue().ToString());
 	}
 
 	return Operand;

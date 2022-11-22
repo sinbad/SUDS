@@ -80,7 +80,8 @@ public:
 
 	FORCEINLINE int32 GetIntValue() const
 	{
-		if (Type != ESUDSValueType::Int)
+		// We don't warn for unset variables, use the defaults
+		if (Type != ESUDSValueType::Int && Type != ESUDSValueType::Variable)
 			UE_LOG(LogSUDS, Warning, TEXT("Getting value as int but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))
 		
 		return IntValue;
@@ -88,7 +89,8 @@ public:
 
 	FORCEINLINE float GetFloatValue() const
 	{
-		if (Type != ESUDSValueType::Float)
+		// We don't warn for unset variables, use the defaults
+		if (Type != ESUDSValueType::Float && Type != ESUDSValueType::Variable)
 			UE_LOG(LogSUDS, Warning, TEXT("Getting value as float but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))
 		
 		return FloatValue;
@@ -96,7 +98,8 @@ public:
 
 	FORCEINLINE const FText& GetTextValue() const
 	{
-		if (Type != ESUDSValueType::Text)
+		// We don't warn for unset variables, use the defaults
+		if (Type != ESUDSValueType::Text && Type != ESUDSValueType::Variable)
 			UE_LOG(LogSUDS, Warning, TEXT("Getting value as text but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))
 		
 		return TextValue.GetValue();
@@ -104,7 +107,8 @@ public:
 
 	FORCEINLINE ETextGender GetGenderValue() const
 	{
-		if (Type != ESUDSValueType::Gender)
+		// We don't warn for unset variables, use the defaults
+		if (Type != ESUDSValueType::Gender && Type != ESUDSValueType::Variable)
 			UE_LOG(LogSUDS, Warning, TEXT("Getting value as float but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))
 		
 		return static_cast<ETextGender>(IntValue);
@@ -112,7 +116,8 @@ public:
 
 	FORCEINLINE bool GetBooleanValue() const
 	{
-		if (Type != ESUDSValueType::Boolean)
+		// We don't warn for unset variables, use the defaults
+		if (Type != ESUDSValueType::Boolean && Type != ESUDSValueType::Variable)
 			UE_LOG(LogSUDS, Warning, TEXT("Getting value as boolean but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))
 
 		return IntValue != 0;
@@ -159,16 +164,15 @@ public:
 		*this = RValue;
 	}
 
-	/// Not operation, only valid on booleans
+	/// Not operation, technically only valid on booleans, but not enforced so as to allow unset vars & conversions
 	FSUDSValue operator!() const
 	{
-		check(Type == ESUDSValueType::Boolean);
 		return FSUDSValue(!GetBooleanValue());
 	}
 
 	FSUDSValue operator*(const FSUDSValue& Rhs) const
 	{
-		check(IsNumeric() && Rhs.IsNumeric());
+		// We don't force types to be numeric here so that we can safely use unset variables
 		// If both int, keep int
 		if (Type == ESUDSValueType::Int && Rhs.Type == Type)
 		{
@@ -176,13 +180,13 @@ public:
 		}
 		// Otherwise we'll let the type widening handle mixed types for us (ternary will always resolve to float)
 		return FSUDSValue(
-			(Type == ESUDSValueType::Int ? GetIntValue() : GetFloatValue())
+			(Type == ESUDSValueType::Float ? GetFloatValue() : GetIntValue())
 			*
-			(Rhs.GetType() == ESUDSValueType::Int ? Rhs.GetIntValue() : Rhs.GetFloatValue()));
+			(Rhs.GetType() == ESUDSValueType::Float ? Rhs.GetFloatValue() : Rhs.GetIntValue()));
 	}
 	FSUDSValue operator/(const FSUDSValue& Rhs) const
 	{
-		check(IsNumeric() && Rhs.IsNumeric());
+		// We don't force types to be numeric here so that we can safely use unset variables
 		// If both int, keep int
 		if (Type == ESUDSValueType::Int && Rhs.Type == Type)
 		{
@@ -190,13 +194,13 @@ public:
 		}
 		// Otherwise we'll let the type widening handle mixed types for us (ternary will always resolve to float)
 		return FSUDSValue(
-			(Type == ESUDSValueType::Int ? GetIntValue() : GetFloatValue())
+			(Type == ESUDSValueType::Float ? GetFloatValue() : GetIntValue())
 			/
-			(Rhs.GetType() == ESUDSValueType::Int ? Rhs.GetIntValue() : Rhs.GetFloatValue()));
+			(Rhs.GetType() == ESUDSValueType::Float ? Rhs.GetFloatValue() : Rhs.GetIntValue()));
 	}
 	FSUDSValue operator+(const FSUDSValue& Rhs) const
 	{
-		check(IsNumeric() && Rhs.IsNumeric());
+		// We don't force types to be numeric here so that we can safely use unset variables
 		// If both int, keep int
 		if (Type == ESUDSValueType::Int && Rhs.Type == Type)
 		{
@@ -204,13 +208,13 @@ public:
 		}
 		// Otherwise we'll let the type widening handle mixed types for us (ternary will always resolve to float)
 		return FSUDSValue(
-			(Type == ESUDSValueType::Int ? GetIntValue() : GetFloatValue())
+			(Type == ESUDSValueType::Float ? GetFloatValue() : GetIntValue())
 			+
-			(Rhs.GetType() == ESUDSValueType::Int ? Rhs.GetIntValue() : Rhs.GetFloatValue()));
+			(Rhs.GetType() == ESUDSValueType::Float ? Rhs.GetFloatValue() : Rhs.GetIntValue()));
 	}
 	FSUDSValue operator-(const FSUDSValue& Rhs) const
 	{
-		check(IsNumeric() && Rhs.IsNumeric());
+		// We don't force types to be numeric here so that we can safely use unset variables
 		// If both int, keep int
 		if (Type == ESUDSValueType::Int && Rhs.Type == Type)
 		{
@@ -218,24 +222,25 @@ public:
 		}
 		// Otherwise we'll let the type widening handle mixed types for us (ternary will always resolve to float)
 		return FSUDSValue(
-			(Type == ESUDSValueType::Int ? GetIntValue() : GetFloatValue())
+			(Type == ESUDSValueType::Float ? GetFloatValue() : GetIntValue())
 			-
-			(Rhs.GetType() == ESUDSValueType::Int ? Rhs.GetIntValue() : Rhs.GetFloatValue()));
+			(Rhs.GetType() == ESUDSValueType::Float ? Rhs.GetFloatValue() : Rhs.GetIntValue()));
 	}
 	FSUDSValue operator<(const FSUDSValue& Rhs) const
 	{
-		check(IsNumeric() && Rhs.IsNumeric());
+		// Don't check types here. We'll fall back on int comparisons which is important for cases where
+		// a variable hasn't been set
 		// result is boolean so no need to protect types
 		return FSUDSValue(
-			(Type == ESUDSValueType::Int ? GetIntValue() : GetFloatValue())
+			(Type == ESUDSValueType::Float ? GetFloatValue() : GetIntValue())
 			<
-			(Rhs.GetType() == ESUDSValueType::Int ? Rhs.GetIntValue() : Rhs.GetFloatValue()));
+			(Rhs.GetType() == ESUDSValueType::Float ? Rhs.GetFloatValue() : Rhs.GetIntValue()));
+		
 	}
 	FSUDSValue operator==(const FSUDSValue& Rhs) const
 	{
-		if (IsNumeric())
+		if (IsNumeric() || Rhs.IsNumeric())
 		{
-			check(Rhs.IsNumeric());
 			if (GetType() == ESUDSValueType::Float || Rhs.GetType() == ESUDSValueType::Float)
 			{
 				// For floats, use tolerance
@@ -251,8 +256,12 @@ public:
 		else 
 		{
 			// no auto conversion here
-			check(Type == Rhs.Type);
-			switch (GetType())
+			// however, tolerate unresolved variables, they will return initial values
+			check(Type == Rhs.Type || Type == ESUDSValueType::Variable || Rhs.Type == ESUDSValueType::Variable);
+
+			// Compare using type from whichever one isn't a variable (get values on unset variables will return defaults)
+			ESUDSValueType UseType = IsVariable() ? Rhs.GetType() : GetType();
+			switch (UseType)
 			{
 			case ESUDSValueType::Text:
 				return FSUDSValue(GetTextValue().EqualTo(Rhs.GetTextValue()));
@@ -262,10 +271,12 @@ public:
 				return FSUDSValue(GetGenderValue() == Rhs.GetGenderValue());
 			case ESUDSValueType::Variable:
 				return FSUDSValue(GetVariableNameValue() == Rhs.GetVariableNameValue());
-			default:
+			// deal with int/float again here, this mops up cases where one side is an unset variable
 			case ESUDSValueType::Int:
+				return FSUDSValue(GetIntValue() == Rhs.GetIntValue());
 			case ESUDSValueType::Float:
-				// dealt with
+				return FSUDSValue(GetFloatValue() == Rhs.GetFloatValue());
+			default:
 				break;
 			};
 		}
