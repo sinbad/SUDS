@@ -2,6 +2,8 @@
 #include "SUDSDialogue.h"
 #include "SUDSScriptNode.h"
 #include "SUDSScriptNodeText.h"
+#include "Internationalization/StringTable.h"
+#include "Internationalization/StringTableRegistry.h"
 
 FORCEINLINE void TestDialogueText(FAutomationTestBase* T, const FString& NameForTest, USUDSDialogue* D, const FString& SpeakerID, const FString& Text)
 {
@@ -214,3 +216,24 @@ FORCEINLINE bool TestChoiceEdge(FAutomationTestBase* T, const FString& NameForTe
 	return false;
 	
 }
+
+// Helper to provide a string table just in scope
+struct ScopedStringTableHolder
+{
+public:
+
+	UStringTable* StringTable;
+	
+	ScopedStringTableHolder()
+	{
+		StringTable = NewObject<UStringTable>(GetTransientPackage(), "TestStrings");
+	}
+
+	~ScopedStringTableHolder()
+	{
+		// Tidy up string table
+		// UStringTable constructor registered this table
+		FStringTableRegistry::Get().UnregisterStringTable(StringTable->GetStringTableId());
+	}
+	
+};

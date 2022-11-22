@@ -83,7 +83,7 @@ protected:
 	USUDSScriptNode* GetNextNode(const USUDSScriptNode* Node) const;
 	bool ShouldStopAtNodeType(ESUDSScriptNodeType Type);
 	USUDSScriptNode* RunNode(USUDSScriptNode* Node);
-	USUDSScriptNode* RunSelectNode(USUDSScriptNode* Node);
+	USUDSScriptNode* RunSelectNode(USUDSScriptNode* Node) const;
 	USUDSScriptNode* RunSetVariableNode(USUDSScriptNode* Node);
 	USUDSScriptNode* RunEventNode(USUDSScriptNode* Node);
 

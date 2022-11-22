@@ -1,5 +1,9 @@
-﻿#include "SUDSScriptImporter.h"
+﻿#include "SUDSLibrary.h"
+#include "SUDSScript.h"
+#include "SUDSScriptImporter.h"
 #include "TestUtils.h"
+#include "Internationalization/StringTable.h"
+#include "Internationalization/StringTableRegistry.h"
 #include "Tests/FbxAutomationCommon.h"
 PRAGMA_DISABLE_OPTIMIZATION
 
@@ -133,6 +137,44 @@ bool FTestBasicConditionals::RunTest(const FString& Parameters)
     
 	return true;
 }
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestRunningBasicConditionals,
+                                 "SUDSTest.TestRunningBasicConditionals",
+                                 EAutomationTestFlags::EditorContext |
+                                 EAutomationTestFlags::ClientContext |
+                                 EAutomationTestFlags::ProductFilter)
+
+
+bool FTestRunningBasicConditionals::RunTest(const FString& Parameters)
+{
+    FSUDSScriptImporter Importer;
+    TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(BasicConditionalInput), BasicConditionalInput.Len(), "BasicConditionalInput", true));
+
+    auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
+    const ScopedStringTableHolder StringTableHolder;
+    Importer.PopulateAsset(Script, StringTableHolder.StringTable);
+
+    // Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
+    auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
+
+    // For the first run, do not set any state
+    Dlg->Start();
+
+    TestDialogueText(this, "First node", Dlg, "Player", "Hello");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text", Dlg, "NPC", "Reply when x is something else");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text", Dlg, "Player", "the end is false");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text", Dlg, "NPC", "OK");
+    TestFalse("Continue", Dlg->Continue());
+    TestTrue("End", Dlg->IsEnded());
+
+
+    return true;
+    
+}
+
 
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestConditionalChoices,

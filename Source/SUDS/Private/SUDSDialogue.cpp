@@ -106,12 +106,24 @@ USUDSScriptNode* USUDSDialogue::RunNode(USUDSScriptNode* Node)
 	return nullptr;
 }
 
-USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node)
+USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node) const
 {
-	// TODO: implement select
+	for (auto& Edge : Node->GetEdges())
+	{
+		auto Result = Edge.GetCondition().Evaluate(VariableState);
+		if (Result.GetType() != ESUDSValueType::Boolean)
+		{
+			UE_LOG(LogSUDSDialogue, Error, TEXT("%s: Condition '%s' did not return a boolean result"), *BaseScript->GetName(), *Edge.GetCondition().GetSourceString())
+		}
+		// use the first satisfied edge
+		if (Result.GetBooleanValue())
+		{
+			return Edge.GetTargetNode().Get();
+		}
+	}
 	// NOTE: if no valid path, go to end
 	// We've already created fall-through else nodes if possible
-	return GetNextNode(Node);
+	return nullptr;
 }
 
 USUDSScriptNode* USUDSDialogue::RunEventNode(USUDSScriptNode* Node)
