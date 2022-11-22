@@ -53,13 +53,16 @@ const FString SetVariableRunnerInput = R"RAWSUD(
 [set SpeakerName.Player "Protagonist"] @12345@
 # Text var no localised ID
 [set ValetName "Bob"]
-[set SomeFloat 12.5]
+// Also test with equals signs
+[set SomeFloat = 12.5]
+[set SomeCalculatedInt = (3 + 4) * 2]
+[set SomeCalculatedBoolean = true or false]
 ===
 
 Player: Hello
 [set SomeInt 99]
 # Test that we can use variables in set and that ordering works
-[set SomeOtherFloat {SomeFloat}]
+[set SomeOtherFloat {SomeFloat} + 10]
 [set SomeFloat 43.754]
 NPC: Wotcha
 # Test that inserting a set node in between text and choice doesn't break link 
@@ -217,6 +220,8 @@ bool FTestSetVariableRunning::RunTest(const FString& Parameters)
 	TestEqual("Initial: Some int", Dlg->GetVariableInt("SomeInt"), 0);
 	TestEqual("Initial: Some boolean", Dlg->GetVariableBoolean("SomeBoolean"), false);
 	TestEqual("Initial: Some gender", Dlg->GetVariableGender("SomeGender"), ETextGender::Neuter);
+	TestEqual("Initial: calculated int", Dlg->GetVariableInt("SomeCalculatedInt"), 14);
+	TestTrue("Initial: calculated bool", Dlg->GetVariableBoolean("SomeCalculatedBoolean"));
 
 
 	TestDialogueText(this, "Node 1", Dlg, "Player", "Hello");
@@ -225,8 +230,8 @@ bool FTestSetVariableRunning::RunTest(const FString& Parameters)
 	TestEqual("Initial: Some int", Dlg->GetVariableInt("SomeInt"), 99);
 	TestDialogueText(this, "Node 2", Dlg, "NPC", "Wotcha");
 
-	// Test that setting a new variable from another variable worked
-	TestEqual("Some copied float", Dlg->GetVariableFloat("SomeOtherFloat"), 12.5f);
+	// Test that setting a new variable from another variable + 10 worked
+	TestEqual("Some copied float", Dlg->GetVariableFloat("SomeOtherFloat"), 22.5f);
 	TestEqual("Original float", Dlg->GetVariableFloat("SomeFloat"), 43.754f);
 	
 	TestEqual("Choices count", Dlg->GetNumberOfChoices(), 2);
