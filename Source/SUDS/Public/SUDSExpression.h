@@ -58,7 +58,7 @@ public:
 	// Only valid if optype is operand
 	FSUDSValue GetOperandValue() const { return OperandValue; }
 
-	bool IsOperator() const { return (static_cast<uint8>(Type) & 0x0F) > 0; }
+	bool IsOperator() const { return static_cast<uint8>(Type) < 128; }
 	bool IsOperand() const { return !IsOperator(); }
 	bool IsBinaryOperator() const
 	{
