@@ -243,11 +243,12 @@ FSUDSValue FSUDSExpression::Evaluate(const TMap<FName, FSUDSValue>& Variables) c
 		if (Item.IsOperator())
 		{
 			FSUDSExpressionItem Arg1, Arg2;
-			Arg1 = EvalStack.Pop();
+			// Arg2 (RHS) has to be popped first
 			if (Item.IsBinaryOperator())
 			{
 				Arg2 = EvalStack.Pop();
 			}
+			Arg1 = EvalStack.Pop();
 			EvalStack.Push(EvaluateOperator(Item.GetType(), Arg1, Arg2, Variables));
 		}
 		else
