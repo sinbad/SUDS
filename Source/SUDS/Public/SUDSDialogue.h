@@ -2,7 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "SUDSScriptNode.h"
-#include "SUDSValue.h"
+#include "SUDSExpression.h"
 #include "UObject/Object.h"
 #include "SUDSDialogue.generated.h"
 

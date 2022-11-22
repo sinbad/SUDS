@@ -62,7 +62,10 @@ FORCEINLINE bool TestParsedSetLiteral(FAutomationTestBase* T, const FString& Nam
 	{
 		T->TestEqual(NameForTest, Node->NodeType, ESUDSParsedNodeType::SetVariable);
 		T->TestEqual(NameForTest, Node->Identifier, VarName);
-		TestArgValue(T, NameForTest,Node->VarLiteral, Literal);
+		if (T->TestTrue(NameForTest, Node->Expression.IsLiteral()))
+		{
+			TestArgValue(T, NameForTest,Node->Expression.GetLiteralValue(), Literal);	
+		}
 		return true;
 	}
 	return false;
@@ -76,7 +79,11 @@ FORCEINLINE bool TestParsedSetLiteral(FAutomationTestBase* T, const FString& Nam
 	{
 		T->TestEqual(NameForTest, Node->NodeType, ESUDSParsedNodeType::SetVariable);
 		T->TestEqual(NameForTest, Node->Identifier, VarName);
-		TestArgValue(T, NameForTest,Node->VarLiteral.GetBooleanValue(), Literal);
+		if (T->TestTrue(NameForTest, Node->Expression.IsLiteral()))
+		{
+			TestArgValue(T, NameForTest,Node->Expression.GetBooleanLiteralValue(), Literal);	
+		}
+		
 		return true;
 	}
 	return false;

@@ -142,17 +142,11 @@ USUDSScriptNode* USUDSDialogue::RunEventNode(USUDSScriptNode* Node)
 
 USUDSScriptNode* USUDSDialogue::RunSetVariableNode(USUDSScriptNode* Node)
 {
-	// TODO: support things other than literals
 	if (USUDSScriptNodeSet* SetNode = Cast<USUDSScriptNodeSet>(Node))
 	{
-		if (SetNode->GetLiteral().IsVariable())
+		if (SetNode->GetExpression().IsValid())
 		{
-			// Copying another variable
-			VariableState.Add(SetNode->GetIdentifier(), GetVariable(SetNode->GetLiteral().GetVariableNameValue()));
-		}
-		else
-		{
-			VariableState.Add(SetNode->GetIdentifier(), SetNode->GetLiteral());
+			VariableState.Add(SetNode->GetIdentifier(), SetNode->GetExpression().Evaluate(VariableState));
 		}
 	}
 

@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "SUDSExpression.h"
 #include "SUDSValue.h"
 
 class USUDSScript;
@@ -70,8 +71,8 @@ public:
 	FString Text;
 	/// Identifier of the text, for the string table
 	FString TextID;
-	/// Variable literal value, for set nodes
-	FSUDSValue VarLiteral;
+	/// Expression, for nodes that use it (e.g. set)
+	FSUDSExpression Expression;
 	/// Event argument literals, for event nodes
 	TArray<FSUDSValue> EventArgsLiteral;
 	/// Labels which lead to this node
@@ -99,10 +100,10 @@ public:
 	FSUDSParsedNode(const FString& GotoLabel, int Indent, int LineNo)
 		:NodeType(ESUDSParsedNodeType::Goto), OriginalIndent(Indent), Identifier(GotoLabel), SourceLineNo(LineNo)  {}
 
-	FSUDSParsedNode(const FString& VariableName, const FSUDSValue& LiteralValue, int Indent, int LineNo)
-		: NodeType(ESUDSParsedNodeType::SetVariable), OriginalIndent(Indent), Identifier(VariableName), VarLiteral(LiteralValue), SourceLineNo(LineNo) {}
-	FSUDSParsedNode(const FString& VariableName, const FSUDSValue& LiteralValue, const FString& InTextID, int Indent, int LineNo)
-		: NodeType(ESUDSParsedNodeType::SetVariable), OriginalIndent(Indent), Identifier(VariableName), TextID(InTextID), VarLiteral(LiteralValue), SourceLineNo(LineNo) {}
+	FSUDSParsedNode(const FString& VariableName, const FSUDSExpression& InExpr, int Indent, int LineNo)
+		: NodeType(ESUDSParsedNodeType::SetVariable), OriginalIndent(Indent), Identifier(VariableName), Expression(InExpr), SourceLineNo(LineNo) {}
+	FSUDSParsedNode(const FString& VariableName, const FSUDSExpression& InExpr, const FString& InTextID, int Indent, int LineNo)
+		: NodeType(ESUDSParsedNodeType::SetVariable), OriginalIndent(Indent), Identifier(VariableName), TextID(InTextID), Expression(InExpr), SourceLineNo(LineNo) {}
 };
 class SUDSEDITOR_API FSUDSScriptImporter
 {

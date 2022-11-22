@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "SUDSExpression.h"
 #include "SUDSScriptNode.h"
-#include "SUDSValue.h"
 #include "SUDSScriptNodeSet.generated.h"
 
 /**
@@ -18,13 +18,14 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	FName Identifier;
 	
-	/// Literal value, for set nodes
+	/// Expression to provide value to set
 	UPROPERTY(BlueprintReadOnly)
-	FSUDSValue Literal;
+	FSUDSExpression Expression;
 
 public:
 
-	void Init(const FString& VarName, const FSUDSValue& LiteralValue);
+	void Init(const FString& VarName, const FSUDSExpression& InExpression);
 	const FName& GetIdentifier() const { return Identifier; }
-	const FSUDSValue& GetLiteral() const { return Literal; }
+	const FSUDSExpression& GetExpression() const { return Expression; }
+	
 };

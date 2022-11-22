@@ -756,7 +756,10 @@ bool FSUDSScriptImporter::ParseSetLine(const FStringView& InLine,
 	
 	// Unfortunately FRegexMatcher doesn't support FStringView
 	const FString LineStr(Line);
-	const FRegexPattern SetPattern(TEXT("^\\[set\\s+(\\S+)\\s+(.+)\\]$"));
+	// Accept forms:
+	// [set Var Expression]
+	// [set Var = Expression] (more readable in the case of non-trivial expressions)
+	const FRegexPattern SetPattern(TEXT("^\\[set\\s+(\\S+)\\s+(?:=\\s+)?([^\\]]+)\\]$"));
 	FRegexMatcher SetRegex(SetPattern, LineStr);
 	if (SetRegex.FindNext())
 	{
@@ -764,25 +767,23 @@ bool FSUDSScriptImporter::ParseSetLine(const FStringView& InLine,
 			UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: SET   : %s"), LineNo, IndentLevel, *FString(Line));
 
 		FString Name = SetRegex.GetCaptureGroup(1);
-		FString ValueStr = SetRegex.GetCaptureGroup(2).TrimStartAndEnd(); // trim because capture accepts spaces in quotes
+		FString ExprStr = SetRegex.GetCaptureGroup(2).TrimStartAndEnd(); // trim because capture accepts spaces in quotes
 
-		// Parse literal argument
-		// TODO: support expressions
-		FSUDSValue Value;
-		if (FSUDSExpression::ParseOperand(ValueStr, Value))
+		FSUDSExpression Expr;
+		if (Expr.ParseFromString(ExprStr, FString::Printf(TEXT("Error in %s line %d: malformed set line"), *NameForErrors, LineNo)))
 		{
-			if (Value.GetType() == ESUDSValueType::Text)
+			if (Expr.IsTextLiteral())
 			{
 				// Text must be localised
 				if (TextID.IsEmpty())
 				{
 					TextID = GenerateTextID(InLine);
 				}
-				AppendNode(Tree, FSUDSParsedNode(Name, Value, TextID, IndentLevel, LineNo));
+				AppendNode(Tree, FSUDSParsedNode(Name, Expr, TextID, IndentLevel, LineNo));
 			}
 			else
 			{
-				AppendNode(Tree, FSUDSParsedNode(Name, Value, IndentLevel, LineNo));
+				AppendNode(Tree, FSUDSParsedNode(Name, Expr, IndentLevel, LineNo));
 			}
 			return true;
 		}
@@ -1427,23 +1428,21 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 				case ESUDSParsedNodeType::SetVariable:
 					{
 						auto SetNode = NewObject<USUDSScriptNodeSet>(Asset);
-						// TODO support expressions not just literals
-
 						// For text literals, re-point to string table
-						FSUDSValue Literal = InNode.VarLiteral;
-						if (Literal.GetType() == ESUDSValueType::Text)
+						FSUDSExpression Expr = InNode.Expression;
+						if (Expr.IsTextLiteral())
 						{
-							StringTable->GetMutableStringTable()->SetSourceString(InNode.TextID, InNode.VarLiteral.GetTextValue().ToString());
-							Literal.SetValue(FText::FromStringTable (StringTable->GetStringTableId(), InNode.TextID));
+							StringTable->GetMutableStringTable()->SetSourceString(InNode.TextID, Expr.GetTextLiteralValue().ToString());
+							Expr.SetTextLiteralValue(FText::FromStringTable (StringTable->GetStringTableId(), InNode.TextID));
 						}
-						SetNode->Init(InNode.Identifier, Literal);
+						SetNode->Init(InNode.Identifier, Expr);
 						Node = SetNode;
 						break;
 					}
 				case ESUDSParsedNodeType::Event:
 					{
 						auto EvtNode = NewObject<USUDSScriptNodeEvent>(Asset);
-						// TODO support expressions not just literals
+						// TODO support expressions in events not just literals?
 						EvtNode->Init(InNode.Identifier, InNode.EventArgsLiteral);
 						Node = EvtNode;
 						break;

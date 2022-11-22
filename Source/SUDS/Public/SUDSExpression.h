@@ -56,7 +56,8 @@ public:
 
 	ESUDSExpressionItemType GetType() const { return Type; }
 	// Only valid if optype is operand
-	FSUDSValue GetOperandValue() const { return OperandValue; }
+	const FSUDSValue& GetOperandValue() const { return OperandValue; }
+	void SetOperandValue(const FSUDSValue& NewVal) { OperandValue = NewVal; }
 
 	bool IsOperator() const { return static_cast<uint8>(Type) < 128; }
 	bool IsOperand() const { return !IsOperator(); }
@@ -77,6 +78,7 @@ struct SUDS_API FSUDSExpression
 
 protected:
 	// The output queue in Reverse Polish Notation order
+	UPROPERTY()
 	TArray<FSUDSExpressionItem> Queue;
 
 	/// Whether the tree is valid to execute
@@ -111,6 +113,9 @@ public:
 	/// Evaluate the expression and return the result, using a given variable state 
 	FSUDSValue Evaluate(const TMap<FName, FSUDSValue>& Variables) const;
 
+	// Whether this expression can be run
+	bool IsValid() const { return bIsValid; }
+
 
 	/**
 	 * Attempt to parse an operand from a string. Returns true if this string is a valid operand, which means a literal
@@ -126,6 +131,64 @@ public:
 
 	/// Access the internal RPN execution queue
 	const TArray<FSUDSExpressionItem>& GetQueue() { return Queue; }
+
+	/// Return whether this is a single literal
+	bool IsLiteral() const
+	{
+		return bIsValid && Queue.Num() == 1 && Queue[0].IsOperand() && Queue[0].GetOperandValue().GetType() != ESUDSValueType::Variable;
+	}
+
+	/// Helper method to get literal values
+	FSUDSValue GetLiteralValue() const
+	{
+		check(IsLiteral());
+		return Queue[0].GetOperandValue();
+	}
+
+	/// Return whenter this is a text literal
+	bool IsTextLiteral() const
+	{
+		return bIsValid && Queue.Num() == 1 && Queue[0].IsOperand() && Queue[0].GetOperandValue().GetType() == ESUDSValueType::Text;
+	}
+
+	/// Helper method to get a text literal value, for easier localisation
+	FText GetTextLiteralValue() const
+	{
+		check(IsTextLiteral());
+		return GetLiteralValue().GetTextValue();
+	}
+	/// Helper method to override a text literal
+	void SetTextLiteralValue(const FText& NewLiteral)
+	{
+		check(IsTextLiteral());
+		Queue[0].SetOperandValue(NewLiteral);
+	}
+
+	/// Helper method to get boolean literal value
+	bool GetBooleanLiteralValue() const
+	{
+		check(IsLiteral() && GetLiteralValue().GetType() == ESUDSValueType::Boolean);
+		return GetLiteralValue().GetBooleanValue();
+	}
+	/// Helper method to get int literal value
+	int GetIntLiteralValue() const
+	{
+		check(IsLiteral() && GetLiteralValue().GetType() == ESUDSValueType::Int);
+		return GetLiteralValue().GetIntValue();
+	}
+	/// Helper method to get float literal value
+	float GetFloatLiteralValue() const
+	{
+		check(IsLiteral() && GetLiteralValue().GetType() == ESUDSValueType::Float);
+		return GetLiteralValue().GetFloatValue();
+	}
+	/// Helper method to get gender literal value
+	ETextGender GetGenderLiteralValue() const
+	{
+		check(IsLiteral() && GetLiteralValue().GetType() == ESUDSValueType::Gender);
+		return GetLiteralValue().GetGenderValue();
+	}
+
 
 };
 
