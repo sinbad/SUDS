@@ -118,24 +118,22 @@ USUDSScriptNode* USUDSDialogue::RunEventNode(USUDSScriptNode* Node)
 {
 	if (USUDSScriptNodeEvent* EvtNode = Cast<USUDSScriptNodeEvent>(Node))
 	{
-		// Build a separate args list, because we need to dereference any variable references in the args
-		TArray<FSUDSValue> ArgsCopy = EvtNode->GetLiteralArgs();
-		for (auto& Arg : ArgsCopy)
+		// Build a resolved args list, because we need to evaluate  expressions
+		TArray<FSUDSValue> ArgsResolved;
+		
+		for (auto& Expr : EvtNode->GetArgs())
 		{
-			if (Arg.GetType() == ESUDSValueType::Variable)
-			{
-				Arg.SetValue(GetVariable(Arg.GetVariableNameValue()));
-			}
+			ArgsResolved.Add(Expr.Evaluate(VariableState));
 		}
 		
 		for (const auto P : Participants)
 		{
 			if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
 			{
-				ISUDSParticipant::Execute_OnDialogueEvent(P, this, EvtNode->GetEventName(), ArgsCopy);
+				ISUDSParticipant::Execute_OnDialogueEvent(P, this, EvtNode->GetEventName(), ArgsResolved);
 			}
 		}
-		OnEvent.Broadcast(this, EvtNode->GetEventName(), ArgsCopy);
+		OnEvent.Broadcast(this, EvtNode->GetEventName(), ArgsResolved);
 	}
 	return GetNextNode(Node);
 }

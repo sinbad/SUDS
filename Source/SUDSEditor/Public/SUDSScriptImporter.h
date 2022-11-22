@@ -73,8 +73,8 @@ public:
 	FString TextID;
 	/// Expression, for nodes that use it (e.g. set)
 	FSUDSExpression Expression;
-	/// Event argument literals, for event nodes
-	TArray<FSUDSValue> EventArgsLiteral;
+	/// Event arguments, for event nodes
+	TArray<FSUDSExpression> EventArgs;
 	/// Labels which lead to this node
 	TArray<FString> Labels;
 	/// Edges leading to other nodes

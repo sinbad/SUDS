@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "SUDSExpression.h"
 #include "SUDSScriptNode.h"
 #include "SUDSValue.h"
 #include "SUDSScriptNodeEvent.generated.h"
@@ -19,13 +20,13 @@ protected:
 	
 	/// Literal arguments
 	UPROPERTY(BlueprintReadOnly)
-	TArray<FSUDSValue> LiteralArgs;
+	TArray<FSUDSExpression> Args;
 
 public:
 
-	void Init(const FString& EvtName, const TArray<FSUDSValue>& Args);
+	void Init(const FString& EvtName, const TArray<FSUDSExpression>& InArgs);
 	FName GetEventName() const { return EventName; }
-	const TArray<FSUDSValue>& GetLiteralArgs() const { return LiteralArgs; }
+	const TArray<FSUDSExpression>& GetArgs() const { return Args; }
 	
 	
 };

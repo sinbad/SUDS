@@ -1,9 +1,9 @@
 ﻿#include "SUDSScriptNodeEvent.h"
 
-void USUDSScriptNodeEvent::Init(const FString& EvtName, const TArray<FSUDSValue>& Args)
+void USUDSScriptNodeEvent::Init(const FString& EvtName, const TArray<FSUDSExpression>& InArgs)
 {
 	NodeType = ESUDSScriptNodeType::Event;
 	EventName = FName(EvtName);
-	LiteralArgs = Args;
+	Args = InArgs;
 	
 }

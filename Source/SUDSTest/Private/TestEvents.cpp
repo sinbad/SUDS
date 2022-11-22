@@ -15,9 +15,10 @@ Player: Ow do?
 [set IntVar 2]
 [set FloatVar 66.67]
 [set StringVar "Ey up"]
-[event SummatHappened "2 penneth" 99.99 masculine {IntVar} 42 false]
+[event SummatHappened "2 penneth", 99.99, masculine, {IntVar}, 42, false]
 NPC: Alreet chook
-[event WellBlowMeDown {FloatVar} true {StringVar}]
+[event WellBlowMeDown {FloatVar}, true, {StringVar}]
+[event Calculated {FloatVar} + 10, true or false, {StringVar}]
 Player: Tara
 )RAWSUD";
 
@@ -99,7 +100,7 @@ bool FTestEvents::RunTest(const FString& Parameters)
 	TestDialogueText(this, "Line 2", Dlg, "NPC", "Alreet chook");
 	TestTrue("Continue", Dlg->Continue());
 
-	if (TestEqual("Event sub should have received", EvtSub->EventRecords.Num(), 2))
+	if (TestEqual("Event sub should have received", EvtSub->EventRecords.Num(), 3))
 	{
 		TestEqual("Event name", EvtSub->EventRecords[1].Name.ToString(), "WellBlowMeDown");
 		if (TestEqual("Event sub arg count", EvtSub->EventRecords[1].Args.Num(), 3))
@@ -111,8 +112,18 @@ bool FTestEvents::RunTest(const FString& Parameters)
 			TestEqual("Event sub arg 2 type", EvtSub->EventRecords[1].Args[2].GetType(), ESUDSValueType::Text);
 			TestEqual("Event sub arg 2 value", EvtSub->EventRecords[1].Args[2].GetTextValue().ToString(), "Ey up");
 		}
+		TestEqual("Event name", EvtSub->EventRecords[2].Name.ToString(), "Calculated");
+		if (TestEqual("Event sub arg count", EvtSub->EventRecords[2].Args.Num(), 3))
+		{
+			TestEqual("Event sub arg 0 type", EvtSub->EventRecords[2].Args[0].GetType(), ESUDSValueType::Float);
+			TestEqual("Event sub arg 0 value", EvtSub->EventRecords[2].Args[0].GetFloatValue(), 76.67f);
+			TestEqual("Event sub arg 2 type", EvtSub->EventRecords[2].Args[1].GetType(), ESUDSValueType::Boolean);
+			TestEqual("Event sub arg 2 value", EvtSub->EventRecords[2].Args[1].GetBooleanValue(), true);
+			TestEqual("Event sub arg 2 type", EvtSub->EventRecords[2].Args[2].GetType(), ESUDSValueType::Text);
+			TestEqual("Event sub arg 2 value", EvtSub->EventRecords[2].Args[2].GetTextValue().ToString(), "Ey up");
+		}
 	}
-	if (TestEqual("Participant should have received", Participant->EventRecords.Num(), 2))
+	if (TestEqual("Participant should have received", Participant->EventRecords.Num(), 3))
 	{
 		TestEqual("Event name", Participant->EventRecords[1].Name.ToString(), "WellBlowMeDown");
 		if (TestEqual("Participant arg count", Participant->EventRecords[1].Args.Num(), 3))
@@ -123,6 +134,16 @@ bool FTestEvents::RunTest(const FString& Parameters)
 			TestEqual("Participant arg 1 value", Participant->EventRecords[1].Args[1].GetBooleanValue(), true);
 			TestEqual("Participant arg 2 type", Participant->EventRecords[1].Args[2].GetType(), ESUDSValueType::Text);
 			TestEqual("Participant arg 2 value", Participant->EventRecords[1].Args[2].GetTextValue().ToString(), "Ey up");
+		}
+		TestEqual("Event name", Participant->EventRecords[2].Name.ToString(), "Calculated");
+		if (TestEqual("Event sub arg count", Participant->EventRecords[2].Args.Num(), 3))
+		{
+			TestEqual("Event sub arg 0 type", Participant->EventRecords[2].Args[0].GetType(), ESUDSValueType::Float);
+			TestEqual("Event sub arg 0 value", Participant->EventRecords[2].Args[0].GetFloatValue(), 76.67f);
+			TestEqual("Event sub arg 2 type", Participant->EventRecords[2].Args[1].GetType(), ESUDSValueType::Boolean);
+			TestEqual("Event sub arg 2 value", Participant->EventRecords[2].Args[1].GetBooleanValue(), true);
+			TestEqual("Event sub arg 2 type", Participant->EventRecords[2].Args[2].GetType(), ESUDSValueType::Text);
+			TestEqual("Event sub arg 2 value", Participant->EventRecords[2].Args[2].GetTextValue().ToString(), "Ey up");
 		}
 		
 	}

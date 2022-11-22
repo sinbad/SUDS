@@ -770,7 +770,7 @@ bool FSUDSScriptImporter::ParseSetLine(const FStringView& InLine,
 		FString ExprStr = SetRegex.GetCaptureGroup(2).TrimStartAndEnd(); // trim because capture accepts spaces in quotes
 
 		FSUDSExpression Expr;
-		if (Expr.ParseFromString(ExprStr, FString::Printf(TEXT("Error in %s line %d: malformed set line"), *NameForErrors, LineNo)))
+		if (Expr.ParseFromString(ExprStr, FString::Printf(TEXT("Error in %s line %d: "), *NameForErrors, LineNo)))
 		{
 			if (Expr.IsTextLiteral())
 			{
@@ -819,22 +819,23 @@ bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line,
 		if (EventRegex.GetCaptureGroupBeginning(2) != INDEX_NONE)
 		{
 			// Has arguments, all lumped together
-			// Capture using a sub-regex which can detect quoted strings or split by whitespace			
+			// Capture using a sub-regex which can detect quoted strings, split by commas			
 			FString AllArgs = EventRegex.GetCaptureGroup(2).TrimStartAndEnd();
-			const FRegexPattern ArgPattern(TEXT("((\\\"[^\\\"]*\\\"|\\S+))"));
+			const FRegexPattern ArgPattern(TEXT("((\\\"[^\\\"]*\\\"|[^,\\\"]+))"));
 			FRegexMatcher ArgRegex(ArgPattern, AllArgs);
 			while (ArgRegex.FindNext())
 			{
 				// then process the quote
-				FString ArgStr = ArgRegex.GetCaptureGroup(1);
-				// NOTE: we will NOT support expressions here, too complex
-				// If we support expressions in set commands, people should use those and set a variable first & pass that
-				FSUDSValue Literal;
-				if (FSUDSExpression::ParseOperand(ArgStr, Literal))
+				FString ArgStr = ArgRegex.GetCaptureGroup(1).TrimStartAndEnd();
+				if (ArgStr.Len() == 0)
+					continue;
+				
+				FSUDSExpression Expr;
+				if (Expr.ParseFromString(ArgStr, FString::Printf(TEXT("Error in %s line %d: "), *NameForErrors, LineNo)))
 				{
 					// note: no localisation of event literals, they're just strings
 					// we assume the receiver of the event will set localised text to variables if they want
-					Node.EventArgsLiteral.Add(Literal);
+					Node.EventArgs.Add(Expr);
 				}
 				else
 				{
@@ -1443,7 +1444,7 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 					{
 						auto EvtNode = NewObject<USUDSScriptNodeEvent>(Asset);
 						// TODO support expressions in events not just literals?
-						EvtNode->Init(InNode.Identifier, InNode.EventArgsLiteral);
+						EvtNode->Init(InNode.Identifier, InNode.EventArgs);
 						Node = EvtNode;
 						break;
 					}
