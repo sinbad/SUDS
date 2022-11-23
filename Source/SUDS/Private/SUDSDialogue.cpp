@@ -111,7 +111,9 @@ USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node) const
 	for (auto& Edge : Node->GetEdges())
 	{
 		auto Result = Edge.GetCondition().Evaluate(VariableState);
-		if (Result.GetType() != ESUDSValueType::Boolean)
+
+		if (Result.GetType() != ESUDSValueType::Boolean &&
+			Result.GetType() != ESUDSValueType::Variable) // Allow unresolved variable, will assume false
 		{
 			UE_LOG(LogSUDSDialogue, Error, TEXT("%s: Condition '%s' did not return a boolean result"), *BaseScript->GetName(), *Edge.GetCondition().GetSourceString())
 		}
