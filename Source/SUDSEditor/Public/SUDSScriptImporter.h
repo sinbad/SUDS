@@ -156,7 +156,7 @@ protected:
 		// The index of the Node which is the parent of this context
 		// This potentially changes every time a sequential text node is encountered in the same context, so it's
 		// always pointing to the last node encountered at this level, for connection
-		int LastNodeIdx;
+		int LastNodeIdx = -1;
 
 		/// The outermost indent level where this context lives
 		/// You can indent things that don't create a new context, e.g.
@@ -165,12 +165,14 @@ protected:
 		/// This is just good for readability, but does not create a new context, it's just a linear sequence
 		/// Therefore the ThresholdIndent tracks the outermost indent relating to the current linear sequence, to know
 		/// when you do in fact need to pop the current context off the stack.
-		int ThresholdIndent;
+		int ThresholdIndent = 0;
+
+		int LastTextNodeIdx = -1;
 
 		/// The path entry for this indent, to be combined with all previous levels to provide full path context
 		FString PathEntry;
 
-		IndentContext(int NodeIdx, int Indent, const FString& Path) : LastNodeIdx(NodeIdx), ThresholdIndent(Indent), PathEntry(Path) {}
+		IndentContext(int NodeIdx, int Indent, const FString& Path) : LastNodeIdx(NodeIdx), ThresholdIndent(Indent), LastTextNodeIdx(-1), PathEntry(Path) {}
 
 	};
 
@@ -266,12 +268,14 @@ protected:
 	bool ParseTextLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool IsCommentLine(const FStringView& TrimmedLine);
 	FStringView TrimLine(const FStringView& Line, int& OutIndentLevel) const;
+	int FindChoiceAfterTextNode(const FSUDSScriptImporter::ParsedTree& Tree, int TextNodeIdx);
 	int FindLastChoiceNode(const ParsedTree& Tree, int IndentLevel);
+	int FindLastChoiceNode(const ParsedTree& Tree, int IndentLevel, int FromIndex, const FString& ConditionPath);
 	void PopIndent(ParsedTree& Tree);
 	void PushIndent(ParsedTree& Tree, int NodeIdx, int Indent, const FString& Path);
 	FString GetCurrentTreePath(const FSUDSScriptImporter::ParsedTree& Tree);
 	FString GetCurrentTreeConditionalPath(const FSUDSScriptImporter::ParsedTree& Tree);
-	void SetFallthroughForNewNode(const FSUDSScriptImporter::ParsedTree& Tree, FSUDSParsedNode& NewNode, int PrevNodeIdx);
+	void SetFallthroughForNewNode(FSUDSScriptImporter::ParsedTree& Tree, FSUDSParsedNode& NewNode);
 	int AppendNode(ParsedTree& Tree, const FSUDSParsedNode& InNode);
 	bool SelectNodeIsMissingElsePath(const FSUDSScriptImporter::ParsedTree& Tree, const FSUDSParsedNode& Node);
 	void ConnectRemainingNodes(ParsedTree& Tree, const FString& NameForErrors, bool bSilent);

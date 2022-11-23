@@ -259,18 +259,70 @@ bool FSUDSScriptImporter::IsLastNodeOfType(const FSUDSScriptImporter::ParsedTree
 	return Tree.Nodes.IsValidIndex(Ctx.LastNodeIdx) && Tree.Nodes[Ctx.LastNodeIdx].NodeType == Type;
 }
 
-
 int FSUDSScriptImporter::FindLastChoiceNode(const ParsedTree& Tree, int IndentLevel)
+{
+	int Ret = FindLastChoiceNode(Tree, IndentLevel,Tree.Nodes.Num() - 1, GetCurrentTreeConditionalPath(Tree));
+	// if (Ret == -1)
+	// {
+	// 	// Fallback to try to find from previous text
+	// 	auto& Ctx = Tree.IndentLevelStack.Top();
+	// 	
+	// 	if (Tree.Nodes.IsValidIndex(Ctx.LastTextNodeIdx))
+	// 	{
+	// 		return FindChoiceAfterTextNode(Tree, Ctx.LastTextNodeIdx);
+	// 	}
+	// }
+	return Ret;
+}
+
+int FSUDSScriptImporter::FindChoiceAfterTextNode(const FSUDSScriptImporter::ParsedTree& Tree, int TextNodeIdx)
+{
+	const auto& TextNode = Tree.Nodes[TextNodeIdx];
+	if (TextNode.Edges.Num() == 1 && Tree.Nodes.IsValidIndex(TextNode.Edges[0].TargetNodeIdx))
+	{
+		int NextNodeIdx = TextNode.Edges[0].TargetNodeIdx;
+		while (Tree.Nodes.IsValidIndex(NextNodeIdx))
+		{
+			auto& Node = Tree.Nodes[NextNodeIdx];
+			switch (Node.NodeType)
+			{
+			case ESUDSParsedNodeType::Select:
+			case ESUDSParsedNodeType::Text:
+				// Didn't find
+				return -1;
+			case ESUDSParsedNodeType::Choice:
+				return NextNodeIdx;
+			case ESUDSParsedNodeType::SetVariable:
+			case ESUDSParsedNodeType::Goto:
+			case ESUDSParsedNodeType::Event:
+				if (Node.Edges.Num() == 1)
+				{
+					NextNodeIdx = Node.Edges[0].TargetNodeIdx;
+				}
+				else
+				{
+					return -1;
+				}
+				break;
+			default: ;
+			};
+		}
+	}
+	return -1;
+	
+}
+
+
+int FSUDSScriptImporter::FindLastChoiceNode(const ParsedTree& Tree, int IndentLevel, int FromIndex, const FString& ConditionPath)
 {
 	// Scan backwards from end of tree looking for a choice node which has the same or higher indent and condition state as current
 	// But abort if we hit text nodes on that path
-	const FString CurrentConditionTree = GetCurrentTreeConditionalPath(Tree);
 
-	for (int i = Tree.Nodes.Num() - 1; i >= 0; --i)
+	for (int i = FromIndex; i >= 0; --i)
 	{
 		auto& Node = Tree.Nodes[i];
 
-		if (CurrentConditionTree.StartsWith(Node.ConditionalPath) &&
+		if (ConditionPath.StartsWith(Node.ConditionalPath) &&
 			Node.NodeType == ESUDSParsedNodeType::Text &&
 			Node.OriginalIndent <= IndentLevel)
 		{
@@ -279,7 +331,7 @@ int FSUDSScriptImporter::FindLastChoiceNode(const ParsedTree& Tree, int IndentLe
 		}
 		// Only consider nodes on the same conditional path
 		// Note: NOT containing the conditional path. We don't want to skip over an intervening select node
-		if (CurrentConditionTree == Node.ConditionalPath)
+		if (ConditionPath == Node.ConditionalPath)
 		{
 			// note that we allow indents < as well as ==
 			// This is so that if you choose to aesthetically indent choices it still works
@@ -382,9 +434,11 @@ void FSUDSScriptImporter::EnsureChoiceNodeExistsAboveSelect(ParsedTree& Tree, in
 	if (!Tree.Nodes.IsValidIndex(ParentIdx) || Tree.Nodes[ParentIdx].NodeType != ESUDSParsedNodeType::Select)
 		return;
 
+	int TopSelectIdx = ParentIdx;
 	// Find the node above the top of potentially nested select chain
 	while (Tree.Nodes.IsValidIndex(ParentIdx) && Tree.Nodes[ParentIdx].NodeType == ESUDSParsedNodeType::Select)
 	{
+		TopSelectIdx = ParentIdx;
 		ParentIdx = Tree.Nodes[ParentIdx].ParentNodeIdx;
 	}
 
@@ -398,6 +452,23 @@ void FSUDSScriptImporter::EnsureChoiceNodeExistsAboveSelect(ParsedTree& Tree, in
 	{
 		// This means we hit the top of the chain without finding choice or select
 		// We have to trust that FindLastChoiceNode will find it & it's valid (previous placement should resolve)
+
+		// Connect top select to choice under last text
+		if (Tree.Nodes.IsValidIndex(TopSelectIdx) && Tree.Nodes.IsValidIndex(Ctx.LastTextNodeIdx))
+		{
+			const auto& TextNode = Tree.Nodes[Ctx.LastTextNodeIdx];
+			if (TextNode.Edges.Num() == 1 && Tree.Nodes.IsValidIndex(TextNode.Edges[0].TargetNodeIdx))
+			{
+				int ChoiceIdx = TextNode.Edges[0].TargetNodeIdx;
+				auto& SelNode = Tree.Nodes[TopSelectIdx];
+				auto& ChoiceNode = Tree.Nodes[ChoiceIdx];
+				FSUDSParsedEdge NewEdge(LineNo);
+				NewEdge.SourceNodeIdx = ChoiceIdx;
+				NewEdge.TargetNodeIdx = TopSelectIdx;
+				ChoiceNode.Edges.Add(NewEdge);
+				SelNode.ParentNodeIdx = ChoiceIdx;
+			}
+		}
 		return;
 	}
 
@@ -438,6 +509,8 @@ void FSUDSScriptImporter::EnsureChoiceNodeExistsAboveSelect(ParsedTree& Tree, in
 	{
 		if (I.LastNodeIdx >= InsertIdx)
 			++I.LastNodeIdx;
+		if (I.LastTextNodeIdx >= InsertIdx)
+			++I.LastTextNodeIdx;
 	}
 	// Also conditional blocks
 	for (auto& CB : Tree.ConditionalBlocks)
@@ -452,6 +525,9 @@ void FSUDSScriptImporter::EnsureChoiceNodeExistsAboveSelect(ParsedTree& Tree, in
 
 	// Manually change the select node parent index afterwards (if we change it before it'll get adjusted again)
 	SelectNode.ParentNodeIdx = InsertIdx;
+
+	SetFallthroughForNewNode(Tree, NewChoice);
+	
 	
 }
 
@@ -475,36 +551,27 @@ bool FSUDSScriptImporter::ParseElseLine(const FStringView& Line,
 		// Select or choice node should already be there
 		// Select node may be turned into a choice later if choice is the first thing encountered
 
-		if (Tree.ConditionalBlocks.IsValidIndex(Tree.CurrentConditionalBlockIdx))
+		auto& Block = Tree.ConditionalBlocks[Tree.CurrentConditionalBlockIdx];
+		if (Block.Stage != EConditionalStage::ElseStage)
 		{
-			auto& Block = Tree.ConditionalBlocks[Tree.CurrentConditionalBlockIdx];
-			if (Block.Stage != EConditionalStage::ElseStage)
-			{
-				Block.Stage = EConditionalStage::ElseStage;
-				Block.ConditionStr = "";
-				const int NodeIdx = Block.SelectNodeIdx;
+			Block.Stage = EConditionalStage::ElseStage;
+			Block.ConditionStr = "";
+			const int NodeIdx = Block.SelectNodeIdx;
 				
-				auto& SelectNode = Tree.Nodes[NodeIdx];
-				const int EdgeIdx = SelectNode.Edges.Add(FSUDSParsedEdge(NodeIdx, -1, LineNo));
-				Tree.EdgeInProgressNodeIdx = NodeIdx;
-				Tree.EdgeInProgressEdgeIdx = EdgeIdx;
-				// Wind back the last node to select
-				auto& Ctx = Tree.IndentLevelStack.Top();
-				Ctx.LastNodeIdx = NodeIdx;
+			auto& SelectNode = Tree.Nodes[NodeIdx];
+			const int EdgeIdx = SelectNode.Edges.Add(FSUDSParsedEdge(NodeIdx, -1, LineNo));
+			Tree.EdgeInProgressNodeIdx = NodeIdx;
+			Tree.EdgeInProgressEdgeIdx = EdgeIdx;
+			// Wind back the last node to select
+			auto& Ctx = Tree.IndentLevelStack.Top();
+			Ctx.LastNodeIdx = NodeIdx;
 
-					
-			}
-			else
-			{
-				if (!bSilent)
-					UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: cannot have more than one 'else'"), *NameForErrors, LineNo);
-			}
 					
 		}
 		else
 		{
 			if (!bSilent)
-				UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: 'elseif' with no matching 'if'"), *NameForErrors, LineNo);
+				UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: cannot have more than one 'else'"), *NameForErrors, LineNo);
 		}
 	}
 	else
@@ -888,7 +955,7 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine,
 		// New text node
 		// Text nodes can never introduce another indent context
 		// We've already backed out to the outer indent in caller
-		AppendNode(Tree, FSUDSParsedNode(Speaker, Text, TextID, IndentLevel, LineNo));
+		Ctx.LastTextNodeIdx = AppendNode(Tree, FSUDSParsedNode(Speaker, Text, TextID, IndentLevel, LineNo));
 
 		ReferencedSpeakers.AddUnique(Speaker);
 		
@@ -1003,7 +1070,7 @@ FString FSUDSScriptImporter::GetCurrentTreeConditionalPath(const FSUDSScriptImpo
 	
 }
 
-void FSUDSScriptImporter::SetFallthroughForNewNode(const FSUDSScriptImporter::ParsedTree& Tree, FSUDSParsedNode& NewNode, int PrevNodeIdx)
+void FSUDSScriptImporter::SetFallthroughForNewNode(FSUDSScriptImporter::ParsedTree& Tree, FSUDSParsedNode& NewNode)
 {
 	// Never fall through to choice nodes
 	// This does limit your ability to use a dangling text line and have it fall through to a common choice,
@@ -1012,14 +1079,20 @@ void FSUDSScriptImporter::SetFallthroughForNewNode(const FSUDSScriptImporter::Pa
 	if (NewNode.NodeType == ESUDSParsedNodeType::Choice)
 	{
 		NewNode.AllowFallthrough = false;
+
+		// Also disable fallthrough for any parent select nodes all the way up the chain
+		int PrevIdx = NewNode.ParentNodeIdx;
+		while (Tree.Nodes.IsValidIndex(PrevIdx) && Tree.Nodes[PrevIdx].NodeType == ESUDSParsedNodeType::Select)
+		{
+			Tree.Nodes[PrevIdx].AllowFallthrough = false;
+			PrevIdx = Tree.Nodes[PrevIdx].ParentNodeIdx; 
+		}
 	}
 	else
 	{
-		if (Tree.Nodes.IsValidIndex(PrevNodeIdx))
+		if (Tree.Nodes.IsValidIndex(NewNode.ParentNodeIdx))
 		{
-			// Append this node onto the last one
-			auto& PrevNode = Tree.Nodes[PrevNodeIdx];
-
+			auto& PrevNode = Tree.Nodes[NewNode.ParentNodeIdx];
 			// Do not allow fallthrough to this node for selects that are themselves children of other selects or choices
 			// It means they're compound conditionals / choices and we should only fall through to the root of that
 			if (NewNode.NodeType == ESUDSParsedNodeType::Select &&
@@ -1049,8 +1122,8 @@ int FSUDSScriptImporter::AppendNode(FSUDSScriptImporter::ParsedTree& Tree, const
 		E->TargetNodeIdx = NewIndex;
 
 		const int PrevNodeIdx = E->SourceNodeIdx;
-		SetFallthroughForNewNode(Tree, NewNode, PrevNodeIdx);
 		NewNode.ParentNodeIdx = PrevNodeIdx;
+		SetFallthroughForNewNode(Tree, NewNode);
 		Tree.EdgeInProgressNodeIdx = -1;
 		Tree.EdgeInProgressEdgeIdx = -1;
 	}
@@ -1078,7 +1151,7 @@ int FSUDSScriptImporter::AppendNode(FSUDSScriptImporter::ParsedTree& Tree, const
 
 		}
 
-		SetFallthroughForNewNode(Tree, NewNode, PrevNodeIdx);
+		SetFallthroughForNewNode(Tree, NewNode);
 
 	}
 

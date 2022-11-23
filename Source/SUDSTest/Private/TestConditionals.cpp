@@ -64,6 +64,25 @@ NPC: OK next question
 NPC: Bye
 )RAWSUD";
 
+const FString SiblingConditionalChoiceInput = R"RAWSUD(
+NPC: Hello
+[if {x} == 0]
+    * First choice
+        Player: I took the 1.1 choice
+[endif]
+[if {y} == 1]
+    * Second choice (conditional)
+        Player: I took the 1.2 choice
+[endif]
+[if {z} == 1]
+    * Third choice (conditional)
+        Player: I took the 1.3 choice
+[endif]
+    * Second Alt Choice
+
+NPC: End
+)RAWSUD";
+
 
 const FString MixedChoiceAndBranchInput = R"RAWSUD(
 [if {alreadyvisited}]
@@ -200,6 +219,56 @@ bool FTestBasicConditionals::RunTest(const FString& Parameters)
     }
     
 	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestSiblingConditionals,
+                                 "SUDSTest.TestSiblingConditionals",
+                                 EAutomationTestFlags::EditorContext |
+                                 EAutomationTestFlags::ClientContext |
+                                 EAutomationTestFlags::ProductFilter)
+
+bool FTestSiblingConditionals::RunTest(const FString& Parameters)
+{
+    FSUDSScriptImporter Importer;
+    TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SiblingConditionalChoiceInput), SiblingConditionalChoiceInput.Len(), "SiblingConditionalChoiceInput", true));
+
+    // Test the content of the parsing
+    auto NextNode = Importer.GetNode(0);
+    if (!TestNotNull("Root node should exist", NextNode))
+        return false;
+    TestParsedText(this, "Text node", NextNode, "NPC", "Hello");
+    TestGetParsedNextNode(this, "Get next", NextNode, Importer, false, &NextNode);
+    if (TestParsedChoice(this, "Root Choice", NextNode, 4))
+    {
+        auto RootChoice = NextNode;
+        // Sibling choices all get their own nodes
+        // Bit wasteful to have C -> S -> C -> Text instead of just C -> T but you never know how many choices would
+        // be in each select level
+        TestParsedChoiceEdge(this, "Choice 0", RootChoice, 0, "", Importer, &NextNode);
+        if (TestParsedSelect(this, "Select 0", NextNode, 1))
+        {
+            TestParsedSelectEdge(this, "Select 0", NextNode, 0, "{x} == 0", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 0 sub", NextNode, 0, "First choice", Importer, &NextNode);
+            TestParsedText(this, "Text 0", NextNode, "Player", "I took the 1.1 choice");
+        }
+        TestParsedChoiceEdge(this, "Choice 1", RootChoice, 1, "", Importer, &NextNode);
+        if (TestParsedSelect(this, "Select 1", NextNode, 1))
+        {
+            TestParsedSelectEdge(this, "Select 1", NextNode, 0, "{y} == 1", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 1 sub", NextNode, 0, "Second choice (conditional)", Importer, &NextNode);
+            TestParsedText(this, "Text 1", NextNode, "Player", "I took the 1.2 choice");
+        }
+        TestParsedChoiceEdge(this, "Choice 2", RootChoice, 2, "", Importer, &NextNode);
+        if (TestParsedSelect(this, "Select 2", NextNode, 1))
+        {
+            TestParsedSelectEdge(this, "Select 2", NextNode, 0, "{z} == 1", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 2 sub", NextNode, 0, "Third choice (conditional)", Importer, &NextNode);
+            TestParsedText(this, "Text 1", NextNode, "Player", "I took the 1.3 choice");
+        }
+        // Dangling choice with no condition
+        TestParsedChoiceEdge(this, "Choice 3", RootChoice, 3, "Second Alt Choice", Importer, &NextNode);
+    }
+    return true;
 }
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestRunningBasicConditionals,
@@ -458,17 +527,96 @@ bool FTestMixedChoiceAndBranch::RunTest(const FString& Parameters)
     Dlg->SetVariableInt("x", 10);
     Dlg->Restart(false);
     TestDialogueText(this, "Text node", Dlg, "NPC", "Hello");
-    TestEqual("Num choices", Dlg->GetNumberOfChoices(), 4);
-    TestEqual("Num choices", Dlg->GetChoiceText(0).ToString(), "First choice");
-    TestEqual("Num choices", Dlg->GetChoiceText(1).ToString(), "Second choice (conditional)");
-    TestEqual("Num choices", Dlg->GetChoiceText(2).ToString(), "Third choice (conditional)");
-    TestEqual("Num choices", Dlg->GetChoiceText(3).ToString(), "Common last choice");
-    TestTrue("Choose", Dlg->Choose(2));
-    TestDialogueText(this, "Text node", Dlg, "Player", "I took the 1.3 choice");
-    TestTrue("Continue", Dlg->Continue());
-    TestDialogueText(this, "Text node", Dlg, "NPC", "Bye");
+    if (TestEqual("Num choices", Dlg->GetNumberOfChoices(), 4))
+    {
+        TestEqual("ChoiceText", Dlg->GetChoiceText(0).ToString(), "First choice");
+        TestEqual("ChoiceText", Dlg->GetChoiceText(1).ToString(), "Second choice (conditional)");
+        TestEqual("ChoiceText", Dlg->GetChoiceText(2).ToString(), "Third choice (conditional)");
+        TestEqual("ChoiceText", Dlg->GetChoiceText(3).ToString(), "Common last choice");
+        TestTrue("Choose", Dlg->Choose(2));
+        TestDialogueText(this, "Text node", Dlg, "Player", "I took the 1.3 choice");
+        TestTrue("Continue", Dlg->Continue());
+        TestDialogueText(this, "Text node", Dlg, "NPC", "Bye");
+    }
     
+    Dlg->SetVariableBoolean("alreadyvisited", true);
+    Dlg->SetVariableInt("y", -1);
+    Dlg->Restart(false);
+    TestDialogueText(this, "Text node", Dlg, "NPC", "Hello again");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text node", Dlg, "Player", "Y is less than 0");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text node", Dlg, "NPC", "How interesting");
+    if (TestEqual("Num choices", Dlg->GetNumberOfChoices(), 2))
+    {
+        TestEqual("Choice text", Dlg->GetChoiceText(0).ToString(), "You don't sound that interested");
+        TestEqual("Choice text", Dlg->GetChoiceText(1).ToString(), "Well, better be off");
+        TestTrue("Choose", Dlg->Choose(1));
+        TestDialogueText(this, "Text node", Dlg, "NPC", "Bye");
+    }
+    
+    Dlg->SetVariableBoolean("alreadyvisited", true);
+    Dlg->SetVariableInt("y", -1);
+    Dlg->SetVariableInt("x", 0);
+    Dlg->Restart(false);
+    TestDialogueText(this, "Text node", Dlg, "NPC", "Hello again");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text node", Dlg, "Player", "Y is less than 0");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text node", Dlg, "NPC", "How interesting");
+    if (TestEqual("Num choices", Dlg->GetNumberOfChoices(), 3))
+    {
+        TestEqual("Choice text", Dlg->GetChoiceText(0).ToString(), "You don't sound that interested");
+        TestEqual("Choice text", Dlg->GetChoiceText(1).ToString(), "Also x is zero");
+        TestEqual("Choice text", Dlg->GetChoiceText(2).ToString(), "Well, better be off");
+        TestTrue("Choose", Dlg->Choose(1));
+        TestDialogueText(this, "Text node", Dlg, "NPC", "Fascinating");
+        TestTrue("Continue", Dlg->Continue());
+        TestDialogueText(this, "Text node", Dlg, "Player", "This is some fallthrough text");
+        TestTrue("Continue", Dlg->Continue());
+        TestDialogueText(this, "Text node", Dlg, "NPC", "Bye");
+    }
 
+
+    Dlg->SetVariableBoolean("alreadyvisited", true);
+    Dlg->SetVariableInt("y", 123);
+    Dlg->SetVariableBoolean("ponderous", true);
+    Dlg->Restart(false);
+    TestDialogueText(this, "Text node", Dlg, "NPC", "Hello again");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text node", Dlg, "Player", "Who knows what Y is anyway");
+    if (TestEqual("Num choices", Dlg->GetNumberOfChoices(), 3))
+    {
+        TestEqual("Choice text", Dlg->GetChoiceText(0).ToString(), "Who knows what anything is?");
+        TestEqual("Choice text", Dlg->GetChoiceText(1).ToString(), "It's more than I can count on one hand");
+        TestEqual("Choice text", Dlg->GetChoiceText(2).ToString(), "I'm done with this");
+        TestTrue("Choose", Dlg->Choose(0));
+        TestDialogueText(this, "Text node", Dlg, "NPC", "Get out");
+        TestTrue("Continue", Dlg->Continue());
+        TestDialogueText(this, "Text node", Dlg, "Player", "This is some fallthrough text");
+        TestTrue("Continue", Dlg->Continue());
+        TestDialogueText(this, "Text node", Dlg, "NPC", "Bye");
+        
+    }
+    
+    Dlg->SetVariableBoolean("alreadyvisited", true);
+    Dlg->SetVariableInt("y", 4);
+    Dlg->SetVariableBoolean("ponderous", true);
+    Dlg->Restart(false);
+    TestDialogueText(this, "Text node", Dlg, "NPC", "Hello again");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text node", Dlg, "Player", "Who knows what Y is anyway");
+    if (TestEqual("Num choices", Dlg->GetNumberOfChoices(), 3))
+    {
+        TestEqual("Choice text", Dlg->GetChoiceText(0).ToString(), "Who knows what anything is?");
+        TestEqual("Choice text", Dlg->GetChoiceText(1).ToString(), "It's kind of small though");
+        TestEqual("Choice text", Dlg->GetChoiceText(2).ToString(), "I'm done with this");
+        TestTrue("Choose", Dlg->Choose(2));
+        TestDialogueText(this, "Text node", Dlg, "Player", "This is some fallthrough text");
+        TestTrue("Continue", Dlg->Continue());
+        TestDialogueText(this, "Text node", Dlg, "NPC", "Bye");
+        
+    }
     
     return true;
 }
