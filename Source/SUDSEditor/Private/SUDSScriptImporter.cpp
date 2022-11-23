@@ -394,6 +394,13 @@ void FSUDSScriptImporter::EnsureChoiceNodeExistsAboveSelect(ParsedTree& Tree, in
 		return;
 	}
 
+	if (ParentIdx == -1)
+	{
+		// This means we hit the top of the chain without finding choice or select
+		// We have to trust that FindLastChoiceNode will find it & it's valid (previous placement should resolve)
+		return;
+	}
+
 	// If we got here, we navigated to the point above the select(s) and didn't end up on a root choice
 	// So we need to insert one, after this index
 	const int InsertIdx = ParentIdx + 1; // this happens to return 0 for having hit the start of the tree (-1), which is fine
@@ -1199,8 +1206,8 @@ void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree&
 	{
 		auto& Node = Tree.Nodes[i];
 		// We check for dead-end nodes, and for select nodes with no "else" (in case all conditions fail)
-		if (Node.Edges.IsEmpty() ||
-			(Node.NodeType == ESUDSParsedNodeType::Select && SelectNodeIsMissingElsePath(Tree, Node)))
+		const bool bIsSelectNodeMissingElse = Node.NodeType == ESUDSParsedNodeType::Select && SelectNodeIsMissingElsePath(Tree, Node);
+		if (Node.Edges.IsEmpty() || bIsSelectNodeMissingElse)
 		{
 			if (Node.NodeType == ESUDSParsedNodeType::Goto)
 			{
@@ -1222,7 +1229,9 @@ void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree&
 			else
 			{
 				// Find the next node which is at a higher indent level than this
-				const auto FallthroughIdx = FindFallthroughNodeIndex(Tree, i+1, Node.OriginalIndent, Node.ChoicePath, Node.ConditionalPath);
+				// For a select node missing else, treat the indent as 1 inward, since it's really falling through from a nested part of the select
+				const int IndentLessThan = bIsSelectNodeMissingElse ? Node.OriginalIndent + 1 : Node.OriginalIndent;
+				const auto FallthroughIdx = FindFallthroughNodeIndex(Tree, i+1, IndentLessThan, Node.ChoicePath, Node.ConditionalPath);
 				if (Tree.Nodes.IsValidIndex(FallthroughIdx))
 				{
 					Node.Edges.Add(FSUDSParsedEdge(i, FallthroughIdx, Node.SourceLineNo));
