@@ -34,6 +34,7 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 	bHeaderInProgress = false;
 	bool bImportedOK = true;
 	ChoiceUniqueId = 0;
+	TextIDHighestNumber = 0;
 	if (Start)
 	{
 		int32 SubstringBeginIndex = 0;
@@ -1029,7 +1030,7 @@ FString FSUDSScriptImporter::GenerateTextID(const FStringView& Line)
 	// Generate a new text ID just based on ascending numbers
 	// We don't actually base this on the line but we have it for future possible use
 	// Since it's a string, format exactly as in the sud file 
-	return FString::Printf(TEXT("@%x@"), ++TextIDHighestNumber);
+	return FString::Printf(TEXT("@%04x@"), ++TextIDHighestNumber);
 }
 
 FString FSUDSScriptImporter::GetCurrentTreePath(const FSUDSScriptImporter::ParsedTree& Tree)
