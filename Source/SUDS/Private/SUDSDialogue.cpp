@@ -296,6 +296,8 @@ void USUDSDialogue::RecurseAppendChoices(const USUDSScriptNode* Node, TArray<FSU
 			if (Edge.GetCondition().EvaluateBoolean(VariableState, BaseScript->GetName()))
 			{
 				RecurseAppendChoices(Edge.GetTargetNode().Get(), OutChoices);
+				// When we choose a path on a select, we don't check the other paths, we can only go down one
+				return;
 			}
 			break;
 		case ESUDSEdgeType::Chained:
