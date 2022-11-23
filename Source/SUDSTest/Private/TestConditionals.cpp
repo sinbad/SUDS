@@ -4,22 +4,22 @@
 #include "TestUtils.h"
 #include "Internationalization/StringTable.h"
 #include "Internationalization/StringTableRegistry.h"
-#include "Tests/FbxAutomationCommon.h"
+
 PRAGMA_DISABLE_OPTIMIZATION
 
 const FString BasicConditionalInput = R"RAWSUD(
 Player: Hello
 [if {x} == 1]
     NPC: Reply when x == 1
-    [if {y} == 1]
-        Player: Player text when x ==1 and y == 1
+    [if {y} > 0]
+        Player: Player text when x ==1 and y > 0
     [endif]
-[elseif {x} == 2]
-    NPC: Reply when x == 2
+[elseif {x} > 1]
+    NPC: Reply when x > 1
 [else]
     NPC: Reply when x is something else
 [endif]
-[if {z} == true]
+[if {z}]
     Player: the end is true
 [else]
     Player: the end is false
@@ -97,13 +97,13 @@ bool FTestBasicConditionals::RunTest(const FString& Parameters)
         {
             // Nested select
             auto SelectNode2 = NextNode;
-            TestParsedSelectEdge(this, "Nested select edge 1", SelectNode2, 0, "{y} == 1", Importer, &NextNode);
-            TestParsedText(this, "Nested node edge 1", NextNode, "Player", "Player text when x ==1 and y == 1");
+            TestParsedSelectEdge(this, "Nested select edge 1", SelectNode2, 0, "{y} > 0", Importer, &NextNode);
+            TestParsedText(this, "Nested node edge 1", NextNode, "Player", "Player text when x ==1 and y > 0");
             TestGetParsedNextNode(this, "Get next", NextNode, Importer, false, &NextNode);
             if (TestParsedSelect(this, "Fallthrough select", NextNode, 2))
             {
                 auto SelectNode3 = NextNode;
-                TestParsedSelectEdge(this, "Final select edge 1", SelectNode3, 0, "{z} == true", Importer, &NextNode);
+                TestParsedSelectEdge(this, "Final select edge 1", SelectNode3, 0, "{z}", Importer, &NextNode);
                 TestParsedText(this, "Final select edge 1 text", NextNode, "Player", "the end is true");
                 TestGetParsedNextNode(this, "Get next", NextNode, Importer, false, &NextNode);
                 TestParsedText(this, "Final fallthrough", NextNode, "NPC", "OK");
@@ -122,8 +122,8 @@ bool FTestBasicConditionals::RunTest(const FString& Parameters)
             TestParsedSelect(this, "Fallthrough select", NextNode, 2);
             
         }
-        TestParsedSelectEdge(this, "First select edge 2 (elseif)", SelectNode, 1, "{x} == 2", Importer, &NextNode);
-        TestParsedText(this, "Select node 2", NextNode, "NPC", "Reply when x == 2");
+        TestParsedSelectEdge(this, "First select edge 2 (elseif)", SelectNode, 1, "{x} > 1", Importer, &NextNode);
+        TestParsedText(this, "Select node 2", NextNode, "NPC", "Reply when x > 1");
         TestGetParsedNextNode(this, "Get next", NextNode, Importer, false, &NextNode);
         // Just test it gets to the fallthrough, we've already tested the continuation from there
         TestParsedSelect(this, "Fallthrough select", NextNode, 2);
@@ -171,6 +171,41 @@ bool FTestRunningBasicConditionals::RunTest(const FString& Parameters)
     TestTrue("End", Dlg->IsEnded());
 
 
+    // restart, set some variables to alter the path
+    Dlg->Restart(true);
+    Dlg->SetVariableInt("x", 1);
+    Dlg->SetVariableInt("y", -1);
+    Dlg->SetVariableBoolean("z", true);
+
+    TestDialogueText(this, "First node", Dlg, "Player", "Hello");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text", Dlg, "NPC", "Reply when x == 1");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text", Dlg, "Player", "the end is true");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text", Dlg, "NPC", "OK");
+    TestFalse("Continue", Dlg->Continue());
+    TestTrue("End", Dlg->IsEnded());
+
+
+    // restart, set some variables to alter the path
+    Dlg->Restart(true);
+    Dlg->SetVariableInt("x", 1);
+    Dlg->SetVariableInt("y", 10);
+    Dlg->SetVariableBoolean("z", false);
+
+    TestDialogueText(this, "First node", Dlg, "Player", "Hello");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text", Dlg, "NPC", "Reply when x == 1");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text", Dlg, "Player", "Player text when x ==1 and y > 0");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text", Dlg, "Player", "the end is false");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text", Dlg, "NPC", "OK");
+    TestFalse("Continue", Dlg->Continue());
+    TestTrue("End", Dlg->IsEnded());
+    
     return true;
     
 }
