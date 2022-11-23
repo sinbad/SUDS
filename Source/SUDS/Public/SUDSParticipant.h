@@ -47,7 +47,7 @@ public:
 	 * @param Dialogue The dialogue
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="SUDS")
-	void OnDialogueFinished(USUDSDialogue* Dialogue);	
+	void OnDialogueFinished(USUDSDialogue* Dialogue);
 
 	/**
 	 * Called when a new speaker line, potentially with attached choices, has become active in the dialogue.

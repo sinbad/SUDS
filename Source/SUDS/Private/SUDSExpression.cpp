@@ -268,10 +268,23 @@ FSUDSValue FSUDSExpression::Evaluate(const TMap<FName, FSUDSValue>& Variables) c
 	return EvaluateOperand(EvalStack.Top().GetOperandValue(), Variables);
 }
 
+bool FSUDSExpression::EvaluateBoolean(const TMap<FName, FSUDSValue>& Variables, const FString& ErrorContext) const
+{
+	const auto Result = Evaluate(Variables);
+
+	if (Result.GetType() != ESUDSValueType::Boolean &&
+		Result.GetType() != ESUDSValueType::Variable) // Allow unresolved variable, will assume false
+	{
+		UE_LOG(LogSUDS, Error, TEXT("%s: Condition '%s' did not return a boolean result"), *ErrorContext, *SourceString)
+	}
+
+	return Result.GetBooleanValue();
+}
+
 FSUDSExpressionItem FSUDSExpression::EvaluateOperator(ESUDSExpressionItemType Op,
-	const FSUDSExpressionItem& Arg1,
-	const FSUDSExpressionItem& Arg2,
-	const TMap<FName, FSUDSValue>& Variables) const
+                                                      const FSUDSExpressionItem& Arg1,
+                                                      const FSUDSExpressionItem& Arg2,
+                                                      const TMap<FName, FSUDSValue>& Variables) const
 {
 	const FSUDSValue Val1 = EvaluateOperand(Arg1.GetOperandValue(), Variables);
 	FSUDSValue Val2;

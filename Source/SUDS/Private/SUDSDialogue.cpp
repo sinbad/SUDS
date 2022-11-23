@@ -110,15 +110,8 @@ USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node) const
 {
 	for (auto& Edge : Node->GetEdges())
 	{
-		auto Result = Edge.GetCondition().Evaluate(VariableState);
-
-		if (Result.GetType() != ESUDSValueType::Boolean &&
-			Result.GetType() != ESUDSValueType::Variable) // Allow unresolved variable, will assume false
-		{
-			UE_LOG(LogSUDSDialogue, Error, TEXT("%s: Condition '%s' did not return a boolean result"), *BaseScript->GetName(), *Edge.GetCondition().GetSourceString())
-		}
 		// use the first satisfied edge
-		if (Result.GetBooleanValue())
+		if (Edge.GetCondition().EvaluateBoolean(VariableState, BaseScript->GetName()))
 		{
 			return Edge.GetTargetNode().Get();
 		}
@@ -172,10 +165,10 @@ void USUDSDialogue::SetCurrentSpeakerNode(USUDSScriptNodeText* Node)
 	CurrentSpeakerNode = Node;
 
 	CurrentSpeakerDisplayName = FText::GetEmpty();
-	AllCurrentChoices = nullptr;
-	ValidCurrentChoices.Reset();
 	bParamNamesExtracted = false;
 
+	UpdateChoices();
+	
 	RaiseNewSpeakerLine();
 
 }
@@ -279,112 +272,98 @@ const USUDSScriptNode* USUDSDialogue::RunUntilNextChoiceNode(const USUDSScriptNo
 	
 }
 
-const USUDSScriptNode* USUDSDialogue::FindNextChoiceNode(const USUDSScriptNodeText* FromTextNode) const
+const TArray<FSUDSScriptEdge>& USUDSDialogue::GetChoices() const
 {
-	if (FromTextNode && FromTextNode->GetEdgeCount() == 1)
-	{
-		auto NextNode = GetNextNode(FromTextNode);
-		// We only skip over set nodes
-		while (NextNode &&
-			NextNode->GetNodeType() == ESUDSScriptNodeType::SetVariable)
-		{
-			NextNode = GetNextNode(NextNode);
-		}
+	return CurrentChoices;
+}
 
-		return NextNode;
-	}
+void USUDSDialogue::RecurseAppendChoices(const USUDSScriptNode* Node, TArray<FSUDSScriptEdge>& OutChoices)
+{
+	if (!Node)
+		return;
 
-	return nullptr;
+	check(Node->GetNodeType() == ESUDSScriptNodeType::Choice || Node->GetNodeType() == ESUDSScriptNodeType::Select);
 	
-}
-
-const TArray<FSUDSScriptEdge>* USUDSDialogue::GetChoices(bool bOnlyValidChoices) const
-{
-	// "CurrentNode" is always a text node in practice
-	// other nodes are passed through but not alighted on
-	// Cache choices
-	if (!AllCurrentChoices)
+	for (auto& Edge : Node->GetEdges())
 	{
-		ValidCurrentChoices.Reset();
-		if (CurrentSpeakerNode)
+		switch (Edge.GetType())
 		{
-			if (CurrentSpeakerNode->HasChoices())
+		case ESUDSEdgeType::Decision:
+			OutChoices.Add(Edge);
+			break;
+		case ESUDSEdgeType::Condition:
+			// Conditional edges are under selects
+			if (Edge.GetCondition().EvaluateBoolean(VariableState, BaseScript->GetName()))
 			{
-				// Choice node might not be directly underneath. For example, we may go through set nodes first
-				if (const USUDSScriptNode* ChoiceNode = FindNextChoiceNode(CurrentSpeakerNode))
-				{
-					/// Choices are the edges under the choice node
-					AllCurrentChoices = &(ChoiceNode->GetEdges());
-
-					if (bOnlyValidChoices)
-					{
-						// Note that we only re-evaluate conditions once per node change, for stability between counts / indexes
-						// Even if conditions are dependent on external data we only sample them once when node changes so everything is consistent
-						// TODO: evaluate conditions
-						for (auto& Choice : *AllCurrentChoices)
-						{
-							// Copy happens here
-							ValidCurrentChoices.Add(Choice);
-						}
-					}
-				}
+				RecurseAppendChoices(Edge.GetTargetNode().Get(), OutChoices);
 			}
-			else
-			{
-				AllCurrentChoices = &ValidCurrentChoices;
-				if (auto Edge = CurrentSpeakerNode->GetEdge(0))
-				{
-					// Simple no-choice progression (text->text)
-					ValidCurrentChoices.Add(*Edge);
-				}
-			}
-			
-		}
+			break;
+		case ESUDSEdgeType::Chained:
+			RecurseAppendChoices(Edge.GetTargetNode().Get(), OutChoices);
+			break;
+		default:
+		case ESUDSEdgeType::Continue:
+			UE_LOG(LogSUDSDialogue, Fatal, TEXT("Should not have encountered invalid edge in RecurseAppendChoices"))			
+			break;
+		};
+		
 	}
-
-	return bOnlyValidChoices ? &ValidCurrentChoices : AllCurrentChoices;
-}
-int USUDSDialogue::GetNumberOfChoices(bool bOnlyValidChoices) const
-{
-	if (auto Choices = GetChoices(bOnlyValidChoices))
-	{
-		return Choices->Num();
-	}
-	else
-	{
-		// If not a choice node, then if there's a single edge that's a "choice" too
-		if (CurrentSpeakerNode && CurrentSpeakerNode->GetEdgeCount() == 1)
-			return 1;
-	}
-	
-	return 0;
 }
 
-FText USUDSDialogue::GetChoiceText(int Index,bool bOnlyValidChoices) const
+void USUDSDialogue::UpdateChoices()
 {
-
-	if (const auto Choices = GetChoices(bOnlyValidChoices))
+	CurrentChoices.Reset();
+	if (CurrentSpeakerNode)
 	{
-		if (Choices && Choices->IsValidIndex(Index))
+		if (CurrentSpeakerNode->HasChoices())
 		{
-			auto& Choice = (*Choices)[Index];
-			if (Choice.HasParameters())
+			// Root choice node might not be directly underneath. For example, we may go through set nodes first
+			if (const USUDSScriptNode* ChoiceNode = BaseScript->GetNextChoiceNode(CurrentSpeakerNode))
 			{
-				// Need to make a temp arg list for compatibility
-				// Also lets us just set the ones we need to
-				FFormatNamedArguments Args;
-				GetTextFormatArgs(Choice.GetParameterNames(), Args);
-				return FText::Format(Choice.GetTextFormat(), Args);
-			}
-			else
-			{
-				return Choice.GetText();
+				// Once we've found the root choice, there can be potentially a tree of mixed choice/select nodes
+				// for supporting conditional choices
+				RecurseAppendChoices(ChoiceNode, CurrentChoices);
 			}
 		}
 		else
 		{
-			UE_LOG(LogSUDSDialogue, Error, TEXT("Invalid choice index %d on node %s"), Index, *GetText().ToString());
+			if (auto Edge = CurrentSpeakerNode->GetEdge(0))
+			{
+				// Simple no-choice progression (text->text)
+				CurrentChoices.Add(*Edge);
+			}			
 		}
+	}
+}
+
+
+int USUDSDialogue::GetNumberOfChoices() const
+{
+	return CurrentChoices.Num();
+}
+
+FText USUDSDialogue::GetChoiceText(int Index) const
+{
+
+	if (CurrentChoices.IsValidIndex(Index))
+	{
+		auto& Choice = CurrentChoices[Index];
+		if (Choice.HasParameters())
+		{
+			// Need to make a temp arg list for compatibility
+			// Also lets us just set the ones we need to
+			FFormatNamedArguments Args;
+			GetTextFormatArgs(Choice.GetParameterNames(), Args);
+			return FText::Format(Choice.GetTextFormat(), Args);
+		}
+		else
+		{
+			return Choice.GetText();
+		}
+	}
+	else
+	{
+		UE_LOG(LogSUDSDialogue, Error, TEXT("Invalid choice index %d on node %s"), Index, *GetText().ToString());
 	}
 
 	return DummyText;
@@ -402,27 +381,24 @@ bool USUDSDialogue::Continue()
 
 bool USUDSDialogue::Choose(int Index)
 {
-	if (const auto Choices = GetChoices(true))
+	if (CurrentChoices.IsValidIndex(Index))
 	{
-		if (Choices && Choices->IsValidIndex(Index))
+		// ONLY run to choice node if there is one!
+		// This method is called for Continue() too, which has no choice node
+		if (CurrentSpeakerNode->HasChoices())
 		{
-			// ONLY run to choice node if there is one!
-			// This method is called for Continue() too, which has no choice node
-			if (CurrentSpeakerNode->HasChoices())
-			{
-				RaiseChoiceMade(Index);
-				// Run any e.g. set nodes between text and choice
-				// These can be set nodes directly under the text and before the first choice, which get run for all choices
-				RunUntilNextChoiceNode(CurrentSpeakerNode);
-			}
-			// Then choose path
-			RunUntilNextSpeakerNodeOrEnd((*Choices)[Index].GetTargetNode().Get());
-			return !IsEnded();
+			RaiseChoiceMade(Index);
+			// Run any e.g. set nodes between text and choice
+			// These can be set nodes directly under the text and before the first choice, which get run for all choices
+			RunUntilNextChoiceNode(CurrentSpeakerNode);
 		}
-		else
-		{
-			UE_LOG(LogSUDSDialogue, Error, TEXT("Invalid choice index %d on node %s"), Index, *GetText().ToString());
-		}
+		// Then choose path
+		RunUntilNextSpeakerNodeOrEnd(CurrentChoices[Index].GetTargetNode().Get());
+		return !IsEnded();
+	}
+	else
+	{
+		UE_LOG(LogSUDSDialogue, Error, TEXT("Invalid choice index %d on node %s"), Index, *GetText().ToString());
 	}
 	return false;
 }
@@ -483,14 +459,11 @@ TSet<FName> USUDSDialogue::GetParametersInUse()
 		{
 			CurrentRequestedParamNames.Append(CurrentSpeakerNode->GetParameterNames());
 		}
-		if (const auto Choices = GetChoices(true))
+		for (auto& Choice : CurrentChoices)
 		{
-			for (auto& Choice : *Choices)
+			if (Choice.HasParameters())
 			{
-				if (Choice.HasParameters())
-				{
-					CurrentRequestedParamNames.Append(Choice.GetParameterNames());
-				}
+				CurrentRequestedParamNames.Append(Choice.GetParameterNames());
 			}
 		}
 		bParamNamesExtracted = true;

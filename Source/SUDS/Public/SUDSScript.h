@@ -51,8 +51,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	USUDSScriptNode* GetNextNode(const USUDSScriptNode* Node) const;
 
+	/// Get the next choice node after a given text node. Skips over set/event nodes
+	UFUNCTION(BlueprintCallable)
+	const USUDSScriptNode* GetNextChoiceNode(const USUDSScriptNode* FromTextNode) const;
+
 	/// Get the first node of the script following a label, or null if the label wasn't found
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UFUNCTION(BlueprintCallable)
 	USUDSScriptNode* GetNodeByLabel(const FName& Label) const;
 
 	/// Get the list of speakers

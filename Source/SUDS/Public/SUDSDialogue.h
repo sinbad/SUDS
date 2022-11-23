@@ -65,10 +65,8 @@ protected:
 	
 	/// Cached derived info
 	mutable FText CurrentSpeakerDisplayName;
-	/// All choices available from the current node (via a linked Choice node)
-	mutable const TArray<FSUDSScriptEdge>* AllCurrentChoices;
 	/// All valid choices
-	mutable TArray<FSUDSScriptEdge> ValidCurrentChoices;
+	TArray<FSUDSScriptEdge> CurrentChoices;
 	static const FText DummyText;
 	static const FString DummyString;
 
@@ -86,9 +84,10 @@ protected:
 	USUDSScriptNode* RunSelectNode(USUDSScriptNode* Node) const;
 	USUDSScriptNode* RunSetVariableNode(USUDSScriptNode* Node);
 	USUDSScriptNode* RunEventNode(USUDSScriptNode* Node);
+	void UpdateChoices();
+	void RecurseAppendChoices(const USUDSScriptNode* Node, TArray<FSUDSScriptEdge>& OutChoices);
 
-	const USUDSScriptNode* FindNextChoiceNode(const USUDSScriptNodeText* FromTextNode) const;
-	const TArray<FSUDSScriptEdge>* GetChoices(bool bOnlyValidChoices) const;
+	const TArray<FSUDSScriptEdge>& GetChoices() const;
 	void GetTextFormatArgs(const TArray<FName>& ArgNames, FFormatNamedArguments& OutArgs) const;
 public:
 	USUDSDialogue();
@@ -154,7 +153,7 @@ public:
 	 * @return The number of choices available
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	int GetNumberOfChoices(bool bOnlyValidChoices = true) const;
+	int GetNumberOfChoices() const;
 
 	/**
 	 * Get the text associated with a choice.
@@ -165,7 +164,7 @@ public:
 	 *    line just like any other.
 	 */
 	UFUNCTION(BlueprintCallable)
-	FText GetChoiceText(int Index, bool bOnlyValidChoices = true) const;
+	FText GetChoiceText(int Index) const;
 	
 	/**
 	 * Continues the dialogue if (and ONLY if) there is only one valid path/choice out of the current node.

@@ -117,6 +117,9 @@ public:
 	/// Evaluate the expression and return the result, using a given variable state 
 	FSUDSValue Evaluate(const TMap<FName, FSUDSValue>& Variables) const;
 
+	/// Evaluate the expression and return the result as a boolean, using a given variable state 
+	bool EvaluateBoolean(const TMap<FName, FSUDSValue>& Variables, const FString& ErrorContext) const;
+
 	/// Get the original source of the expression as a string
 	const FString& GetSourceString() const { return SourceString; }
 
