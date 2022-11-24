@@ -7,13 +7,13 @@
 UENUM(BlueprintType)
 enum class ESUDSValueType : uint8
 {
-	Text,
-	Int,
-	Float,
-	Boolean,
-	Gender,
+	Text = 0,
+	Int = 1,
+	Float = 2,
+	Boolean = 3,
+	Gender = 4,
 	/// Access the value of another variable
-	Variable,
+	Variable = 10,
 };
 /// Struct which can hold any of the value types that SUDS needs to use, in a Blueprint friendly manner
 /// For getting / setting these values from blueprints, see blueprint library functions SetSUDSValue<Type>() / GetSUDSValue<Type>()
@@ -23,7 +23,6 @@ struct FSUDSValue
 {
 	GENERATED_BODY()
 protected:
-	UPROPERTY(BlueprintReadOnly)
 	ESUDSValueType Type;
 	union
 	{
@@ -318,5 +317,37 @@ public:
 		return FSUDSValue(GetBooleanValue() || Rhs.GetBooleanValue());
 	}
 
+	friend FArchive& operator<<(FArchive& Ar, FSUDSValue& Value)
+	{
+		// Custom serialisation since we can't auto-serialise union, TOptional
+		uint8 TypeAsInt = (uint8)Value.Type; 
+		Ar << TypeAsInt;
+		if (Ar.IsLoading())
+			Value.Type = static_cast<ESUDSValueType>(TypeAsInt);
+
+		// This gets/sets float value too
+		Ar << Value.IntValue;
+
+		if (Value.Type == ESUDSValueType::Text)
+		{
+			FText Text = Value.TextValue.Get(FText::GetEmpty());
+			Ar << Text;
+			if (Ar.IsLoading())
+				Value.TextValue = Text;
+		}
+		else if (Value.Type == ESUDSValueType::Variable)
+		{
+			FName VarName = Value.VariableName.Get(NAME_None);
+			Ar << VarName;
+			if (Ar.IsLoading())
+				Value.VariableName = VarName;
+		}
+		
+
+		return Ar;
+	}	
+
 };
+
+
 
