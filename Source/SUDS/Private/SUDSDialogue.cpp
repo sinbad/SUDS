@@ -72,7 +72,7 @@ void USUDSDialogue::RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* NextNode)
 	{
 		if (NextNode->GetNodeType() == ESUDSScriptNodeType::Text)
 		{
-			SetCurrentSpeakerNode(Cast<USUDSScriptNodeText>(NextNode));
+			SetCurrentSpeakerNode(Cast<USUDSScriptNodeText>(NextNode), false);
 		}
 		else
 		{
@@ -83,7 +83,7 @@ void USUDSDialogue::RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* NextNode)
 	else
 	{
 		// Reached the end
-		SetCurrentSpeakerNode(nullptr);
+		SetCurrentSpeakerNode(nullptr, true);
 		OnFinished.Broadcast(this);
 	}
 
@@ -160,7 +160,7 @@ USUDSScriptNode* USUDSDialogue::RunSetVariableNode(USUDSScriptNode* Node)
 	
 }
 
-void USUDSDialogue::SetCurrentSpeakerNode(USUDSScriptNodeText* Node)
+void USUDSDialogue::SetCurrentSpeakerNode(USUDSScriptNodeText* Node, bool bQuietly)
 {
 	CurrentSpeakerNode = Node;
 
@@ -168,8 +168,9 @@ void USUDSDialogue::SetCurrentSpeakerNode(USUDSScriptNodeText* Node)
 	bParamNamesExtracted = false;
 
 	UpdateChoices();
-	
-	RaiseNewSpeakerLine();
+
+	if (!bQuietly)
+		RaiseNewSpeakerLine();
 
 }
 
@@ -410,16 +411,45 @@ bool USUDSDialogue::IsEnded() const
 	return CurrentSpeakerNode == nullptr;
 }
 
-void USUDSDialogue::ResetVariableState()
+void USUDSDialogue::ResetState(bool bVariables, bool bCurrentPosition)
 {
-	VariableState.Reset();
+	if (bVariables)
+		VariableState.Reset();
+	if (bCurrentPosition)
+		SetCurrentSpeakerNode(nullptr, true);
+}
+
+FSUDSDialogueState USUDSDialogue::GetSavedState() const
+{
+	const FString CurrentNodeId = CurrentSpeakerNode
+		                              ? FTextInspector::GetTextId(CurrentSpeakerNode->GetText()).GetKey().GetChars()
+		                              : FString();
+	return FSUDSDialogueState(CurrentNodeId, VariableState);
+		  
+}
+
+void USUDSDialogue::RestoreSavedState(const FSUDSDialogueState& State)
+{
+	VariableState.Empty();
+	VariableState = State.GetVariables();
+
+	// If not found this will be null
+	if (!State.GetTextNodeID().IsEmpty())
+	{
+		USUDSScriptNodeText* Node = BaseScript->GetNodeByTextID(State.GetTextNodeID());
+		SetCurrentSpeakerNode(Node, true);
+	}
+	else
+	{
+		SetCurrentSpeakerNode(nullptr, true);
+	}
 }
 
 void USUDSDialogue::Restart(bool bResetState, FName StartLabel)
 {
 	if (bResetState)
 	{
-		ResetVariableState();
+		ResetState();
 	}
 
 	RaiseStarting(StartLabel);

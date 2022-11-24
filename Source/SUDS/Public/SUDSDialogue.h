@@ -19,6 +19,25 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogueFinished, class USUDSDial
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnDialogueEvent, class USUDSDialogue*, Dialogue, FName, EventName, const TArray<FSUDSValue>&, Arguments);
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSUDSDialogue, Verbose, All);
+
+/// Copy of the internal state of a dialogue
+USTRUCT(BlueprintType)
+struct FSUDSDialogueState
+{
+	GENERATED_BODY()
+protected:
+	UPROPERTY(BlueprintReadOnly)
+	FString TextNodeID;
+
+	UPROPERTY(BlueprintReadOnly)
+	TMap<FName, FSUDSValue> Variables;
+public:
+	FSUDSDialogueState() {}
+	FSUDSDialogueState(const FString& TxtID, const TMap<FName, FSUDSValue>& InVars) : TextNodeID(TxtID), Variables(InVars) {}
+
+	const FString& GetTextNodeID() const { return TextNodeID; }
+	const TMap<FName, FSUDSValue>& GetVariables() const { return Variables; }
+};
 /**
  * A Dialogue is a runtime instance of a Script (the asset on which the dialogue is based)
  * An Dialogue instance involves specific parties taking the Roles, which may be Speakers in the Dialogue
@@ -72,7 +91,7 @@ protected:
 
 	void RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* FromNode);
 	const USUDSScriptNode* RunUntilNextChoiceNode(const USUDSScriptNodeText* FromTextNode);
-	void SetCurrentSpeakerNode(USUDSScriptNodeText* Node);
+	void SetCurrentSpeakerNode(USUDSScriptNodeText* Node, bool bQuietly);
 	void SortParticipants();
 	void RaiseStarting(FName StartLabel);
 	void RaiseFinished();
@@ -197,10 +216,36 @@ public:
 	void Restart(bool bResetState = false, FName StartLabel = NAME_None);
 
 	/**
-	 * Reset all variables in this dialogue to their default value
+	 * Reset the state of this dialogue.
+	 * @param bResetVariables If true, resets all variable state
+	 * @param bResetPosition If true, resets the current position in the dialogue (which speaker line is next)
 	 */
 	UFUNCTION(BlueprintCallable)
-	void ResetVariableState();
+	void ResetState(bool bResetVariables = true, bool bResetPosition = true);
+
+	/** Retrieve a copy of the state of this dialogue.
+	 *  This is useful for saving the state of this dialogue.
+	 *  @return A static copy of the current state of this dialogue. This struct can be serialised with your save data,
+	 *  and contains both the state of variables and the current speaking node ID.
+	 *  @note If you save/load mid-dialogue then you're need to have written Text ID's into the source text to ensure they
+	 *  stay the same between edits, as you do for localisation. If you only save/load after dialogue has ended then
+	 *  you don't need to worry about this since the dialogue will always start from the beginning
+	 */
+	UFUNCTION(BlueprintCallable)
+	FSUDSDialogueState GetSavedState() const;
+
+	/** Restore the saved state of this dialogue.
+	 *  This is useful for restoring the state of this dialogue. It will attempt to restore both the value of variables,
+	 *  and the current speaking node in the dialogue. If you expect to be able to restore to a point mid-dialogue,
+	 *  it's important that Text IDs are defined in your source file (as for localisation) since that's used as the
+	 *  identifier of the current speaking node. If you only save/load after dialogue has ended then you don't need
+	 *  to worry about this as dialogue will restart each time.
+	 *  @param State Dialogue state that you previously retrieved from GetSavedState().
+	 *  @note After restoring, you'll want to either call Start() or Continue(), depending on whether you restored
+	 *  mid-dialogue or not (see IsEnded() to tell whether you did)
+	 */
+	UFUNCTION(BlueprintCallable)
+	void RestoreSavedState(const FSUDSDialogueState& State);
 	
 	/// Get the set of text parameters that are actually being asked for in the current state of the dialogue.
 	/// This will include parameters in the text, and parameters in any current choices being displayed.

@@ -1,6 +1,5 @@
 ﻿#include "SUDSScript.h"
 
-#include "SUDS.h"
 #include "SUDSScriptNode.h"
 #include "SUDSScriptNodeText.h"
 #include "EditorFramework/AssetImportData.h"
@@ -104,6 +103,25 @@ USUDSScriptNode* USUDSScript::GetNodeByLabel(const FName& Label) const
 	return nullptr;
 	
 }
+
+USUDSScriptNodeText* USUDSScript::GetNodeByTextID(const FString& TextID) const
+{
+	for (auto N : Nodes)
+	{
+		if (N->GetNodeType() == ESUDSScriptNodeType::Text)
+		{
+			if (auto TN = Cast<USUDSScriptNodeText>(N))
+			{
+				if (TextID.Equals(FTextInspector::GetTextId(TN->GetText()).GetKey().GetChars()))
+				{
+					return TN;
+				}
+			}
+		}
+	}
+	return nullptr;
+}
+
 #if WITH_EDITORONLY_DATA
 
 void USUDSScript::PostInitProperties()

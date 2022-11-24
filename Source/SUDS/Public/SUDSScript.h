@@ -5,6 +5,7 @@
 #include "SUDSScript.generated.h"
 
 class USUDSScriptNode;
+class USUDSScriptNodeText;
 /**
  * A single SUDS script asset.
  */
@@ -58,6 +59,11 @@ public:
 	/// Get the first node of the script following a label, or null if the label wasn't found
 	UFUNCTION(BlueprintCallable)
 	USUDSScriptNode* GetNodeByLabel(const FName& Label) const;
+
+	/// Try to find a speaker node by its text ID
+	UFUNCTION(BlueprintCallable)
+	USUDSScriptNodeText* GetNodeByTextID(const FString& TextID) const;
+
 
 	/// Get the list of speakers
 	const TArray<FString>& GetSpeakers() const { return Speakers; }
