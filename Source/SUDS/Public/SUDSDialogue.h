@@ -196,6 +196,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void Restart(bool bResetState = false, FName StartLabel = NAME_None);
 
+	/**
+	 * Reset all variables in this dialogue to their default value
+	 */
+	UFUNCTION(BlueprintCallable)
+	void ResetVariableState();
+	
 	/// Get the set of text parameters that are actually being asked for in the current state of the dialogue.
 	/// This will include parameters in the text, and parameters in any current choices being displayed.
 	/// Use this if you want to be more specific about what parameters you supply when ISUDSParticipant::UpdateDialogueParameters

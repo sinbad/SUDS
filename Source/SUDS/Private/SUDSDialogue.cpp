@@ -410,11 +410,16 @@ bool USUDSDialogue::IsEnded() const
 	return CurrentSpeakerNode == nullptr;
 }
 
+void USUDSDialogue::ResetVariableState()
+{
+	VariableState.Reset();
+}
+
 void USUDSDialogue::Restart(bool bResetState, FName StartLabel)
 {
 	if (bResetState)
 	{
-		VariableState.Reset();
+		ResetVariableState();
 	}
 
 	RaiseStarting(StartLabel);

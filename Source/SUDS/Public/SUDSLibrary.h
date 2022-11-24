@@ -20,10 +20,15 @@ public:
 	* @param Owner The owner of this instance. Can be any object but determines the lifespan of this dialogue,
 	*   could make sense to make the owner the NPC you're talking to for example.
 	* @param Script The script to base this dialogue on
+	* @param bStartImmediately Whether to call Start() on the dialogue automatically before returning
+	* @param StartLabel If set to start immediately, which label to start from (None means start from the beginning)
 	* @return The dialogue instance. 
 	*/
 	UFUNCTION(BlueprintCallable, Category="SUDS")
-	static USUDSDialogue* CreateDialogue(UObject* Owner, USUDSScript* Script);
+	static USUDSDialogue* CreateDialogue(UObject* Owner,
+	                                     USUDSScript* Script,
+	                                     bool bStartImmediately = false,
+	                                     FName StartLabel = NAME_None);
 
 	/**
 	* Create a dialogue instance based on a script, with an initial set of participants.
@@ -31,13 +36,18 @@ public:
 	*   could make sense to make the owner the NPC you're talking to for example.
 	* @param Script The script to base this dialogue on
 	* @param Participants List of participants, each of which must implement the ISUDSParticipant interface to be used.
-	*	Participants are objects that want to be closely involved in the dialogue to provide variables and receive events.
+	*	Participants are objects that want to be closely involved in the dialogue to provide variables and receive all events.
+	*	Other objects can subscribe to events separately but do not have as much control.
+	* @param bStartImmediately Whether to call Start() on the dialogue automatically before returning
+	* @param StartLabel If set to start immediately, which label to start from (None means start from the beginning)
 	* @return The dialogue instance. 
 	*/
 	UFUNCTION(BlueprintCallable, Category="SUDS")
 	static USUDSDialogue* CreateDialogueWithParticipants(UObject* Owner,
 	                                                     USUDSScript* Script,
-	                                                     const TArray<UObject*>& Participants);
+	                                                     const TArray<UObject*>& Participants,
+	                                                     bool bStartImmediately = false,
+	                                                     FName StartLabel = NAME_None);
 
 
 	/**
