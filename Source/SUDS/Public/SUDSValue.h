@@ -311,15 +311,17 @@ public:
 
 	FSUDSValue operator&&(const FSUDSValue& Rhs) const
 	{
-		check(Type == ESUDSValueType::Boolean);
-		check(Rhs.Type == ESUDSValueType::Boolean);
+		// We always let unset variables degrade to false
+		check(Type == ESUDSValueType::Boolean || Type == ESUDSValueType::Variable);
+		check(Rhs.Type == ESUDSValueType::Boolean || Rhs.Type == ESUDSValueType::Variable);
 		return FSUDSValue(GetBooleanValue() && Rhs.GetBooleanValue());
 	}
 
 	FSUDSValue operator||(const FSUDSValue& Rhs) const
 	{
-		check(Type == ESUDSValueType::Boolean);
-		check(Rhs.Type == ESUDSValueType::Boolean);
+		// We always let unset variables degrade to false
+		check(Type == ESUDSValueType::Boolean || Type == ESUDSValueType::Variable);
+		check(Rhs.Type == ESUDSValueType::Boolean || Rhs.Type == ESUDSValueType::Variable);
 		return FSUDSValue(GetBooleanValue() || Rhs.GetBooleanValue());
 	}
 
