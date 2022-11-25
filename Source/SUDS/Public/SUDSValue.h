@@ -100,8 +100,11 @@ public:
 		// We don't warn for unset variables, use the defaults
 		if (Type != ESUDSValueType::Text && Type != ESUDSValueType::Variable)
 			UE_LOG(LogSUDS, Warning, TEXT("Getting value as text but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))
-		
-		return TextValue.GetValue();
+
+		if (TextValue.IsSet())
+			return TextValue.GetValue();
+
+		return FText::GetEmpty();
 	}
 
 	FORCEINLINE ETextGender GetGenderValue() const
@@ -127,7 +130,10 @@ public:
 		if (Type != ESUDSValueType::Variable)
 			UE_LOG(LogSUDS, Warning, TEXT("Getting value as variable name but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))
 
-		return VariableName.GetValue();
+		if (VariableName.IsSet())
+			return VariableName.GetValue();
+
+		return NAME_None;
 	}
 
 	FORCEINLINE bool IsVariable() const
