@@ -19,12 +19,12 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 	
 	// Split into individual tokens; sections of the regex are:
 	// - {Variable}
+	// - Literal numbers (with or without decimal point, with or without preceding negation)
 	// - Arithmetic operators & parentheses
-	// - Literal numbers (with or without decimal point)
 	// - Boolean operators & comparisons
 	// - Predefined constants (Masculine, feminine, true, false etc)
 	// - Quoted strings (group 1 includes quotes, group 2 is trimmed)
-	const FRegexPattern Pattern(TEXT("(\\{\\w+\\}|[-+*\\/\\(\\)]|\\d+(?:\\.\\d*)?|and|&&|\\|\\||or|not|\\<\\>|!=|!|\\<=?|\\>=?|==?|[mM]asculine|[fF]eminine|[nN]euter|[tT]rue|[fF]alse|\\\"([^\\\"]*)\\\")"));
+	const FRegexPattern Pattern(TEXT("(\\{\\w+\\}|-?\\d+(?:\\.\\d*)?|[-+*\\/\\(\\)]|and|&&|\\|\\||or|not|\\<\\>|!=|!|\\<=?|\\>=?|==?|[mM]asculine|[fF]eminine|[nN]euter|[tT]rue|[fF]alse|\\\"([^\\\"]*)\\\")"));
 	FRegexMatcher Regex(Pattern, Expression);
 	// Stacks that we use to construct
 	TArray<ESUDSExpressionItemType> OperatorStack;
@@ -252,8 +252,10 @@ FSUDSValue FSUDSExpression::Evaluate(const TMap<FName, FSUDSValue>& Variables) c
 			// Arg2 (RHS) has to be popped first
 			if (Item.IsBinaryOperator())
 			{
+				checkf(!EvalStack.IsEmpty(), TEXT("Args missing before operator, bad expression"));
 				Arg2 = EvalStack.Pop();
 			}
+			checkf(!EvalStack.IsEmpty(), TEXT("Args missing before operator, bad expression"));
 			Arg1 = EvalStack.Pop();
 			EvalStack.Push(EvaluateOperator(Item.GetType(), Arg1, Arg2, Variables));
 		}
