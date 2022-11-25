@@ -40,10 +40,19 @@ public:
 };
 /**
  * A Dialogue is a runtime instance of a Script (the asset on which the dialogue is based)
- * An Dialogue instance involves specific parties taking the Roles, which may be Speakers in the Dialogue
- * or may be silent, providing or receiving data from the dialogue.
- * A dialogue instance has its own set of state, so you can invoke the same Script multiple times with different
- * things filling the Roles if you want. 
+ * An Dialogue always stops on a speaker line, which may have player choices. It progresses when you call Continue()
+ * or Choose() and will run that continuation until it hits the next speaker line. In between, other things may occur
+ * such as setting variables, raising events etc, depending on the script. 
+ * Each dialogue instance has its own state, so you can invoke the same Script multiple times as different dialogues if you want.
+ * Each dialogue maintains its own internal state, which includes a set of variables. 
+ * Dialogues can have Participants, which are objects closely involved in the dialogue and which have the best access to
+ * supply and retrieve variables and get events first. Other objects can simply listen to the exposed events; while they
+ * can manipulate dialogue state too, they have less controllable access in terms of *when* this happens. It's best to
+ * have at least one Participant driving state on the dialogue (relaying it to external objects), and to have read-only
+ * users like UIs use the event delegates instead.
+ * Dialogues need to be owned by an object, mainly for garbage collection. It's recommended that you set the owner to
+ * one of the NPCs in the dialogue.
+ * You can save/restore the state of a dialogue via GetSavedState/RestoreSavedState. 
  */
 UCLASS(BlueprintType)
 class SUDS_API USUDSDialogue : public UObject
