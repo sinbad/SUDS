@@ -95,6 +95,8 @@ protected:
 	                                       const TMap<FName, FSUDSValue>& Variables) const;
 	FSUDSValue EvaluateOperand(const FSUDSValue& Operand, const TMap<FName, FSUDSValue>& Variables) const;
 
+	bool Validate();
+
 public:
 
 	FSUDSExpression() : bIsValid(true) {}

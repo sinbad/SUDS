@@ -115,6 +115,12 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 		Queue.Add(FSUDSExpressionItem(OperatorStack.Pop()));
 	}
 
+	if (!Validate())
+	{
+		bErrors = true;
+		UE_LOG(LogSUDS, Error, TEXT("Error in %s: bad expression"), *ErrorContext);
+	}
+
 	bIsValid = bParsedSomething && !bErrors;
 
 	return bIsValid;
@@ -233,6 +239,42 @@ bool FSUDSExpression::ParseOperand(const FString& ValueStr, FSUDSValue& OutVal)
 	
 }
 
+bool FSUDSExpression::Validate()
+{
+	// Empty expressions are always valid, mean "true"
+	if (Queue.IsEmpty())
+		return true;
+
+	// Same algorithm as Execute, we just don't execute
+	TArray<FSUDSExpressionItem> EvalStack;
+	const TMap<FName, FSUDSValue> TempVariables;
+	for (auto& Item : Queue)
+	{
+		if (Item.IsOperator())
+		{
+			FSUDSExpressionItem Arg1, Arg2;
+			if (Item.IsBinaryOperator())
+			{
+				if (EvalStack.IsEmpty())
+					return false;
+				Arg2 = EvalStack.Pop();
+			}
+			if (EvalStack.IsEmpty())
+				return false;
+			Arg1 = EvalStack.Pop();
+
+			EvalStack.Push(EvaluateOperator(Item.GetType(), Arg1, Arg2, TempVariables));
+		}
+		else
+		{
+			EvalStack.Push(Item);
+		}
+	}
+
+	// Must be one item left
+	return EvalStack.Num() == 1;
+	
+}
 
 FSUDSValue FSUDSExpression::Evaluate(const TMap<FName, FSUDSValue>& Variables) const
 {
@@ -345,8 +387,6 @@ FSUDSValue FSUDSExpression::EvaluateOperand(const FSUDSValue& Operand,
 		{
 			return *Var;
 		}
-		// Will use the default value if variable unset
-		UE_LOG(LogSUDS, VeryVerbose, TEXT("Variable state for %s missing, using default"), *Operand.GetVariableNameValue().ToString());
 	}
 
 	return Operand;
