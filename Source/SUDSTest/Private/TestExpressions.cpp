@@ -5,15 +5,15 @@
 
 PRAGMA_DISABLE_OPTIMIZATION
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestExpressionsStandalone,
-								 "SUDSTest.TestExpressionsStandalone",
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestExpressions,
+								 "SUDSTest.TestExpressions",
 								 EAutomationTestFlags::EditorContext |
 								 EAutomationTestFlags::ClientContext |
 								 EAutomationTestFlags::ProductFilter)
 
 
 
-bool FTestExpressionsStandalone::RunTest(const FString& Parameters)
+bool FTestExpressions::RunTest(const FString& Parameters)
 {
 	FSUDSExpression Expr;
 	TMap<FName, FSUDSValue> Variables;
@@ -35,6 +35,9 @@ bool FTestExpressionsStandalone::RunTest(const FString& Parameters)
 		TestEqual("Queue 6", RPN[6].GetType(), ESUDSExpressionItemType::Add);
 	}
 
+	TestTrue("Arithmetic", Expr.ParseFromString("-6.7 * 2 + (21.3 - 8) * 5", "Arithmetic"));
+	TestEqual("Eval", Expr.Evaluate(Variables).GetFloatValue(), 53.1f);
+	
 	// Explicit FSUDSValue(true) needed to avoid it using the int conversion by default
 	Variables.Add("IsATest", FSUDSValue(true));
 	TestTrue("BoolSingleValueParse", Expr.ParseFromString("{IsATest}", "BoolSingleValueParse"));
@@ -139,6 +142,32 @@ bool FTestExpressionsStandalone::RunTest(const FString& Parameters)
 	
 	return true;
 };
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestBadExpressions,
+								 "SUDSTest.TestBadExpressions",
+								 EAutomationTestFlags::EditorContext |
+								 EAutomationTestFlags::ClientContext |
+								 EAutomationTestFlags::ProductFilter)
+
+
+
+bool FTestBadExpressions::RunTest(const FString& Parameters)
+{
+	FSUDSExpression Expr;
+	TMap<FName, FSUDSValue> Variables;
+
+	AddExpectedError("bad expression", EAutomationExpectedErrorFlags::Contains, 3);
+	AddExpectedError("mismatched parentheses", EAutomationExpectedErrorFlags::Contains, 2);
+	
+	TestFalse("Missing operand", Expr.ParseFromString(" + 1", ""));
+	TestFalse("Missing operand", Expr.ParseFromString("1 * ", ""));
+	TestFalse("Missing parenthesis", Expr.ParseFromString("(3 + 1", ""));
+	TestFalse("Missing parenthesis", Expr.ParseFromString("3 + 1)", ""));
+	TestFalse("Invalid symbol", Expr.ParseFromString("something + 1", ""));
+	
+	return true;
+}
+
 
 
 PRAGMA_ENABLE_OPTIMIZATION
