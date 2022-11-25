@@ -76,8 +76,14 @@ void USUDSDialogue::RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* NextNode)
 		}
 		else
 		{
-			// Should never happen unless there's a parsing error
-			UE_LOG(LogSUDSDialogue, Error, TEXT("Error in %s: Tried to run to next speaker node but encountered a stopping node of wrong type"), *BaseScript->GetName());
+			// This can happen if for example user creates a choice node as the first thing
+			UE_LOG(LogSUDSDialogue,
+			       Error,
+			       TEXT("Error in %s line %d: Tried to run to next speaker node but encountered unexpected node of type %s"),
+			       *BaseScript->GetName(),
+			       NextNode->GetSourceLineNo(),
+			       *(StaticEnum<ESUDSScriptNodeType>()->GetValueAsString(NextNode->GetNodeType()))
+			);
 		}
 	}
 	else
@@ -102,7 +108,13 @@ USUDSScriptNode* USUDSDialogue::RunNode(USUDSScriptNode* Node)
 	default: ;
 	}
 
-	UE_LOG(LogSUDSDialogue, Error, TEXT("Attempted to run non-runnable node type"))
+	UE_LOG(LogSUDSDialogue,
+	       Error,
+	       TEXT("Error in %s line %d: Attempted to run non-runnable node type %s"),
+	       *BaseScript->GetName(),
+	       Node->GetSourceLineNo(),
+	       *(StaticEnum<ESUDSScriptNodeType>()->GetValueAsString(Node->GetNodeType()))
+	)
 	return nullptr;
 }
 
@@ -231,7 +243,11 @@ FText USUDSDialogue::GetSpeakerDisplayName() const
 			}
 			else
 			{
-				UE_LOG(LogSUDSDialogue, Error, TEXT("%s was set to a value that was not text, cannot use"), *Key.ToString());
+				UE_LOG(LogSUDSDialogue,
+				       Error,
+				       TEXT("Error in %s: %s was set to a value that was not text, cannot use"),
+				       *BaseScript->GetName(),
+				       *Key.ToString());
 			}
 		}
 		if (CurrentSpeakerDisplayName.IsEmpty())

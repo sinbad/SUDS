@@ -39,7 +39,7 @@ public:
 	const FText& GetText() const { return Text; }
 	bool HasChoices() const { return bHasChoices; }
 
-	void Init(const FString& SpeakerID, const FText& Text);
+	void Init(const FString& SpeakerID, const FText& Text, int LineNo);
 	const FTextFormat& GetTextFormat() const;
 	const TArray<FName>& GetParameterNames() const;	
 	bool HasParameters() const;

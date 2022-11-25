@@ -24,7 +24,7 @@ protected:
 
 public:
 
-	void Init(const FString& VarName, const FSUDSExpression& InExpression);
+	void Init(const FString& VarName, const FSUDSExpression& InExpression, int LineNo);
 	const FName& GetIdentifier() const { return Identifier; }
 	const FSUDSExpression& GetExpression() const { return Expression; }
 	

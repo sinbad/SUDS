@@ -43,6 +43,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	FSUDSExpression Condition;
 
+	UPROPERTY(BlueprintReadOnly)
+	int SourceLineNo;
+
 	mutable bool bFormatExtracted = false; 
 	mutable TArray<FName> ParameterNames;
 	mutable FTextFormat TextFormat;
@@ -54,14 +57,24 @@ public:
 	{
 	}
 
-	FSUDSScriptEdge(USUDSScriptNode* ToNode, ESUDSEdgeType InType) : Type(InType), TargetNode(ToNode) {}
+	FSUDSScriptEdge(USUDSScriptNode* ToNode, ESUDSEdgeType InType, int LineNo) : Type(InType),
+		TargetNode(ToNode),
+		SourceLineNo(LineNo)
+	{
+	}
 
-	FSUDSScriptEdge(const FText& InText, USUDSScriptNode* ToNode) : Text(InText), Type(ESUDSEdgeType::Decision), TargetNode(ToNode) {}
+	FSUDSScriptEdge(const FText& InText, USUDSScriptNode* ToNode, int LineNo) : Text(InText),
+		Type(ESUDSEdgeType::Decision),
+		TargetNode(ToNode),
+		SourceLineNo(LineNo)
+	{
+	}
 
 	FText GetText() const { return Text; }
 	ESUDSEdgeType GetType() const { return Type; }
 	TWeakObjectPtr<USUDSScriptNode> GetTargetNode() const { return TargetNode; }
 	const FSUDSExpression& GetCondition() const { return Condition; }
+	int GetSourceLineNo() const { return SourceLineNo; }
 
 	void SetText(const FText& Text);
 	void SetType(ESUDSEdgeType InType) { Type = InType; } 

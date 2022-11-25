@@ -43,6 +43,9 @@ protected:
 	/// Links to other nodes
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FSUDSScriptEdge> Edges;
+	/// The line number in the script that this node came from
+	UPROPERTY(BlueprintReadOnly)
+	int SourceLineNo;
 
 
 public:
@@ -50,10 +53,11 @@ public:
 
 	ESUDSScriptNodeType GetNodeType() const { return NodeType; }
 	const TArray<FSUDSScriptEdge>& GetEdges() const { return Edges; }
+	int GetSourceLineNo() const { return SourceLineNo; }
 
 	void AddEdge(const FSUDSScriptEdge& NewEdge);
-	void InitChoice();
-	void InitSelect();
+	void InitChoice(int LineNo);
+	void InitSelect(int LineNo);
 
 	int GetEdgeCount() const { return Edges.Num(); }
 	const FSUDSScriptEdge* GetEdge(int Index) const

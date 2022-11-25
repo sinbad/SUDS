@@ -4,12 +4,13 @@ USUDSScriptNode::USUDSScriptNode()
 {
 }
 
-void USUDSScriptNode::InitChoice()
+void USUDSScriptNode::InitChoice(int LineNo)
 {
 	NodeType = ESUDSScriptNodeType::Choice;
+	SourceLineNo = LineNo;
 }
 
-void USUDSScriptNode::InitSelect()
+void USUDSScriptNode::InitSelect(int LineNo)
 {
 	NodeType = ESUDSScriptNodeType::Select;
 }

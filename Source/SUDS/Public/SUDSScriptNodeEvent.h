@@ -24,7 +24,7 @@ protected:
 
 public:
 
-	void Init(const FString& EvtName, const TArray<FSUDSExpression>& InArgs);
+	void Init(const FString& EvtName, const TArray<FSUDSExpression>& InArgs, int LineNo);
 	FName GetEventName() const { return EventName; }
 	const TArray<FSUDSExpression>& GetArgs() const { return Args; }
 	

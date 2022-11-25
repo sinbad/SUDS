@@ -1,11 +1,12 @@
 ﻿#include "SUDSScriptNodeText.h"
 
-void USUDSScriptNodeText::Init(const FString& InSpeakerID, const FText& InText)
+void USUDSScriptNodeText::Init(const FString& InSpeakerID, const FText& InText, int LineNo)
 {
 	NodeType = ESUDSScriptNodeType::Text;
 	SpeakerID = InSpeakerID;
 	Text = InText;
 	TextFormat = Text;
+	SourceLineNo = LineNo;
 	bFormatExtracted = false;
 	
 }

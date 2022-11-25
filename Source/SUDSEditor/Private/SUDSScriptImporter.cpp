@@ -1491,21 +1491,21 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 					{
 						StringTable->GetMutableStringTable()->SetSourceString(InNode.TextID, InNode.Text);
 						auto TextNode = NewObject<USUDSScriptNodeText>(Asset);
-						TextNode->Init(InNode.Identifier, FText::FromStringTable (StringTable->GetStringTableId(), InNode.TextID));
+						TextNode->Init(InNode.Identifier, FText::FromStringTable (StringTable->GetStringTableId(), InNode.TextID), InNode.SourceLineNo);
 						Node = TextNode;
 						break;
 					}
 				case ESUDSParsedNodeType::Choice:
 					{
 						auto ChoiceNode = NewObject<USUDSScriptNode>(Asset);
-						ChoiceNode->InitChoice();
+						ChoiceNode->InitChoice(InNode.SourceLineNo);
 						Node = ChoiceNode;
 						break;
 					}
 				case ESUDSParsedNodeType::Select:
 					{
 						auto SelectNode = NewObject<USUDSScriptNode>(Asset);
-						SelectNode->InitSelect();
+						SelectNode->InitSelect(InNode.SourceLineNo);
 						Node = SelectNode;
 						break;
 					}
@@ -1519,7 +1519,7 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 							StringTable->GetMutableStringTable()->SetSourceString(InNode.TextID, Expr.GetTextLiteralValue().ToString());
 							Expr.SetTextLiteralValue(FText::FromStringTable (StringTable->GetStringTableId(), InNode.TextID));
 						}
-						SetNode->Init(InNode.Identifier, Expr);
+						SetNode->Init(InNode.Identifier, Expr, InNode.SourceLineNo);
 						Node = SetNode;
 						break;
 					}
@@ -1527,7 +1527,7 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 					{
 						auto EvtNode = NewObject<USUDSScriptNodeEvent>(Asset);
 						// TODO support expressions in events not just literals?
-						EvtNode->Init(InNode.Identifier, InNode.EventArgs);
+						EvtNode->Init(InNode.Identifier, InNode.EventArgs, InNode.SourceLineNo);
 						Node = EvtNode;
 						break;
 					}
@@ -1552,14 +1552,13 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 				{
 					// This normally happens with the final node in the script
 					// Make it an edge to nullptr for consistency
-					Node->AddEdge(FSUDSScriptEdge(nullptr, ESUDSEdgeType::Continue));
+					Node->AddEdge(FSUDSScriptEdge(nullptr, ESUDSEdgeType::Continue, InNode.SourceLineNo));
 				}
 				else
 				{
 					for (auto& InEdge : InNode.Edges)
 					{
-						FSUDSScriptEdge NewEdge;
-						NewEdge.SetCondition(InEdge.ConditionExpression);
+						ESUDSEdgeType NewEdgeType;
 
 						const FSUDSParsedNode *InTargetNode = GetNode(Tree, InEdge.TargetNodeIdx);				
 
@@ -1569,41 +1568,37 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 							if (InTargetNode && InTargetNode->NodeType == ESUDSParsedNodeType::Choice)
 							{
 								// Text -> Choice is chained
-								NewEdge.SetType(ESUDSEdgeType::Chained);
+								NewEdgeType = ESUDSEdgeType::Chained;
 							}
 							else
 							{
-								NewEdge.SetType(ESUDSEdgeType::Continue);
+								NewEdgeType = ESUDSEdgeType::Continue;
 							}
 							break;
 						case ESUDSParsedNodeType::Choice:
 							if (InEdge.Text.IsEmpty() && InTargetNode && InTargetNode->NodeType == ESUDSParsedNodeType::Select)
 							{
 								// Choice->Select with no text is chained
-								NewEdge.SetType(ESUDSEdgeType::Chained);
+								NewEdgeType = ESUDSEdgeType::Chained;
 							}
 							else
 							{
-								NewEdge.SetType(ESUDSEdgeType::Decision);
+								NewEdgeType = ESUDSEdgeType::Decision;
 							}
 							break;
 						case ESUDSParsedNodeType::Select:
 							// All edges under selects are conditions
-							NewEdge.SetType(ESUDSEdgeType::Condition);
+							NewEdgeType = ESUDSEdgeType::Condition;
 							break;
 						default:
 						case ESUDSParsedNodeType::SetVariable:
 						case ESUDSParsedNodeType::Goto:
 						case ESUDSParsedNodeType::Event:
-							NewEdge.SetType(ESUDSEdgeType::Continue);
+							NewEdgeType = ESUDSEdgeType::Continue;
 							break;
 						};
 
-						if (!InEdge.TextID.IsEmpty() && !InEdge.Text.IsEmpty())
-						{
-							StringTable->GetMutableStringTable()->SetSourceString(InEdge.TextID, InEdge.Text);
-							NewEdge.SetText(FText::FromStringTable(StringTable->GetStringTableId(), InEdge.TextID));
-						}
+						USUDSScriptNode* TargetNode = nullptr;
 						
 						if (InTargetNode)
 						{
@@ -1615,16 +1610,26 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 								// -1 means "Goto end", leave target null in that case
 								if (Idx != -1)
 								{
-									int NewTargetIndex = IndexRemap[Idx];
-									NewEdge.SetTargetNode((*pOutNodes)[NewTargetIndex]);
+									const int NewTargetIndex = IndexRemap[Idx];
+									TargetNode = (*pOutNodes)[NewTargetIndex];
 								}
 							}
 							else
 							{
-								int NewTargetIndex = IndexRemap[InEdge.TargetNodeIdx];
-								NewEdge.SetTargetNode((*pOutNodes)[NewTargetIndex]);
+								const int NewTargetIndex = IndexRemap[InEdge.TargetNodeIdx];
+								TargetNode = (*pOutNodes)[NewTargetIndex];
 							}
 
+						}
+
+						FSUDSScriptEdge NewEdge(TargetNode, NewEdgeType, InEdge.SourceLineNo);
+						NewEdge.SetCondition(InEdge.ConditionExpression);
+						NewEdge.SetTargetNode(TargetNode);
+
+						if (!InEdge.TextID.IsEmpty() && !InEdge.Text.IsEmpty())
+						{
+							StringTable->GetMutableStringTable()->SetSourceString(InEdge.TextID, InEdge.Text);
+							NewEdge.SetText(FText::FromStringTable(StringTable->GetStringTableId(), InEdge.TextID));
 						}
 
 						Node->AddEdge(NewEdge);
