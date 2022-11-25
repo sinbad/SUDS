@@ -624,6 +624,9 @@ bool FSUDSScriptImporter::ParseIfLine(const FStringView& Line,
                                             bool bSilent)
 {
 
+	if (!bSilent)
+		UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: IF    : %s"), LineNo, IndentLevel, *FString(Line));
+
 	// New if level always creates select node				
 	const int NewNodeIdx = AppendNode(Tree, FSUDSParsedNode(ESUDSParsedNodeType::Select, IndentLevel, LineNo));
 	auto& SelectNode = Tree.Nodes[NewNodeIdx];
@@ -635,9 +638,7 @@ bool FSUDSScriptImporter::ParseIfLine(const FStringView& Line,
 			
 	Tree.CurrentConditionalBlockIdx = Tree.ConditionalBlocks.Add(
 		ConditionalContext(NewNodeIdx, Tree.CurrentConditionalBlockIdx, EConditionalStage::IfStage, ConditionStr));
-			
-	if (!bSilent)
-		UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: IF    : %s"), LineNo, IndentLevel, *FString(Line));
+	
 	return true;
 	
 }
@@ -650,6 +651,9 @@ bool FSUDSScriptImporter::ParseElseIfLine(const FStringView& Line,
 	const FString& NameForErrors,
 	bool bSilent)
 {
+	if (!bSilent)
+		UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: ELSEIF: %s"), LineNo, IndentLevel, *FString(Line));
+	
 	// "elseif" changes the current block state 
 	// Select or choice node should already be there
 	// Select node may be turned into a choice later if choice is the first thing encountered
@@ -683,11 +687,7 @@ bool FSUDSScriptImporter::ParseElseIfLine(const FStringView& Line,
 		if (!bSilent)
 			UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: 'elseif' with no matching 'if'"), *NameForErrors, LineNo);
 	}
-				
-
-	if (!bSilent)
-		UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: ELSEIF: %s"), LineNo, IndentLevel, *FString(Line));
-
+	
 	return true;
 }
 
