@@ -12,7 +12,7 @@ FText FSUDSScriptActions::GetName() const
 
 FString FSUDSScriptActions::GetObjectDisplayName(UObject* Object) const
 {
-	return TEXT("SUDS Script Asset");
+	return Object->GetName();
 }
 
 UClass* FSUDSScriptActions::GetSupportedClass() const
