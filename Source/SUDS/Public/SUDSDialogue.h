@@ -182,7 +182,6 @@ public:
 	 * Get the number of choices available from this node.
 	 * Note, this will return 1 in the case of just linear text progression. The difference between just linked text
 	 * lines and a choice with only 1 option is whether the choice text is blank or not.
-	 * @param bOnlyValidChoices If true, only count choices which are valid given current conditions 
 	 * @return The number of choices available
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure)
@@ -191,7 +190,6 @@ public:
 	/**
 	 * Get the text associated with a choice.
 	 * @param Index The index of the choice
-	 * @param bOnlyValidChoices If true, use the valid choices list not the full list
 	 * @return The text. This may be blank if this represents just a link between 2 nodes and not a choice at all.
 	 *    Note that if you want to have only 1 choice but with associated text, this is fine and should be a choice
 	 *    line just like any other.
