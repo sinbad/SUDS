@@ -60,16 +60,21 @@ class SUDS_API USUDSDialogue : public UObject
 	GENERATED_BODY()
 public:
 	/// Event raised when dialogue progresses and a new speaker line, potentially with new choices, is ready to be displayed
+	UPROPERTY(BlueprintAssignable)
 	FOnDialogueSpeakerLine OnSpeakerLine;
 	/// Event raised when a choice is made in the dialogue by the player. At this point, the dialogue has not progressed
 	/// as a result of that choice so the index passed can be used to reference the choice
 	/// This event is ONLY raised if there's a choice of paths, not for just continuing a linear path.
+	UPROPERTY(BlueprintAssignable)
 	FOnDialogueChoice OnChoice;
 	/// Event raised when an event is sent from the dialogue script. Any listeners or participants can process the event.
+	UPROPERTY(BlueprintAssignable)
 	FOnDialogueEvent OnEvent;
 	/// Event raised when the dialogue is starting, before the first speaker line
+	UPROPERTY(BlueprintAssignable)
 	FOnDialogueStarting OnStarting;
 	/// Event raised when the dialogue finishes
+	UPROPERTY(BlueprintAssignable)
 	FOnDialogueFinished OnFinished;
 protected:
 	UPROPERTY()
