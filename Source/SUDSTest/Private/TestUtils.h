@@ -83,7 +83,7 @@ FORCEINLINE bool TestParsedSetLiteral(FAutomationTestBase* T, const FString& Nam
 		T->TestEqual(NameForTest, Node->Identifier, VarName);
 		if (T->TestTrue(NameForTest, Node->Expression.IsLiteral()))
 		{
-			TestArgValue(T, NameForTest,Node->Expression.GetBooleanLiteralValue(), Literal);	
+			T->TestEqual(NameForTest,Node->Expression.GetBooleanLiteralValue(), Literal);	
 		}
 		
 		return true;

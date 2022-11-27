@@ -163,13 +163,32 @@ USUDSScriptNode* USUDSDialogue::RunSetVariableNode(USUDSScriptNode* Node)
 	{
 		if (SetNode->GetExpression().IsValid())
 		{
-			VariableState.Add(SetNode->GetIdentifier(), SetNode->GetExpression().Evaluate(VariableState));
+			const FSUDSValue OldValue = GetVariable(SetNode->GetIdentifier());
+			const FSUDSValue NewValue = SetNode->GetExpression().Evaluate(VariableState);
+			if ((OldValue != NewValue).GetBooleanValue())
+			{
+				VariableState.Add(SetNode->GetIdentifier(), NewValue);
+				RaiseVariableChange(SetNode->GetIdentifier(), NewValue, true);
+			}
 		}
 	}
 
 	// Always one edge
 	return GetNextNode(Node);
 	
+}
+
+void USUDSDialogue::RaiseVariableChange(const FName& VarName, const FSUDSValue& Value, bool bFromScript)
+{
+	for (const auto P : Participants)
+	{
+		if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
+		{
+			ISUDSParticipant::Execute_OnDialogueVariableChanged(P, this, VarName, Value, bFromScript);
+		}
+	}
+	OnVariableChanged.Broadcast(this, VarName, Value, bFromScript);
+
 }
 
 void USUDSDialogue::SetCurrentSpeakerNode(USUDSScriptNodeText* Node, bool bQuietly)

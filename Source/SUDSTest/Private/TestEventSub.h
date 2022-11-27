@@ -19,11 +19,21 @@ public:
 		FName Name;
 		TArray<FSUDSValue> Args;
 	};
+	struct FSetVarRecord
+	{
+		FName Name;
+		FSUDSValue Value;
+		bool bFromScript;
+	};
 
 	TArray<FEventRecord> EventRecords;
+	TArray<FSetVarRecord> SetVarRecords;
 
 	UFUNCTION()
 	void OnEvent(USUDSDialogue* Dlg, FName EventName, const TArray<FSUDSValue>& Args);
-	
+
+	UFUNCTION()
+	void OnVariableChanged(USUDSDialogue* Dlg, FName VarName, const FSUDSValue& Value, bool bFromScript);
+
 	
 };

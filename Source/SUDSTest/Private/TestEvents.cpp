@@ -94,7 +94,114 @@ bool FTestEvents::RunTest(const FString& Parameters)
 			TestEqual("Participant arg 5 value", Participant->EventRecords[0].Args[5].GetBooleanValue(), false);
 			
 		}
+	}
+	if (TestEqual("Event var sub should have received", EvtSub->SetVarRecords.Num(), 10))
+	{
+		// First 7 are from the participant setting variables at startup
+		TestEqual("Event var sub arg 0 name", EvtSub->SetVarRecords[0].Name.ToString(), "SpeakerName.Player");
+		TestEqual("Event var sub arg 0 type", EvtSub->SetVarRecords[0].Value.GetType(), ESUDSValueType::Text);
+		TestEqual("Event var sub arg 0 value", EvtSub->SetVarRecords[0].Value.GetTextValue().ToString(), "Protagonist");
+		TestFalse("Event var sub arg 0 fromscript", EvtSub->SetVarRecords[0].bFromScript);
+
+		TestEqual("Event var sub arg 1 name", EvtSub->SetVarRecords[1].Name.ToString(), "SpeakerName.NPC");
+		TestEqual("Event var sub arg 1 type", EvtSub->SetVarRecords[1].Value.GetType(), ESUDSValueType::Text);
+		TestEqual("Event var sub arg 1 value", EvtSub->SetVarRecords[1].Value.GetTextValue().ToString(), "An NPC");
+		TestFalse("Event var sub arg 1 fromscript", EvtSub->SetVarRecords[1].bFromScript);
+
+		TestEqual("Event var sub arg 2 name", EvtSub->SetVarRecords[2].Name.ToString(), "NumCats");
+		TestEqual("Event var sub arg 2 type", EvtSub->SetVarRecords[2].Value.GetType(), ESUDSValueType::Int);
+		TestEqual("Event var sub arg 2 value", EvtSub->SetVarRecords[2].Value.GetIntValue(), 3);
+		TestFalse("Event var sub arg 2 fromscript", EvtSub->SetVarRecords[2].bFromScript);
+
+		TestEqual("Event var sub arg 3 name", EvtSub->SetVarRecords[3].Name.ToString(), "FriendName");
+		TestEqual("Event var sub arg 3 type", EvtSub->SetVarRecords[3].Value.GetType(), ESUDSValueType::Text);
+		TestEqual("Event var sub arg 3 value", EvtSub->SetVarRecords[3].Value.GetTextValue().ToString(), "Susan");
+		TestFalse("Event var sub arg 3 fromscript", EvtSub->SetVarRecords[3].bFromScript);
+
+		TestEqual("Event var sub arg 4 name", EvtSub->SetVarRecords[4].Name.ToString(), "Gender");
+		TestEqual("Event var sub arg 4 type", EvtSub->SetVarRecords[4].Value.GetType(), ESUDSValueType::Gender);
+		TestEqual("Event var sub arg 4 value", EvtSub->SetVarRecords[4].Value.GetGenderValue(), ETextGender::Feminine);
+		TestFalse("Event var sub arg 4 fromscript", EvtSub->SetVarRecords[4].bFromScript);
 		
+		TestEqual("Event var sub arg 5 name", EvtSub->SetVarRecords[5].Name.ToString(), "FloatVal");
+		TestEqual("Event var sub arg 5 type", EvtSub->SetVarRecords[5].Value.GetType(), ESUDSValueType::Float);
+		TestEqual("Event var sub arg 5 value", EvtSub->SetVarRecords[5].Value.GetFloatValue(), 12.567f);
+		TestFalse("Event var sub arg 5 fromscript", EvtSub->SetVarRecords[5].bFromScript);
+
+		TestEqual("Event var sub arg 6 name", EvtSub->SetVarRecords[6].Name.ToString(), "BoolVal");
+		TestEqual("Event var sub arg 6 type", EvtSub->SetVarRecords[6].Value.GetType(), ESUDSValueType::Boolean);
+		TestEqual("Event var sub arg 6 value", EvtSub->SetVarRecords[6].Value.GetBooleanValue(), true);
+		TestFalse("Event var sub arg 6 fromscript", EvtSub->SetVarRecords[6].bFromScript);
+
+		// Next 3 are from script
+		TestEqual("Event var sub arg 7 name", EvtSub->SetVarRecords[7].Name.ToString(), "IntVar");
+		TestEqual("Event var sub arg 7 type", EvtSub->SetVarRecords[7].Value.GetType(), ESUDSValueType::Int);
+		TestEqual("Event var sub arg 7 value", EvtSub->SetVarRecords[7].Value.GetIntValue(), 2);
+		TestTrue("Event var sub arg 7 fromscript", EvtSub->SetVarRecords[7].bFromScript);
+		
+		TestEqual("Event var sub arg 8 name", EvtSub->SetVarRecords[8].Name.ToString(), "FloatVar");
+		TestEqual("Event var sub arg 8 type", EvtSub->SetVarRecords[8].Value.GetType(), ESUDSValueType::Float);
+		TestEqual("Event var sub arg 8 value", EvtSub->SetVarRecords[8].Value.GetFloatValue(), 66.67f);
+		TestTrue("Event var sub arg 8 fromscript", EvtSub->SetVarRecords[8].bFromScript);
+
+		TestEqual("Event var sub arg 9 name", EvtSub->SetVarRecords[9].Name.ToString(), "StringVar");
+		TestEqual("Event var sub arg 9 type", EvtSub->SetVarRecords[9].Value.GetType(), ESUDSValueType::Text);
+		TestEqual("Event var sub arg 9 value", EvtSub->SetVarRecords[9].Value.GetTextValue().ToString(), "Ey up");
+		TestTrue("Event var sub arg 9 fromscript", EvtSub->SetVarRecords[9].bFromScript);
+	}
+	if (TestEqual("Participant var should have received", Participant->SetVarRecords.Num(), 10))
+	{
+		// First 7 are from the participant setting variables at startup
+		TestEqual("Participant var arg 0 name", Participant->SetVarRecords[0].Name.ToString(), "SpeakerName.Player");
+		TestEqual("Participant var arg 0 type", Participant->SetVarRecords[0].Value.GetType(), ESUDSValueType::Text);
+		TestEqual("Participant var arg 0 value", Participant->SetVarRecords[0].Value.GetTextValue().ToString(), "Protagonist");
+		TestFalse("Participant var arg 0 fromscript", Participant->SetVarRecords[0].bFromScript);
+
+		TestEqual("Participant var arg 1 name", Participant->SetVarRecords[1].Name.ToString(), "SpeakerName.NPC");
+		TestEqual("Participant var arg 1 type", Participant->SetVarRecords[1].Value.GetType(), ESUDSValueType::Text);
+		TestEqual("Participant var arg 1 value", Participant->SetVarRecords[1].Value.GetTextValue().ToString(), "An NPC");
+		TestFalse("Participant var arg 1 fromscript", Participant->SetVarRecords[1].bFromScript);
+
+		TestEqual("Participant var arg 2 name", Participant->SetVarRecords[2].Name.ToString(), "NumCats");
+		TestEqual("Participant var arg 2 type", Participant->SetVarRecords[2].Value.GetType(), ESUDSValueType::Int);
+		TestEqual("Participant var arg 2 value", Participant->SetVarRecords[2].Value.GetIntValue(), 3);
+		TestFalse("Participant var arg 2 fromscript", Participant->SetVarRecords[2].bFromScript);
+
+		TestEqual("Participant var arg 3 name", Participant->SetVarRecords[3].Name.ToString(), "FriendName");
+		TestEqual("Participant var arg 3 type", Participant->SetVarRecords[3].Value.GetType(), ESUDSValueType::Text);
+		TestEqual("Participant var arg 3 value", Participant->SetVarRecords[3].Value.GetTextValue().ToString(), "Susan");
+		TestFalse("Participant var arg 3 fromscript", Participant->SetVarRecords[3].bFromScript);
+
+		TestEqual("Participant var arg 4 name", Participant->SetVarRecords[4].Name.ToString(), "Gender");
+		TestEqual("Participant var arg 4 type", Participant->SetVarRecords[4].Value.GetType(), ESUDSValueType::Gender);
+		TestEqual("Participant var arg 4 value", Participant->SetVarRecords[4].Value.GetGenderValue(), ETextGender::Feminine);
+		TestFalse("Participant var arg 4 fromscript", Participant->SetVarRecords[4].bFromScript);
+		
+		TestEqual("Participant var arg 5 name", Participant->SetVarRecords[5].Name.ToString(), "FloatVal");
+		TestEqual("Participant var arg 5 type", Participant->SetVarRecords[5].Value.GetType(), ESUDSValueType::Float);
+		TestEqual("Participant var arg 5 value", Participant->SetVarRecords[5].Value.GetFloatValue(), 12.567f);
+		TestFalse("Participant var arg 5 fromscript", Participant->SetVarRecords[5].bFromScript);
+
+		TestEqual("Participant var arg 6 name", Participant->SetVarRecords[6].Name.ToString(), "BoolVal");
+		TestEqual("Participant var arg 6 type", Participant->SetVarRecords[6].Value.GetType(), ESUDSValueType::Boolean);
+		TestEqual("Participant var arg 6 value", Participant->SetVarRecords[6].Value.GetBooleanValue(), true);
+		TestFalse("Participant var arg 6 fromscript", Participant->SetVarRecords[6].bFromScript);
+
+		// Next 3 are from script
+		TestEqual("Participant var arg 7 name", Participant->SetVarRecords[7].Name.ToString(), "IntVar");
+		TestEqual("Participant var arg 7 type", Participant->SetVarRecords[7].Value.GetType(), ESUDSValueType::Int);
+		TestEqual("Participant var arg 7 value", Participant->SetVarRecords[7].Value.GetIntValue(), 2);
+		TestTrue("Participant var arg 7 fromscript", Participant->SetVarRecords[7].bFromScript);
+		
+		TestEqual("Participant var arg 8 name", Participant->SetVarRecords[8].Name.ToString(), "FloatVar");
+		TestEqual("Participant var arg 8 type", Participant->SetVarRecords[8].Value.GetType(), ESUDSValueType::Float);
+		TestEqual("Participant var arg 8 value", Participant->SetVarRecords[8].Value.GetFloatValue(), 66.67f);
+		TestTrue("Participant var arg 8 fromscript", Participant->SetVarRecords[8].bFromScript);
+
+		TestEqual("Participant var arg 9 name", Participant->SetVarRecords[9].Name.ToString(), "StringVar");
+		TestEqual("Participant var arg 9 type", Participant->SetVarRecords[9].Value.GetType(), ESUDSValueType::Text);
+		TestEqual("Participant var arg 9 value", Participant->SetVarRecords[9].Value.GetTextValue().ToString(), "Ey up");
+		TestTrue("Participant var arg 9 fromscript", Participant->SetVarRecords[9].bFromScript);
 	}
 
 	TestDialogueText(this, "Line 2", Dlg, "NPC", "Alreet chook");

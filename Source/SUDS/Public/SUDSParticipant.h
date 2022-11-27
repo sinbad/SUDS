@@ -80,6 +80,16 @@ public:
 	void OnDialogueEvent(USUDSDialogue* Dialogue, FName EventName, const TArray<FSUDSValue>& Arguments);
 	
 	/**
+	 * Called when a variable changes value in the dialogue 
+	 * @param Dialogue The dialogue instance
+	 * @param VariableName The name of the variable which has changed value
+	 * @param Value The new value
+	 * @param bFromScript True if the value changed because of a script line, false if it changed because of code calling SetVariable
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="SUDS")
+	void OnDialogueVariableChanged(USUDSDialogue* Dialogue, FName VariableName, const FSUDSValue& Value, bool bFromScript);
+	
+	/**
 	 * Return the priority of this participant (default 0).
 	 * If for some reason you need to control the order multiple participants in a dialogue are called, 
 	 * override this method; higher priority participants will be called *later* so that their variables etc override

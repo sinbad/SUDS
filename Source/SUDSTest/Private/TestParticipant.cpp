@@ -58,3 +58,11 @@ void UTestParticipant::OnDialogueEvent_Implementation(USUDSDialogue* Dialogue,
 	EventRecords.Add(FEventRecord { EventName, Arguments });
 }
 
+void UTestParticipant::OnDialogueVariableChanged_Implementation(USUDSDialogue* Dialogue,
+	FName VariableName,
+	const FSUDSValue& Value,
+	bool bFromScript)
+{
+	SetVarRecords.Add(FSetVarRecord { VariableName, Value, bFromScript });
+}
+

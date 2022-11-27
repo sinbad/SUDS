@@ -17,6 +17,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDialogueChoice, class USUDSDialo
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDialogueStarting, class USUDSDialogue*, Dialogue, FName, AtLabel);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogueFinished, class USUDSDialogue*, Dialogue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnDialogueEvent, class USUDSDialogue*, Dialogue, FName, EventName, const TArray<FSUDSValue>&, Arguments);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnVariableChangedEvent, class USUDSDialogue*, Dialogue, FName, VariableName, const FSUDSValue&, Value, bool, bFromScript);
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSUDSDialogue, Verbose, All);
 
@@ -70,6 +71,9 @@ public:
 	/// Event raised when an event is sent from the dialogue script. Any listeners or participants can process the event.
 	UPROPERTY(BlueprintAssignable)
 	FOnDialogueEvent OnEvent;
+	/// Event raised when a variable is changed. "FromScript" is true if the variable was set by the script, false if set from code
+	UPROPERTY(BlueprintAssignable)
+	FOnVariableChangedEvent OnVariableChanged;
 	/// Event raised when the dialogue is starting, before the first speaker line
 	UPROPERTY(BlueprintAssignable)
 	FOnDialogueStarting OnStarting;
@@ -111,6 +115,7 @@ protected:
 	void RaiseFinished();
 	void RaiseNewSpeakerLine();
 	void RaiseChoiceMade(int Index);
+	void RaiseVariableChange(const FName& VarName, const FSUDSValue& Value, bool bFromScript);
 	USUDSScriptNode* GetNextNode(const USUDSScriptNode* Node) const;
 	bool ShouldStopAtNodeType(ESUDSScriptNodeType Type);
 	USUDSScriptNode* RunNode(USUDSScriptNode* Node);
@@ -268,19 +273,17 @@ public:
 
 
 	/// Set a variable in dialogue state
-	template <typename T>
-	void SetVariable(FName Name, const T& Value)
-	{
-		VariableState.Add(Name, Value);
-	}
-
-	/// Set a variable in dialogue state
 	/// This is mostly only useful if you happen to already have a general purpose FSUDSValue.
 	/// See SetDialogueText, SetDialogueInt etc for literal-friendly versions
 	UFUNCTION(BlueprintCallable)
 	void SetVariable(FName Name, FSUDSValue Value)
 	{
-		VariableState.Add(Name, Value);
+		const FSUDSValue OldValue = GetVariable(Name);
+		if ((OldValue != Value).GetBooleanValue())
+		{
+			VariableState.Add(Name, Value);
+			RaiseVariableChange(Name, Value, false);
+		}
 	}
 
 	/// Get a variable in dialogue state as a general value type
@@ -303,7 +306,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetVariableText(FName Name, FText Value)
 	{
-		VariableState.Add(Name, Value);
+		SetVariable(Name, Value);
 	}
 
 	/**
@@ -336,7 +339,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetVariableInt(FName Name, int32 Value)
 	{
-		VariableState.Add(Name, Value);
+		SetVariable(Name, Value);
 	}
 
 	/**
@@ -373,7 +376,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetVariableFloat(FName Name, float Value)
 	{
-		VariableState.Add(Name, Value);
+		SetVariable(Name, Value);
 	}
 
 	/**
@@ -409,7 +412,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetVariableGender(FName Name, ETextGender Value)
 	{
-		VariableState.Add(Name, Value);
+		SetVariable(Name, Value);
 	}
 
 	/**
@@ -445,7 +448,7 @@ public:
 	void SetVariableBoolean(FName Name, bool Value)
 	{
 		// Use explicit FSUDSValue constructor to avoid default int conversion
-		VariableState.Add(Name, FSUDSValue(Value));
+		SetVariable(Name, FSUDSValue(Value));
 	}
 
 	/**

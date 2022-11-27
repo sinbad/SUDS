@@ -14,6 +14,8 @@ enum class ESUDSValueType : uint8
 	Gender = 4,
 	/// Access the value of another variable
 	Variable = 10,
+
+	Empty = 99
 };
 /// Struct which can hold any of the value types that SUDS needs to use, in a Blueprint friendly manner
 /// For getting / setting these values from blueprints, see blueprint library functions SetSUDSValue<Type>() / GetSUDSValue<Type>()
@@ -33,7 +35,7 @@ protected:
 	TOptional<FName> VariableName;
 public:
 
-	FSUDSValue() : Type(ESUDSValueType::Text), IntValue(0), TextValue(FText::GetEmpty()) {}
+	FSUDSValue() : Type(ESUDSValueType::Empty), IntValue(0), TextValue(FText::GetEmpty()) {}
 
 	FSUDSValue(const int32 Value)
 		: Type(ESUDSValueType::Int) { IntValue = Value; }
@@ -59,7 +61,7 @@ public:
 		IntValue = static_cast<int32>(Value);
 	}
 
-	explicit FSUDSValue(bool Value)
+	FSUDSValue(bool Value)
 		: Type(ESUDSValueType::Boolean), IntValue(0)
 	{
 		IntValue = Value ? 1 : 0;
@@ -72,6 +74,12 @@ public:
 	{
 	}
 
+	/// Whether this value is empty, i.e. hasn't been set to anything
+	FORCEINLINE bool IsEmpty() const
+	{
+		return Type == ESUDSValueType::Empty;
+	}
+
 	FORCEINLINE ESUDSValueType GetType() const
 	{
 		return Type;
@@ -79,8 +87,8 @@ public:
 
 	FORCEINLINE int32 GetIntValue() const
 	{
-		// We don't warn for unset variables, use the defaults
-		if (Type != ESUDSValueType::Int && Type != ESUDSValueType::Variable)
+		// We don't warn for unset variables / uninitialised values, use the defaults
+		if (!IsEmpty() && Type != ESUDSValueType::Int && Type != ESUDSValueType::Variable)
 			UE_LOG(LogSUDS, Warning, TEXT("Getting value as int but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))
 		
 		return IntValue;
@@ -89,7 +97,7 @@ public:
 	FORCEINLINE float GetFloatValue() const
 	{
 		// We don't warn for unset variables, use the defaults
-		if (Type != ESUDSValueType::Float && Type != ESUDSValueType::Variable)
+		if (!IsEmpty() && Type != ESUDSValueType::Float && Type != ESUDSValueType::Variable)
 			UE_LOG(LogSUDS, Warning, TEXT("Getting value as float but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))
 		
 		return FloatValue;
@@ -98,7 +106,7 @@ public:
 	FORCEINLINE const FText& GetTextValue() const
 	{
 		// We don't warn for unset variables, use the defaults
-		if (Type != ESUDSValueType::Text && Type != ESUDSValueType::Variable)
+		if (!IsEmpty() && Type != ESUDSValueType::Text && Type != ESUDSValueType::Variable)
 			UE_LOG(LogSUDS, Warning, TEXT("Getting value as text but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))
 
 		if (TextValue.IsSet())
@@ -110,7 +118,7 @@ public:
 	FORCEINLINE ETextGender GetGenderValue() const
 	{
 		// We don't warn for unset variables, use the defaults
-		if (Type != ESUDSValueType::Gender && Type != ESUDSValueType::Variable)
+		if (!IsEmpty() && Type != ESUDSValueType::Gender && Type != ESUDSValueType::Variable)
 			UE_LOG(LogSUDS, Warning, TEXT("Getting value as float but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))
 		
 		return static_cast<ETextGender>(IntValue);
@@ -119,7 +127,7 @@ public:
 	FORCEINLINE bool GetBooleanValue() const
 	{
 		// We don't warn for unset variables, use the defaults
-		if (Type != ESUDSValueType::Boolean && Type != ESUDSValueType::Variable)
+		if (!IsEmpty() && Type != ESUDSValueType::Boolean && Type != ESUDSValueType::Variable)
 			UE_LOG(LogSUDS, Warning, TEXT("Getting value as boolean but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))
 
 		return IntValue != 0;
@@ -127,7 +135,7 @@ public:
 
 	FORCEINLINE FName GetVariableNameValue() const
 	{
-		if (Type != ESUDSValueType::Variable)
+		if (!IsEmpty() && Type != ESUDSValueType::Variable)
 			UE_LOG(LogSUDS, Warning, TEXT("Getting value as variable name but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))
 
 		if (VariableName.IsSet())
@@ -262,7 +270,10 @@ public:
 		{
 			// no auto conversion here
 			// however, tolerate unresolved variables, they will return initial values
-			check(Type == Rhs.Type || Type == ESUDSValueType::Variable || Rhs.Type == ESUDSValueType::Variable);
+			if (Type != Rhs.Type && Type != ESUDSValueType::Variable && Rhs.Type != ESUDSValueType::Variable)
+			{
+				return false;
+			}
 
 			// Compare using type from whichever one isn't a variable (get values on unset variables will return defaults)
 			ESUDSValueType UseType = IsVariable() ? Rhs.GetType() : GetType();

@@ -22,8 +22,15 @@ public:
 		FName Name;
 		TArray<FSUDSValue> Args;
 	};
+	struct FSetVarRecord
+	{
+		FName Name;
+		FSUDSValue Value;
+		bool bFromScript;
+	};
 
 	TArray<FEventRecord> EventRecords;
+	TArray<FSetVarRecord> SetVarRecords;
 
 	
 	virtual void OnDialogueStarting_Implementation(USUDSDialogue* Dialogue, FName AtLabel) override;
@@ -31,4 +38,8 @@ public:
 	virtual void OnDialogueEvent_Implementation(USUDSDialogue* Dialogue,
 		FName EventName,
 		const TArray<FSUDSValue>& Arguments) override;
+	virtual void OnDialogueVariableChanged_Implementation(USUDSDialogue* Dialogue,
+		FName VariableName,
+		const FSUDSValue& Value,
+		bool bFromScript) override;
 };
