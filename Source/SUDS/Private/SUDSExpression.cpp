@@ -271,8 +271,8 @@ bool FSUDSExpression::Validate()
 		}
 	}
 
-	// Must be one item left
-	return EvalStack.Num() == 1;
+	// Must be one item left and must be an operand
+	return EvalStack.Num() == 1 && EvalStack[0].IsOperand();
 	
 }
 
