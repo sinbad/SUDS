@@ -387,6 +387,8 @@ FSUDSValue FSUDSExpression::EvaluateOperand(const FSUDSValue& Operand,
 		{
 			return *Var;
 		}
+		// Note: we're NOT warning about unset variables here, and just defaulting to initial values (false, 0 etc)
+		// This is more usable in practice than complaining about it
 	}
 
 	return Operand;
