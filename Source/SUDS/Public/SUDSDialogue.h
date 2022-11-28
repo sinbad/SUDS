@@ -182,7 +182,7 @@ public:
 	 * @param NewParticipants List of new participants. Each should implement ISUDSParticipant
 	 */
 	UFUNCTION(BlueprintCallable)
-	void SetParticipants(const TArray<UObject*> NewParticipants);
+	void SetParticipants(const TArray<UObject*>& NewParticipants);
 	
 
 	/// Get the speech text for the current dialogue node

@@ -39,7 +39,7 @@ void USUDSDialogue::Start(FName Label)
 	Restart(false, Label, false);
 }
 
-void USUDSDialogue::SetParticipants(const TArray<UObject*> InParticipants)
+void USUDSDialogue::SetParticipants(const TArray<UObject*>& InParticipants)
 {
 	Participants = InParticipants;
 	SortParticipants();
