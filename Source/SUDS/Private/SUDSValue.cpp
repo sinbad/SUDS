@@ -20,10 +20,10 @@ FArchive& operator<<(FArchive& Ar, FSUDSValue& Value)
 	}
 	else if (Value.Type == ESUDSValueType::Variable)
 	{
-		FString VarNameStr = Value.VariableName.Get(NAME_None).ToString();
+		FString VarNameStr = Value.Name.Get(NAME_None).ToString();
 		Ar << VarNameStr;
 		if (Ar.IsLoading())
-			Value.VariableName = FName(VarNameStr);
+			Value.Name = FName(VarNameStr);
 	}
 		
 	return Ar;

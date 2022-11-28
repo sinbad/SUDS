@@ -12,6 +12,7 @@ enum class ESUDSValueType : uint8
 	Float = 2,
 	Boolean = 3,
 	Gender = 4,
+	Name = 5,
 	/// Access the value of another variable
 	Variable = 10,
 
@@ -32,7 +33,8 @@ protected:
 		float FloatValue;
 	};
 	TOptional<FText> TextValue;
-	TOptional<FName> VariableName;
+	// Used for variables and name values
+	TOptional<FName> Name;
 public:
 
 	FSUDSValue() : Type(ESUDSValueType::Empty), IntValue(0), TextValue(FText::GetEmpty()) {}
@@ -67,10 +69,10 @@ public:
 		IntValue = Value ? 1 : 0;
 	}
 
-	FSUDSValue(const FName& ReferencedVariableName)
-	: Type(ESUDSValueType::Variable),
+	FSUDSValue(const FName& ReferencedName, bool bIsVariable)
+	: Type(bIsVariable ? ESUDSValueType::Variable : ESUDSValueType::Name),
 	  IntValue(0),
-	  VariableName(ReferencedVariableName)
+	  Name(ReferencedName)
 	{
 	}
 
@@ -133,13 +135,25 @@ public:
 		return IntValue != 0;
 	}
 
+	FORCEINLINE FName GetNameValue() const
+	{
+		// We don't warn for unset variables, use the defaults
+		if (!IsEmpty() && Type != ESUDSValueType::Name && Type != ESUDSValueType::Variable)
+			UE_LOG(LogSUDS, Warning, TEXT("Getting value as Name but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))
+
+		if (Name.IsSet())
+			return Name.GetValue();
+
+		return NAME_None;
+	}
+
 	FORCEINLINE FName GetVariableNameValue() const
 	{
 		if (!IsEmpty() && Type != ESUDSValueType::Variable)
 			UE_LOG(LogSUDS, Warning, TEXT("Getting value as variable name but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))
 
-		if (VariableName.IsSet())
-			return VariableName.GetValue();
+		if (Name.IsSet())
+			return Name.GetValue();
 
 		return NAME_None;
 	}
@@ -148,7 +162,7 @@ public:
 	{
 		return Type == ESUDSValueType::Variable;
 	}
-
+	
 	bool IsNumeric() const
 	{
 		return Type == ESUDSValueType::Float || Type == ESUDSValueType::Int;
@@ -169,6 +183,10 @@ public:
 			return FFormatArgumentValue(GetGenderValue());
 		case ESUDSValueType::Float:
 			return FFormatArgumentValue(GetFloatValue());
+		case ESUDSValueType::Empty:
+		case ESUDSValueType::Name:
+		case ESUDSValueType::Variable:
+			return FFormatArgumentValue();
 		}
 	}
 
@@ -287,7 +305,9 @@ public:
 				return FSUDSValue(GetGenderValue() == Rhs.GetGenderValue());
 			case ESUDSValueType::Variable:
 				return FSUDSValue(GetVariableNameValue() == Rhs.GetVariableNameValue());
-			// deal with int/float again here, this mops up cases where one side is an unset variable
+			case ESUDSValueType::Name:
+				return FSUDSValue(GetNameValue() == Rhs.GetNameValue());
+				// deal with int/float again here, this mops up cases where one side is an unset variable
 			case ESUDSValueType::Int:
 				return FSUDSValue(GetIntValue() == Rhs.GetIntValue());
 			case ESUDSValueType::Float:

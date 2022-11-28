@@ -23,8 +23,9 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 	// - Arithmetic operators & parentheses
 	// - Boolean operators & comparisons
 	// - Predefined constants (Masculine, feminine, true, false etc)
-	// - Quoted strings (group 1 includes quotes, group 2 is trimmed)
-	const FRegexPattern Pattern(TEXT("(\\{\\w+\\}|-?\\d+(?:\\.\\d*)?|[-+*\\/\\(\\)]|and|&&|\\|\\||or|not|\\<\\>|!=|!|\\<=?|\\>=?|==?|[mM]asculine|[fF]eminine|[nN]euter|[tT]rue|[fF]alse|\\\"([^\\\"]*)\\\")"));
+	// - Quoted strings "string"
+	// - Quoted names `name`
+	const FRegexPattern Pattern(TEXT("(\\{\\w+\\}|-?\\d+(?:\\.\\d*)?|[-+*\\/\\(\\)]|and|&&|\\|\\||or|not|\\<\\>|!=|!|\\<=?|\\>=?|==?|[mM]asculine|[fF]eminine|[nN]euter|[tT]rue|[fF]alse|\\\"([^\\\"]*)\\\"|`([^`]*)`)"));
 	FRegexMatcher Regex(Pattern, Expression);
 	// Stacks that we use to construct
 	TArray<ESUDSExpressionItemType> OperatorStack;
@@ -207,6 +208,17 @@ bool FSUDSExpression::ParseOperand(const FString& ValueStr, FSUDSValue& OutVal)
 			return true;
 		}
 	}
+	// Try FName
+	{
+		const FRegexPattern Pattern(TEXT("^`([^`]*)`$"));
+		FRegexMatcher Regex(Pattern, ValueStr);
+		if (Regex.FindNext())
+		{
+			const FString Name = Regex.GetCaptureGroup(1);
+			OutVal = FSUDSValue(FName(Name), false);
+			return true;
+		}
+	}
 	// Try variable name
 	{
 		const FRegexPattern Pattern(TEXT("^\\{([^\\}]*)\\}$"));
@@ -214,7 +226,7 @@ bool FSUDSExpression::ParseOperand(const FString& ValueStr, FSUDSValue& OutVal)
 		if (Regex.FindNext())
 		{
 			const FName VariableName(Regex.GetCaptureGroup(1));
-			OutVal = FSUDSValue(VariableName);
+			OutVal = FSUDSValue(VariableName, true);
 			return true;
 		}
 	}

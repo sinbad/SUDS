@@ -203,6 +203,12 @@ public:
 		check(IsLiteral() && GetLiteralValue().GetType() == ESUDSValueType::Gender);
 		return GetLiteralValue().GetGenderValue();
 	}
+	/// Helper method to get name literal value
+	FName GetNameLiteralValue() const
+	{
+		check(IsLiteral() && GetLiteralValue().GetType() == ESUDSValueType::Name);
+		return GetLiteralValue().GetNameValue();
+	}
 
 
 };

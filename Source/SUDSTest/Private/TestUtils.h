@@ -92,6 +92,22 @@ FORCEINLINE bool TestParsedSetLiteral(FAutomationTestBase* T, const FString& Nam
 	
 }
 
+FORCEINLINE bool TestParsedSetLiteral(FAutomationTestBase* T, const FString& NameForTest, const FSUDSParsedNode* Node, const FString& VarName, const FName& Name)
+{
+	if (T->TestNotNull(NameForTest, Node))
+	{
+		T->TestEqual(NameForTest, Node->NodeType, ESUDSParsedNodeType::SetVariable);
+		T->TestEqual(NameForTest, Node->Identifier, VarName);
+		if (T->TestTrue(NameForTest, Node->Expression.IsLiteral()))
+		{
+			T->TestEqual(NameForTest,Node->Expression.GetNameLiteralValue(), Name);	
+		}
+		
+		return true;
+	}
+	return false;
+	
+}
 
 FORCEINLINE bool TestGetParsedNextNode(FAutomationTestBase* T, const FString& NameForTest, const FSUDSParsedNode* Node, FSUDSScriptImporter& Importer, bool bIsHeader, const FSUDSParsedNode** OutNextNode)
 {
@@ -104,6 +120,7 @@ FORCEINLINE bool TestGetParsedNextNode(FAutomationTestBase* T, const FString& Na
 			return true;
 		}
 	}
+	*OutNextNode = nullptr;
 	return false;
 }
 FORCEINLINE bool TestParsedChoice(FAutomationTestBase* T, const FString& NameForTest, const FSUDSParsedNode* Node, int ExpectedNumChoices)
