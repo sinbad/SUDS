@@ -23,18 +23,16 @@ USUDSDialogue* USUDSLibrary::CreateDialogueWithParticipants(UObject* Owner,
 	USUDSScript* Script,
 	const TArray<UObject*>& Participants, bool bStartImmediately, FName StartLabel)
 {
-	// Don't use the base CreateDialogue to start, we want to set participants first
-	if (auto Dlg = CreateDialogue(Owner, Script, false))
+	// Don't use the base CreateDialogue to start, we want to set participants first before init/start
+	USUDSDialogue* Dlg = NewObject<USUDSDialogue>(Owner, Script->GetFName());
+	Dlg->SetParticipants(Participants);
+	Dlg->Initialise(Script);
+	if (bStartImmediately)
 	{
-		Dlg->SetParticipants(Participants);
-		if (bStartImmediately)
-		{
-			Dlg->Start(StartLabel);
-		}
-		return Dlg;
+		Dlg->Start(StartLabel);
 	}
+	return Dlg;
 		
-	return nullptr;
 }
 
 bool USUDSLibrary::GetDialogueValueAsText(const FSUDSValue& Value, FText& TextValue)

@@ -224,13 +224,15 @@ public:
 
 	/**
 	 * Restart the dialogue, either from the start or from a named label.
-	 * @param bResetState Reset all dialogue local state, as if the dialogue had been created anew. You mostly don't want
+	 * @param bResetState Whether to reset ALL dialogue local variables, as if the dialogue had been created anew. You mostly don't want
 	 * to do this; if you have certain things you want to reset every time, then use [set] commands in the header section
 	 * which runs every time the dialogue starts.
 	 * @param StartLabel Label to start running from; if None start from the beginning.
+	 * @param bReRunHeader If true (default), re-runs the header nodes before starting. Header nodes let you initialise
+	 *   state that should always be reset when the dialogue is restarted
 	 */
 	UFUNCTION(BlueprintCallable)
-	void Restart(bool bResetState = false, FName StartLabel = NAME_None);
+	void Restart(bool bResetState = false, FName StartLabel = NAME_None, bool bReRunHeader = true);
 
 	/**
 	 * Reset the state of this dialogue.

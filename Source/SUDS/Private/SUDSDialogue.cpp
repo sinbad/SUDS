@@ -22,13 +22,21 @@ void USUDSDialogue::Initialise(const USUDSScript* Script)
 {
 	BaseScript = Script;
 	CurrentSpeakerNode = nullptr;
+
+	// Run header nodes immediately (only set nodes)
+	RunUntilNextSpeakerNodeOrEnd(BaseScript->GetHeaderNode());
+
+	CurrentSpeakerNode = nullptr;
+
 }
 
 void USUDSDialogue::Start(FName Label)
 {
 	// Note that we don't reset state by default here. This is to allow long-term memory on dialogue, such as
 	// knowing whether you've met a character before etc.
-	Restart(false, Label);
+	// We also don't re-run headers here since they will have been run on Initialise()
+	// This is to allow callers to set variables before Start() that override headers
+	Restart(false, Label, false);
 }
 
 void USUDSDialogue::SetParticipants(const TArray<UObject*> InParticipants)
@@ -480,7 +488,7 @@ void USUDSDialogue::RestoreSavedState(const FSUDSDialogueState& State)
 	}
 }
 
-void USUDSDialogue::Restart(bool bResetState, FName StartLabel)
+void USUDSDialogue::Restart(bool bResetState, FName StartLabel, bool bReRunHeader)
 {
 	if (bResetState)
 	{
@@ -489,8 +497,11 @@ void USUDSDialogue::Restart(bool bResetState, FName StartLabel)
 
 	RaiseStarting(StartLabel);
 
-	// We always run header nodes
-	RunUntilNextSpeakerNodeOrEnd(BaseScript->GetHeaderNode());
+	if (bReRunHeader)
+	{
+		// Run header nodes
+		RunUntilNextSpeakerNodeOrEnd(BaseScript->GetHeaderNode());
+	}
 
 	if (StartLabel != NAME_None)
 	{
