@@ -944,7 +944,7 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine,
 	RetrieveAndRemoveOrGenerateTextID(Line, TextID);
 	
 	const FString LineStr(Line);
-	const FRegexPattern SpeakerPattern(TEXT("^(\\w+)\\:\\s*(.+)$"));
+	const FRegexPattern SpeakerPattern(TEXT("^(\\S+)\\:\\s*(.+)$"));
 	FRegexMatcher SpeakerRegex(SpeakerPattern, LineStr);
 	if (SpeakerRegex.FindNext())
 	{
