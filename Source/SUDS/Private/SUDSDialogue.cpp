@@ -415,6 +415,15 @@ FText USUDSDialogue::GetChoiceText(int Index) const
 	return DummyText;
 }
 
+bool USUDSDialogue::HasChoiceBeenTakenPreviously(int Index)
+{
+	if (CurrentChoices.IsValidIndex(Index))
+	{
+		return ChoicesTaken.Contains(CurrentChoices[Index].GetTextID());
+	}
+	return false;
+}
+
 
 bool USUDSDialogue::Continue()
 {
@@ -429,6 +438,8 @@ bool USUDSDialogue::Choose(int Index)
 {
 	if (CurrentChoices.IsValidIndex(Index))
 	{
+		ChoicesTaken.Add(CurrentChoices[Index].GetTextID());
+		
 		// ONLY run to choice node if there is one!
 		// This method is called for Continue() too, which has no choice node
 		if (CurrentSpeakerNode->HasChoices())
@@ -454,12 +465,14 @@ bool USUDSDialogue::IsEnded() const
 	return CurrentSpeakerNode == nullptr;
 }
 
-void USUDSDialogue::ResetState(bool bVariables, bool bCurrentPosition)
+void USUDSDialogue::ResetState(bool bResetVariables, bool bResetPosition, bool bResetVisited)
 {
-	if (bVariables)
+	if (bResetVariables)
 		VariableState.Reset();
-	if (bCurrentPosition)
+	if (bResetPosition)
 		SetCurrentSpeakerNode(nullptr, true);
+	if (bResetVisited)
+		ChoicesTaken.Reset();
 }
 
 FSUDSDialogueState USUDSDialogue::GetSavedState() const
@@ -467,7 +480,7 @@ FSUDSDialogueState USUDSDialogue::GetSavedState() const
 	const FString CurrentNodeId = CurrentSpeakerNode
 		                              ? FTextInspector::GetTextId(CurrentSpeakerNode->GetText()).GetKey().GetChars()
 		                              : FString();
-	return FSUDSDialogueState(CurrentNodeId, VariableState);
+	return FSUDSDialogueState(CurrentNodeId, VariableState, ChoicesTaken);
 		  
 }
 
@@ -475,6 +488,8 @@ void USUDSDialogue::RestoreSavedState(const FSUDSDialogueState& State)
 {
 	VariableState.Empty();
 	VariableState = State.GetVariables();
+	ChoicesTaken.Empty();
+	ChoicesTaken.Append(State.GetChoicesTaken());
 
 	// If not found this will be null
 	if (!State.GetTextNodeID().IsEmpty())

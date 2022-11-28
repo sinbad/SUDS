@@ -53,7 +53,7 @@ protected:
 	void ExtractFormat() const;
 	
 public:
-	FSUDSScriptEdge(): Type(ESUDSEdgeType::Continue)
+	FSUDSScriptEdge(): Type(ESUDSEdgeType::Continue), SourceLineNo(0)
 	{
 	}
 
@@ -71,6 +71,7 @@ public:
 	}
 
 	FText GetText() const { return Text; }
+	FString GetTextID() const;
 	ESUDSEdgeType GetType() const { return Type; }
 	TWeakObjectPtr<USUDSScriptNode> GetTargetNode() const { return TargetNode; }
 	const FSUDSExpression& GetCondition() const { return Condition; }

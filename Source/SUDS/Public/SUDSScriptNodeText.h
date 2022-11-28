@@ -37,6 +37,7 @@ protected:
 public:
 	const FString& GetSpeakerID() const { return SpeakerID; }
 	const FText& GetText() const { return Text; }
+	FString GetTextID() const;
 	bool HasChoices() const { return bHasChoices; }
 
 	void Init(const FString& SpeakerID, const FText& Text, int LineNo);

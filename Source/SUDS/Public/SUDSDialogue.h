@@ -32,12 +32,24 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly)
 	TMap<FName, FSUDSValue> Variables;
+
+	UPROPERTY(BlueprintReadOnly)
+	TArray<FString> ChoicesTaken;
+	
 public:
 	FSUDSDialogueState() {}
-	FSUDSDialogueState(const FString& TxtID, const TMap<FName, FSUDSValue>& InVars) : TextNodeID(TxtID), Variables(InVars) {}
+
+	FSUDSDialogueState(const FString& TxtID,
+	                   const TMap<FName, FSUDSValue>& InVars,
+	                   const TSet<FString>& InChoices) : TextNodeID(TxtID),
+	                                                     Variables(InVars),
+	                                                     ChoicesTaken(InChoices.Array())
+	{
+	}
 
 	const FString& GetTextNodeID() const { return TextNodeID; }
 	const TMap<FName, FSUDSValue>& GetVariables() const { return Variables; }
+	const TArray<FString>& GetChoicesTaken() const { return ChoicesTaken; }
 };
 /**
  * A Dialogue is a runtime instance of a Script (the asset on which the dialogue is based)
@@ -88,6 +100,7 @@ protected:
 	/// External objects which want to closely participate in the dialogue (not just listen to events)
 	UPROPERTY()
 	TArray<UObject*> Participants;
+	
 
 	/// All of the dialogue variables
 	/// Dialogue variable state is all held locally. Dialogue participants can retrieve or set values in state.
@@ -96,6 +109,8 @@ protected:
 	typedef TMap<FName, FSUDSValue> FSUDSValueMap;
 	FSUDSValueMap VariableState;
 
+	/// Set of all the TextIDs of choices taken already in this dialogue
+	TSet<FString> ChoicesTaken;
 
 	TSet<FName> CurrentRequestedParamNames;
 	bool bParamNamesExtracted;
@@ -201,6 +216,13 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable)
 	FText GetChoiceText(int Index) const;
+
+	/** Returns whether the choice at the current index has been taken previously.
+	*	This is saved in dialogue state so will be remembered across save/restore.
+	*/
+	UFUNCTION(BlueprintCallable)
+	bool HasChoiceBeenTakenPreviously(int Index);
+	
 	
 	/**
 	 * Continues the dialogue if (and ONLY if) there is only one valid path/choice out of the current node.
@@ -224,7 +246,7 @@ public:
 
 	/**
 	 * Restart the dialogue, either from the start or from a named label.
-	 * @param bResetState Whether to reset ALL dialogue local variables, as if the dialogue had been created anew. You mostly don't want
+	 * @param bResetState Whether to reset ALL dialogue state, as if the dialogue had been created anew. You mostly don't want
 	 * to do this; if you have certain things you want to reset every time, then use [set] commands in the header section
 	 * which runs every time the dialogue starts.
 	 * @param StartLabel Label to start running from; if None start from the beginning.
@@ -238,9 +260,10 @@ public:
 	 * Reset the state of this dialogue.
 	 * @param bResetVariables If true, resets all variable state
 	 * @param bResetPosition If true, resets the current position in the dialogue (which speaker line is next)
+	 * @param bResetVisited If true, resets the memory of which choices have been made
 	 */
 	UFUNCTION(BlueprintCallable)
-	void ResetState(bool bResetVariables = true, bool bResetPosition = true);
+	void ResetState(bool bResetVariables = true, bool bResetPosition = true, bool bResetVisited = true);
 
 	/** Retrieve a copy of the state of this dialogue.
 	 *  This is useful for saving the state of this dialogue.

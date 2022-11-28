@@ -126,6 +126,9 @@ bool FTestSimpleRunning::RunTest(const FString& Parameters)
 	TestTrue("Continue", Dlg->Continue());
 	TestDialogueText(this, "Node 2", Dlg, "NPC", "Salutations fellow human");
 
+	// Confirm we previously chose 0
+	TestTrue("Choice 0 taken previously", Dlg->HasChoiceBeenTakenPreviously(0));
+
 	TestTrue("Choice 2", Dlg->Choose(1));
 	TestDialogueText(this, "Choice 2 Text", Dlg, "NPC", "Some nesting");
 	TestEqual("Choice 2 nested choices", Dlg->GetNumberOfChoices(), 3);
@@ -140,7 +143,7 @@ bool FTestSimpleRunning::RunTest(const FString& Parameters)
 	TestFalse("Nested choice follow On 2", Dlg->Continue());
 	TestTrue("Should be at end", Dlg->IsEnded());
 
-	// Start again, this time from nested choice
+	// Start again, this time from nested choice, and reset all state
 	Dlg->Restart(true, "nestedstart");
 	TestDialogueText(this, "nestedchoice restart Text", Dlg, "NPC", "Some nesting");
 	TestTrue("Nested choice made", Dlg->Choose(1));

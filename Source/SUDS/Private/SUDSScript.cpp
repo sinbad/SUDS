@@ -112,7 +112,7 @@ USUDSScriptNodeText* USUDSScript::GetNodeByTextID(const FString& TextID) const
 		{
 			if (auto TN = Cast<USUDSScriptNodeText>(N))
 			{
-				if (TextID.Equals(FTextInspector::GetTextId(TN->GetText()).GetKey().GetChars()))
+				if (TextID.Equals(TN->GetTextID()))
 				{
 					return TN;
 				}

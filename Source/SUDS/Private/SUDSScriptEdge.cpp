@@ -14,6 +14,11 @@ void FSUDSScriptEdge::ExtractFormat() const
 	bFormatExtracted = true;
 }
 
+FString FSUDSScriptEdge::GetTextID() const
+{
+	return FTextInspector::GetTextId(Text).GetKey().GetChars();
+}
+
 void FSUDSScriptEdge::SetText(const FText& InText)
 {
 	Text = InText;
