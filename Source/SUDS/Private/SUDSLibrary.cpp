@@ -7,6 +7,10 @@ USUDSDialogue* USUDSLibrary::CreateDialogue(UObject* Owner, USUDSScript* Script,
 {
 	if (IsValid(Script))
 	{
+		if (!IsValid(Owner))
+		{
+			Owner = GetTransientPackage();
+		}
 		USUDSDialogue* Ret = NewObject<USUDSDialogue>(Owner, Script->GetFName());
 		Ret->Initialise(Script);
 		if (bStartImmediately)
@@ -23,15 +27,25 @@ USUDSDialogue* USUDSLibrary::CreateDialogueWithParticipants(UObject* Owner,
 	USUDSScript* Script,
 	const TArray<UObject*>& Participants, bool bStartImmediately, FName StartLabel)
 {
-	// Don't use the base CreateDialogue to start, we want to set participants first before init/start
-	USUDSDialogue* Dlg = NewObject<USUDSDialogue>(Owner, Script->GetFName());
-	Dlg->SetParticipants(Participants);
-	Dlg->Initialise(Script);
-	if (bStartImmediately)
+	if (IsValid(Script))
 	{
-		Dlg->Start(StartLabel);
+		if (!IsValid(Owner))
+		{
+			Owner = GetTransientPackage();
+		}
+		// Don't use the base CreateDialogue to start, we want to set participants first before init/start
+		USUDSDialogue* Dlg = NewObject<USUDSDialogue>(Owner, Script->GetFName());
+		Dlg->SetParticipants(Participants);
+		Dlg->Initialise(Script);
+		if (bStartImmediately)
+		{
+			Dlg->Start(StartLabel);
+		}
+		return Dlg;
 	}
-	return Dlg;
+	UE_LOG(LogSUDS, Error, TEXT("Called CreateDialogue with an invalid script"))
+	return nullptr;
+	
 		
 }
 
