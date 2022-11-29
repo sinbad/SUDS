@@ -127,7 +127,7 @@ bool FTestSimpleRunning::RunTest(const FString& Parameters)
 	TestDialogueText(this, "Node 2", Dlg, "NPC", "Salutations fellow human");
 
 	// Confirm we previously chose 0
-	TestTrue("Choice 0 taken previously", Dlg->HasChoiceBeenTakenPreviously(0));
+	TestTrue("Choice 0 taken previously", Dlg->HasChoiceIndexBeenTakenPreviously(0));
 
 	TestTrue("Choice 2", Dlg->Choose(1));
 	TestDialogueText(this, "Choice 2 Text", Dlg, "NPC", "Some nesting");

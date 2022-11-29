@@ -140,7 +140,6 @@ protected:
 	void UpdateChoices();
 	void RecurseAppendChoices(const USUDSScriptNode* Node, TArray<FSUDSScriptEdge>& OutChoices);
 
-	const TArray<FSUDSScriptEdge>& GetChoices() const;
 	void GetTextFormatArgs(const TArray<FName>& ArgNames, FFormatNamedArguments& OutArgs) const;
 public:
 	USUDSDialogue();
@@ -217,11 +216,21 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FText GetChoiceText(int Index) const;
 
-	/** Returns whether the choice at the current index has been taken previously.
+	/// Get all the current choices available, if you prefer this format
+	UFUNCTION(BlueprintCallable)
+	const TArray<FSUDSScriptEdge>& GetChoices() const;
+
+	/** Returns whether the choice at the given index has been taken previously.
 	*	This is saved in dialogue state so will be remembered across save/restore.
 	*/
 	UFUNCTION(BlueprintCallable)
-	bool HasChoiceBeenTakenPreviously(int Index);
+	bool HasChoiceIndexBeenTakenPreviously(int Index);
+
+	/** Returns whether a choice has been taken previously.
+	*	This is saved in dialogue state so will be remembered across save/restore.
+	*/
+	UFUNCTION(BlueprintCallable)
+	bool HasChoiceBeenTakenPreviously(const FSUDSScriptEdge& Choice);
 	
 	
 	/**

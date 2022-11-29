@@ -415,15 +415,19 @@ FText USUDSDialogue::GetChoiceText(int Index) const
 	return DummyText;
 }
 
-bool USUDSDialogue::HasChoiceBeenTakenPreviously(int Index)
+bool USUDSDialogue::HasChoiceIndexBeenTakenPreviously(int Index)
 {
 	if (CurrentChoices.IsValidIndex(Index))
 	{
-		return ChoicesTaken.Contains(CurrentChoices[Index].GetTextID());
+		return HasChoiceBeenTakenPreviously(CurrentChoices[Index]);
 	}
 	return false;
 }
 
+bool USUDSDialogue::HasChoiceBeenTakenPreviously(const FSUDSScriptEdge& Choice)
+{
+	return ChoicesTaken.Contains(Choice.GetTextID());
+}
 
 bool USUDSDialogue::Continue()
 {

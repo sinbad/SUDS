@@ -134,10 +134,10 @@ bool FTestSaveState::RunTest(const FString& Parameters)
     // Restart to check choices were remembered
     Dlg2->Restart();
     TestDialogueText(this, "Text Node", Dlg2, "NPC", "Hello");
-    TestFalse("Choice not taken", Dlg2->HasChoiceBeenTakenPreviously(0));
-    TestFalse("Choice not taken", Dlg2->HasChoiceBeenTakenPreviously(1));
-    TestTrue("Choice not taken", Dlg2->HasChoiceBeenTakenPreviously(2));
-    TestFalse("Choice not taken", Dlg2->HasChoiceBeenTakenPreviously(3));
+    TestFalse("Choice not taken", Dlg2->HasChoiceIndexBeenTakenPreviously(0));
+    TestFalse("Choice not taken", Dlg2->HasChoiceIndexBeenTakenPreviously(1));
+    TestTrue("Choice not taken", Dlg2->HasChoiceIndexBeenTakenPreviously(2));
+    TestFalse("Choice not taken", Dlg2->HasChoiceIndexBeenTakenPreviously(3));
 	return true;
 }
 
