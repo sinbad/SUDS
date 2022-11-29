@@ -253,6 +253,10 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	bool IsEnded() const;
 
+	/// End the dialogue early
+	UFUNCTION(BlueprintCallable)
+	void End();
+	
 	/**
 	 * Restart the dialogue, either from the start or from a named label.
 	 * @param bResetState Whether to reset ALL dialogue state, as if the dialogue had been created anew. You mostly don't want

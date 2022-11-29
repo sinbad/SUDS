@@ -96,9 +96,7 @@ void USUDSDialogue::RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* NextNode)
 	}
 	else
 	{
-		// Reached the end
-		SetCurrentSpeakerNode(nullptr, true);
-		OnFinished.Broadcast(this);
+		End();
 	}
 
 }
@@ -209,7 +207,12 @@ void USUDSDialogue::SetCurrentSpeakerNode(USUDSScriptNodeText* Node, bool bQuiet
 	UpdateChoices();
 
 	if (!bQuietly)
-		RaiseNewSpeakerLine();
+	{
+		if (CurrentSpeakerNode)
+			RaiseNewSpeakerLine();
+		else
+			RaiseFinished();
+	}
 
 }
 
@@ -467,6 +470,11 @@ bool USUDSDialogue::Choose(int Index)
 bool USUDSDialogue::IsEnded() const
 {
 	return CurrentSpeakerNode == nullptr;
+}
+
+void USUDSDialogue::End()
+{
+	SetCurrentSpeakerNode(nullptr, false);
 }
 
 void USUDSDialogue::ResetState(bool bResetVariables, bool bResetPosition, bool bResetVisited)
