@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
+#include "SUDSValue.h"
 #include "SUDSParticipant.generated.h"
 
 class USUDSDialogue;
