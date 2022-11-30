@@ -514,5 +514,37 @@ public:
 		}
 		return false;
 	}
+	/**
+	 * Set a name dialogue variable
+	 * @param Name The name of the variable
+	 * @param Value The value of the variable
+	 */
+	UFUNCTION(BlueprintCallable)
+	void SetVariableName(FName Name, FName Value)
+	{
+		SetVariable(Name, FSUDSValue(Value, false));
+	}
+
+	/**
+	 * Get a name dialogue variable
+	 * @param Name The name of the variable
+	 * @returns Value The value of the variable
+	 */
+	UFUNCTION(BlueprintCallable)
+	FName GetVariableName(FName Name)
+	{
+		if (auto Arg = VariableState.Find(Name))
+		{
+			if (Arg->GetType() == ESUDSValueType::Name)
+			{
+				return Arg->GetNameValue();
+			}
+			else
+			{
+				UE_LOG(LogSUDSDialogue, Error, TEXT("Requested variable %s of type text but was not a compatible type"), *Name.ToString());
+			}
+		}
+		return NAME_None;
+	}
 
 };
