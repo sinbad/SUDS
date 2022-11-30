@@ -98,3 +98,14 @@ bool USUDSLibrary::GetDialogueValueAsGender(const FSUDSValue& Value, ETextGender
 	}
 	return false;
 }
+
+bool USUDSLibrary::GetDialogueValueAsName(const FSUDSValue& Value, FName& NameValue)
+{
+	if (Value.GetType() == ESUDSValueType::Name)
+	{
+		NameValue = Value.GetNameValue();
+		return true;
+	}
+	return false;
+	
+}

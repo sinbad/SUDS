@@ -90,5 +90,13 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="SUDS")
 	static UPARAM(DisplayName="Success") bool GetDialogueValueAsGender(const FSUDSValue& Value, ETextGender& GenderValue);
+	/**
+	 * Try to extract a Name value from a general SUDS value.
+	 * @param Value The SUDS value, which may contain many types of value
+	 * @param NameValue The Name value
+	 * @return True if the value was of type Name and extracted correctly. False if not.
+	 */
+	UFUNCTION(BlueprintCallable, Category="SUDS")
+	static UPARAM(DisplayName="Success") bool GetDialogueValueAsName(const FSUDSValue& Value, FName& NameValue);
 	
 };
