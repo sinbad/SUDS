@@ -341,6 +341,11 @@ public:
 		}
 		return FSUDSValue();
 	}
+
+	/// Get all variables
+	UFUNCTION(BlueprintCallable)
+	const TMap<FName, FSUDSValue>& GetVariables() { return VariableState; }
+	
 	/**
 	 * Set a text dialogue variable
 	 * @param Name The name of the variable
