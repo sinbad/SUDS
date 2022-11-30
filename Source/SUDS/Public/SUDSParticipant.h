@@ -64,12 +64,23 @@ public:
 	 * At this point, the dialogue has not progressed as a result of that choice, so the index passed can be used to
 	 * reference the choice.
 	 * This event is ONLY raised if there's a choice of paths, not for just continuing a linear path.
+	 * See OnDialogueProceeding for a more general callback.
 	 * Participants will be called before any dialogue event listeners.
 	 * @param Dialogue The dialogue
 	 * @param ChoiceIndex The index of the choice that was made
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="SUDS")
 	void OnDialogueChoiceMade(USUDSDialogue* Dialogue, int ChoiceIndex);
+
+	/**
+	 * Called just before proceeding with the dialogue from the current speaker line; just after either a choice is made by the player
+	 * or the dialogue is just prompted to proceed with its single path.
+	 * Participants will be called before any dialogue event listeners.
+	 * @param Dialogue The dialogue
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="SUDS")
+	void OnDialogueProceeding(USUDSDialogue* Dialogue);
+	
 
 	/**
 	 * Called when an event is raised from dialogue 

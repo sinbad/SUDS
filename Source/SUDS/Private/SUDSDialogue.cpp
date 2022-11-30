@@ -452,9 +452,14 @@ bool USUDSDialogue::Choose(int Index)
 		if (CurrentSpeakerNode->HasChoices())
 		{
 			RaiseChoiceMade(Index);
+			RaiseProceeding();
 			// Run any e.g. set nodes between text and choice
 			// These can be set nodes directly under the text and before the first choice, which get run for all choices
 			RunUntilNextChoiceNode(CurrentSpeakerNode);
+		}
+		else
+		{
+			RaiseProceeding();
 		}
 		// Then choose path
 		RunUntilNextSpeakerNodeOrEnd(CurrentChoices[Index].GetTargetNode().Get());
@@ -633,6 +638,19 @@ void USUDSDialogue::RaiseChoiceMade(int Index)
 	}
 	// Event listeners get it after
 	OnChoice.Broadcast(this, Index);
+}
+
+void USUDSDialogue::RaiseProceeding()
+{
+	for (const auto P : Participants)
+	{
+		if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
+		{
+			ISUDSParticipant::Execute_OnDialogueProceeding(P, this);
+		}
+	}
+	// Event listeners get it after
+	OnProceeding.Broadcast(this);
 }
 
 PRAGMA_ENABLE_OPTIMIZATION

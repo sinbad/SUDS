@@ -14,6 +14,7 @@ class USUDSScript;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogueSpeakerLine, class USUDSDialogue*, Dialogue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDialogueChoice, class USUDSDialogue*, Dialogue, int, ChoiceIndex);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogueProceeding, class USUDSDialogue*, Dialogue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDialogueStarting, class USUDSDialogue*, Dialogue, FName, AtLabel);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogueFinished, class USUDSDialogue*, Dialogue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnDialogueEvent, class USUDSDialogue*, Dialogue, FName, EventName, const TArray<FSUDSValue>&, Arguments);
@@ -80,6 +81,9 @@ public:
 	/// This event is ONLY raised if there's a choice of paths, not for just continuing a linear path.
 	UPROPERTY(BlueprintAssignable)
 	FOnDialogueChoice OnChoice;
+	/// Event raised when the dialog is about to proceed away from the current speaker line (because of a choice or continue)
+	UPROPERTY(BlueprintAssignable)
+	FOnDialogueProceeding OnProceeding;
 	/// Event raised when an event is sent from the dialogue script. Any listeners or participants can process the event.
 	UPROPERTY(BlueprintAssignable)
 	FOnDialogueEvent OnEvent;
@@ -130,6 +134,7 @@ protected:
 	void RaiseFinished();
 	void RaiseNewSpeakerLine();
 	void RaiseChoiceMade(int Index);
+	void RaiseProceeding();
 	void RaiseVariableChange(const FName& VarName, const FSUDSValue& Value, bool bFromScript);
 	USUDSScriptNode* GetNextNode(const USUDSScriptNode* Node) const;
 	bool ShouldStopAtNodeType(ESUDSScriptNodeType Type);
