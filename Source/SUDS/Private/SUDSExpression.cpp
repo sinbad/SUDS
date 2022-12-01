@@ -9,6 +9,7 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 	// Assume invalid until we've parsed something
 	bIsValid = false;
 	Queue.Empty();
+	VariableNames.Empty();
 	SourceString = Expression;
 	
 	// Shunting-yard algorithm
@@ -123,6 +124,19 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 	}
 
 	bIsValid = bParsedSomething && !bErrors;
+
+	// Build list of variables
+	if (bIsValid)
+	{
+		for (auto& Item : Queue)
+		{
+			if (Item.IsOperand() && Item.GetOperandValue().IsVariable())
+			{
+				VariableNames.AddUnique(Item.GetOperandValue().GetVariableNameValue());
+			}
+		}
+
+	}
 
 	return bIsValid;
 }

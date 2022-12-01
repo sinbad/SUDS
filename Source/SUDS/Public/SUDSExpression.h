@@ -85,6 +85,10 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	bool bIsValid;
 
+	UPROPERTY()
+	TArray<FName> VariableNames;
+	
+
 	/// The original string version of the expression, for reference 
 	UPROPERTY(BlueprintReadOnly)
 	FString SourceString;
@@ -105,6 +109,8 @@ public:
 	FSUDSExpression(const FSUDSValue& LiteralOrVariable)
 	{
 		Queue.Add(FSUDSExpressionItem(LiteralOrVariable));
+		if (LiteralOrVariable.IsVariable())
+			VariableNames.Add(LiteralOrVariable.GetVariableNameValue());
 		bIsValid = true;
 	}
 
@@ -131,6 +137,8 @@ public:
 	/// Whether this expression is blank
 	bool IsEmpty() const { return Queue.IsEmpty(); }
 
+	/// Get the list of variables this expression needs
+	const TArray<FName>& GetVariableNames() const { return VariableNames; }
 
 	/**
 	 * Attempt to parse an operand from a string. Returns true if this string is a valid operand, which means a literal

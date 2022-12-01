@@ -124,14 +124,18 @@ USUDSScriptNode* USUDSDialogue::RunNode(USUDSScriptNode* Node)
 	return nullptr;
 }
 
-USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node) const
+USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node)
 {
 	for (auto& Edge : Node->GetEdges())
 	{
-		// use the first satisfied edge
-		if (Edge.GetCondition().EvaluateBoolean(VariableState, BaseScript->GetName()))
+		if (Edge.GetCondition().IsValid())
 		{
-			return Edge.GetTargetNode().Get();
+			// use the first satisfied edge
+			RaiseExpressionVariablesRequested(Edge.GetCondition());
+			if (Edge.GetCondition().EvaluateBoolean(VariableState, BaseScript->GetName()))
+			{
+				return Edge.GetTargetNode().Get();
+			}
 		}
 	}
 	// NOTE: if no valid path, go to end
@@ -148,6 +152,7 @@ USUDSScriptNode* USUDSDialogue::RunEventNode(USUDSScriptNode* Node)
 		
 		for (auto& Expr : EvtNode->GetArgs())
 		{
+			RaiseExpressionVariablesRequested(Expr);
 			ArgsResolved.Add(Expr.Evaluate(VariableState));
 		}
 		
@@ -169,6 +174,7 @@ USUDSScriptNode* USUDSDialogue::RunSetVariableNode(USUDSScriptNode* Node)
 	{
 		if (SetNode->GetExpression().IsValid())
 		{
+			RaiseExpressionVariablesRequested(SetNode->GetExpression());
 			const FSUDSValue OldValue = GetVariable(SetNode->GetIdentifier());
 			const FSUDSValue NewValue = SetNode->GetExpression().Evaluate(VariableState);
 			if ((OldValue != NewValue).GetBooleanValue())
@@ -195,6 +201,27 @@ void USUDSDialogue::RaiseVariableChange(const FName& VarName, const FSUDSValue& 
 	}
 	OnVariableChanged.Broadcast(this, VarName, Value, bFromScript);
 
+}
+
+void USUDSDialogue::RaiseVariableRequested(const FName& VarName)
+{
+	// Because variables set by participants should "win", raise event first
+	OnVariableRequested.Broadcast(this, VarName);
+	for (const auto P : Participants)
+	{
+		if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
+		{
+			ISUDSParticipant::Execute_OnDialogueVariableRequested(P, this, VarName);
+		}
+	}
+}
+
+void USUDSDialogue::RaiseExpressionVariablesRequested(const FSUDSExpression& Expression)
+{
+	for (auto& Var : Expression.GetVariableNames())
+	{
+		RaiseVariableRequested(Var);
+	}
 }
 
 void USUDSDialogue::SetCurrentSpeakerNode(USUDSScriptNodeText* Node, bool bQuietly)
@@ -340,11 +367,15 @@ void USUDSDialogue::RecurseAppendChoices(const USUDSScriptNode* Node, TArray<FSU
 			break;
 		case ESUDSEdgeType::Condition:
 			// Conditional edges are under selects
-			if (Edge.GetCondition().EvaluateBoolean(VariableState, BaseScript->GetName()))
+			if (Edge.GetCondition().IsValid())
 			{
-				RecurseAppendChoices(Edge.GetTargetNode().Get(), OutChoices);
-				// When we choose a path on a select, we don't check the other paths, we can only go down one
-				return;
+				RaiseExpressionVariablesRequested(Edge.GetCondition());
+				if (Edge.GetCondition().EvaluateBoolean(VariableState, BaseScript->GetName()))
+				{
+					RecurseAppendChoices(Edge.GetTargetNode().Get(), OutChoices);
+					// When we choose a path on a select, we don't check the other paths, we can only go down one
+					return;
+				}
 			}
 			break;
 		case ESUDSEdgeType::Chained:

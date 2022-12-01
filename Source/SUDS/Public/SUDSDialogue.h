@@ -19,6 +19,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnDialogueStarting, class USUDSDia
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogueFinished, class USUDSDialogue*, Dialogue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnDialogueEvent, class USUDSDialogue*, Dialogue, FName, EventName, const TArray<FSUDSValue>&, Arguments);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnVariableChangedEvent, class USUDSDialogue*, Dialogue, FName, VariableName, const FSUDSValue&, Value, bool, bFromScript);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnVariableRequestedEvent, class USUDSDialogue*, Dialogue, FName, VariableName);
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSUDSDialogue, Verbose, All);
 
@@ -90,6 +91,10 @@ public:
 	/// Event raised when a variable is changed. "FromScript" is true if the variable was set by the script, false if set from code
 	UPROPERTY(BlueprintAssignable)
 	FOnVariableChangedEvent OnVariableChanged;
+	/// Event raised when a variable is requested by the dialogue script. You can use this hook to set variables in the
+	/// dialogue on-demand rather than up-front; anything set during this hook will be immediately used by the dialogue 
+	UPROPERTY(BlueprintAssignable)
+	FOnVariableRequestedEvent OnVariableRequested;
 	/// Event raised when the dialogue is starting, before the first speaker line
 	UPROPERTY(BlueprintAssignable)
 	FOnDialogueStarting OnStarting;
@@ -136,10 +141,13 @@ protected:
 	void RaiseChoiceMade(int Index);
 	void RaiseProceeding();
 	void RaiseVariableChange(const FName& VarName, const FSUDSValue& Value, bool bFromScript);
+	void RaiseVariableRequested(const FName& VarName);
+	void RaiseExpressionVariablesRequested(const FSUDSExpression& Expression);
+
 	USUDSScriptNode* GetNextNode(const USUDSScriptNode* Node) const;
 	bool ShouldStopAtNodeType(ESUDSScriptNodeType Type);
 	USUDSScriptNode* RunNode(USUDSScriptNode* Node);
-	USUDSScriptNode* RunSelectNode(USUDSScriptNode* Node) const;
+	USUDSScriptNode* RunSelectNode(USUDSScriptNode* Node);
 	USUDSScriptNode* RunSetVariableNode(USUDSScriptNode* Node);
 	USUDSScriptNode* RunEventNode(USUDSScriptNode* Node);
 	void UpdateChoices();

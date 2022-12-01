@@ -34,6 +34,10 @@ bool FTestExpressions::RunTest(const FString& Parameters)
 		TestEqual("Queue 5", RPN[5].GetOperandValue().GetIntValue(), 1);
 		TestEqual("Queue 6", RPN[6].GetType(), ESUDSExpressionItemType::Add);
 	}
+	if (TestEqual("Variable count", Expr.GetVariableNames().Num(), 1))
+	{
+		TestEqual("Variable name", Expr.GetVariableNames()[0].ToString(), "Six");
+	}
 
 	TestTrue("Arithmetic", Expr.ParseFromString("-6.7 * 2 + (21.3 - 8) * 5", "Arithmetic"));
 	TestEqual("Eval", Expr.Evaluate(Variables).GetFloatValue(), 53.1f);
@@ -42,12 +46,21 @@ bool FTestExpressions::RunTest(const FString& Parameters)
 	Variables.Add("IsATest", FSUDSValue(true));
 	TestTrue("BoolSingleValueParse", Expr.ParseFromString("{IsATest}", "BoolSingleValueParse"));
 	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	if (TestEqual("Variable count", Expr.GetVariableNames().Num(), 1))
+	{
+		TestEqual("Variable name", Expr.GetVariableNames()[0].ToString(), "IsATest");
+	}
 	
 	Variables.Add("SomethingFalse", FSUDSValue(false));
 	Variables.Add("SomethingTrue", FSUDSValue(true));
 	Variables.Add("SomethingElseFalse", FSUDSValue(false));
 	TestTrue("BoolCompound1", Expr.ParseFromString("!{SomethingFalse} && {SomethingTrue}", "BoolCompound1"));
 	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	if (TestEqual("Variable count", Expr.GetVariableNames().Num(), 2))
+	{
+		TestEqual("Variable name", Expr.GetVariableNames()[0].ToString(), "SomethingFalse");
+		TestEqual("Variable name", Expr.GetVariableNames()[1].ToString(), "SomethingTrue");
+	}
 	TestTrue("BoolCompound2", Expr.ParseFromString("{SomethingFalse} || {SomethingTrue}", "BoolCompound2"));
 	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
 	TestTrue("BoolCompound3", Expr.ParseFromString("{SomethingFalse} or {SomethingTrue}", "BoolCompound3"));
@@ -56,6 +69,12 @@ bool FTestExpressions::RunTest(const FString& Parameters)
 	// True result for successful parsing, but false for Eval unless we parenthesise
 	TestTrue("BoolCompound4", Expr.ParseFromString("!{SomethingFalse} && {SomethingElseFalse} && {SomethingTrue}", "BoolCompound4"));
 	TestFalse("Eval", Expr.Evaluate(Variables).GetBooleanValue());
+	if (TestEqual("Variable count", Expr.GetVariableNames().Num(), 3))
+	{
+		TestEqual("Variable name", Expr.GetVariableNames()[0].ToString(), "SomethingFalse");
+		TestEqual("Variable name", Expr.GetVariableNames()[1].ToString(), "SomethingElseFalse");
+		TestEqual("Variable name", Expr.GetVariableNames()[2].ToString(), "SomethingTrue");
+	}
 	TestTrue("BoolCompound5", Expr.ParseFromString("!({SomethingFalse} && {SomethingElseFalse}) && {SomethingTrue}", "BoolCompound5"));
 	TestTrue("Eval", Expr.Evaluate(Variables).GetBooleanValue());
 	TestTrue("BoolCompound6", Expr.ParseFromString("not {SomethingFalse} and {SomethingElseFalse} and {SomethingTrue}", "BoolCompound6"));

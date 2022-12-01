@@ -102,6 +102,17 @@ public:
 	void OnDialogueVariableChanged(USUDSDialogue* Dialogue, FName VariableName, const FSUDSValue& Value, bool bFromScript);
 	
 	/**
+	 * Called when a variable value is requested by the dialogue script.
+	 * While you can set variables on the dialogue at any time and they're persistent, you can implement this method to
+	 * provide on-demand variable values (call SetVariable on the dialogue) if you want. This hook is called just before
+	 * the variables are used.
+	 * @param Dialogue The dialogue instance
+	 * @param VariableName The name of the variable which has changed value
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category="SUDS")
+	void OnDialogueVariableRequested(USUDSDialogue* Dialogue, FName VariableName);
+	
+	/**
 	 * Return the priority of this participant (default 0).
 	 * If for some reason you need to control the order multiple participants in a dialogue are called, 
 	 * override this method; higher priority participants will be called *later* so that their variables etc override
