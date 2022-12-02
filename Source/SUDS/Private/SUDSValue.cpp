@@ -28,3 +28,21 @@ FArchive& operator<<(FArchive& Ar, FSUDSValue& Value)
 		
 	return Ar;
 }
+
+void operator<<(FStructuredArchive::FSlot Slot, FSUDSValue& Value)
+{
+	FStructuredArchive::FRecord Record = Slot.EnterRecord();
+	Record
+		<< SA_VALUE(TEXT("Type"), Value.Type)
+		<< SA_VALUE(TEXT("IntValue"), Value.IntValue); // gets/sets float/boolean/gender too
+
+	if (Value.Type == ESUDSValueType::Text)
+	{
+		Record << SA_VALUE(TEXT("TextValue"), Value.TextValue);
+	}
+	else if (Value.Type == ESUDSValueType::Variable || Value.Type == ESUDSValueType::Name)
+	{
+		Record << SA_VALUE(TEXT("Name"), Value.Name);
+	}
+
+}

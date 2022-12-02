@@ -29,13 +29,13 @@ struct FSUDSDialogueState
 {
 	GENERATED_BODY()
 protected:
-	UPROPERTY(BlueprintReadOnly, SaveGame)
+	UPROPERTY(BlueprintReadOnly)
 	FString TextNodeID;
 
-	UPROPERTY(BlueprintReadOnly, SaveGame)
+	UPROPERTY(BlueprintReadOnly)
 	TMap<FName, FSUDSValue> Variables;
 
-	UPROPERTY(BlueprintReadOnly, SaveGame)
+	UPROPERTY(BlueprintReadOnly)
 	TArray<FString> ChoicesTaken;
 	
 public:
@@ -52,6 +52,20 @@ public:
 	const FString& GetTextNodeID() const { return TextNodeID; }
 	const TMap<FName, FSUDSValue>& GetVariables() const { return Variables; }
 	const TArray<FString>& GetChoicesTaken() const { return ChoicesTaken; }
+
+	SUDS_API friend FArchive& operator<<(FArchive& Ar, FSUDSDialogueState& Value);
+	SUDS_API friend void operator<<(FStructuredArchive::FSlot Slot, FSUDSDialogueState& Value);
+	bool Serialize(FStructuredArchive::FSlot Slot)
+	{
+		Slot << *this;
+		return true;
+	}
+	bool Serialize(FArchive& Ar)
+	{
+		Ar << *this;
+		return true;
+	}
+	
 };
 /**
  * A Dialogue is a runtime instance of a Script (the asset on which the dialogue is based)

@@ -357,9 +357,15 @@ public:
 	}
 
 	SUDS_API friend FArchive& operator<<(FArchive& Ar, FSUDSValue& Value);
+	SUDS_API friend void operator<<(FStructuredArchive::FSlot Slot, FSUDSValue& Value);
 	bool Serialize(FArchive& Ar)
 	{
 		Ar << *this;
+		return true;
+	}
+	bool Serialize(FStructuredArchive::FSlot Slot)
+	{
+		Slot << *this;
 		return true;
 	}
 

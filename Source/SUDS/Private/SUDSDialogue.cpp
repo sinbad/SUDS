@@ -14,6 +14,25 @@ PRAGMA_DISABLE_OPTIMIZATION
 const FText USUDSDialogue::DummyText = FText::FromString("INVALID");
 const FString USUDSDialogue::DummyString = "INVALID";
 
+
+FArchive& operator<<(FArchive& Ar, FSUDSDialogueState& Value)
+{
+	Ar << Value.TextNodeID;
+	Ar << Value.Variables;
+	Ar << Value.ChoicesTaken;
+	return Ar;
+}
+
+void operator<<(FStructuredArchive::FSlot Slot, FSUDSDialogueState& Value)
+{
+	FStructuredArchive::FRecord Record = Slot.EnterRecord();
+	Record
+		<< SA_VALUE(TEXT("TextNodeID"), Value.TextNodeID)
+		<< SA_VALUE(TEXT("Variables"), Value.Variables)
+		<< SA_VALUE(TEXT("ChoicesTaken"), Value.ChoicesTaken);
+
+}
+
 USUDSDialogue::USUDSDialogue()
 {
 }
