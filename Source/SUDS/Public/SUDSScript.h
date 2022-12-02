@@ -25,7 +25,10 @@ protected:
 	TMap<FName, int> LabelList;
 
 	// Header equivalents for startup
+	UPROPERTY(BlueprintReadOnly)
 	TArray<USUDSScriptNode*> HeaderNodes;
+
+	UPROPERTY(BlueprintReadOnly)
 	TMap<FName, int> HeaderLabelList;
 
 	/// Array of all speaker IDs found in this script
