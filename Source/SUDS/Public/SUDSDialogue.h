@@ -157,6 +157,7 @@ protected:
 public:
 	USUDSDialogue();
 	void Initialise(const USUDSScript* Script);
+	void InitVariables();
 
 	/**
 	 * Begin the dialogue. Make sure you've added all participants before calling this.

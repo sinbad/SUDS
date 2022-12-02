@@ -23,11 +23,17 @@ void USUDSDialogue::Initialise(const USUDSScript* Script)
 	BaseScript = Script;
 	CurrentSpeakerNode = nullptr;
 
-	// Run header nodes immediately (only set nodes)
-	RunUntilNextSpeakerNodeOrEnd(BaseScript->GetHeaderNode());
+	InitVariables();
 
 	CurrentSpeakerNode = nullptr;
 
+}
+
+void USUDSDialogue::InitVariables()
+{
+	VariableState.Empty();
+	// Run header nodes immediately (only set nodes)
+	RunUntilNextSpeakerNodeOrEnd(BaseScript->GetHeaderNode());
 }
 
 void USUDSDialogue::Start(FName Label)
@@ -534,8 +540,10 @@ FSUDSDialogueState USUDSDialogue::GetSavedState() const
 
 void USUDSDialogue::RestoreSavedState(const FSUDSDialogueState& State)
 {
-	VariableState.Empty();
-	VariableState = State.GetVariables();
+	// Don't just empty variables
+	// Re-run init to ensure header state is initialised then merge; important for it script is altered since state saved
+	InitVariables();
+	VariableState.Append(State.GetVariables());
 	ChoicesTaken.Empty();
 	ChoicesTaken.Append(State.GetChoicesTaken());
 
