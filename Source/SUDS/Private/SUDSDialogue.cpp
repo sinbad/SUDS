@@ -33,7 +33,7 @@ void USUDSDialogue::InitVariables()
 {
 	VariableState.Empty();
 	// Run header nodes immediately (only set nodes)
-	RunUntilNextSpeakerNodeOrEnd(BaseScript->GetHeaderNode());
+	RunUntilNextSpeakerNodeOrEnd(BaseScript->GetHeaderNode(), false);
 }
 
 void USUDSDialogue::Start(FName Label)
@@ -72,7 +72,7 @@ void USUDSDialogue::SortParticipants()
 	}
 }
 
-void USUDSDialogue::RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* NextNode)
+void USUDSDialogue::RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* NextNode, bool bRaiseAtEnd)
 {
 	// We run through nodes which don't require a speaker line prompt
 	// E.g. set nodes, select nodes which are all automatically resolved
@@ -102,7 +102,7 @@ void USUDSDialogue::RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* NextNode)
 	}
 	else
 	{
-		End();
+		End(!bRaiseAtEnd);
 	}
 
 }
@@ -499,7 +499,7 @@ bool USUDSDialogue::Choose(int Index)
 			RaiseProceeding();
 		}
 		// Then choose path
-		RunUntilNextSpeakerNodeOrEnd(CurrentChoices[Index].GetTargetNode().Get());
+		RunUntilNextSpeakerNodeOrEnd(CurrentChoices[Index].GetTargetNode().Get(), true);
 		return !IsEnded();
 	}
 	else
@@ -514,9 +514,9 @@ bool USUDSDialogue::IsEnded() const
 	return CurrentSpeakerNode == nullptr;
 }
 
-void USUDSDialogue::End()
+void USUDSDialogue::End(bool bQuietly)
 {
-	SetCurrentSpeakerNode(nullptr, false);
+	SetCurrentSpeakerNode(nullptr, bQuietly);
 }
 
 void USUDSDialogue::ResetState(bool bResetVariables, bool bResetPosition, bool bResetVisited)
@@ -570,8 +570,8 @@ void USUDSDialogue::Restart(bool bResetState, FName StartLabel, bool bReRunHeade
 
 	if (bReRunHeader)
 	{
-		// Run header nodes
-		RunUntilNextSpeakerNodeOrEnd(BaseScript->GetHeaderNode());
+		// Run header nodes but don't re-init
+		RunUntilNextSpeakerNodeOrEnd(BaseScript->GetHeaderNode(), false);
 	}
 
 	if (StartLabel != NAME_None)
@@ -593,11 +593,11 @@ void USUDSDialogue::Restart(bool bResetState, FName StartLabel, bool bReRunHeade
 			       *BaseScript->GetName());
 			StartNode = BaseScript->GetFirstNode();
 		}
-		RunUntilNextSpeakerNodeOrEnd(StartNode);
+		RunUntilNextSpeakerNodeOrEnd(StartNode, true);
 	}
 	else
 	{
-		RunUntilNextSpeakerNodeOrEnd(BaseScript->GetFirstNode());
+		RunUntilNextSpeakerNodeOrEnd(BaseScript->GetFirstNode(), true);
 	}
 	
 }

@@ -131,7 +131,7 @@ protected:
 	static const FText DummyText;
 	static const FString DummyString;
 
-	void RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* FromNode);
+	void RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* FromNode, bool bRaiseAtEnd);
 	const USUDSScriptNode* RunUntilNextChoiceNode(const USUDSScriptNodeText* FromTextNode);
 	void SetCurrentSpeakerNode(USUDSScriptNodeText* Node, bool bQuietly);
 	void SortParticipants();
@@ -269,7 +269,7 @@ public:
 
 	/// End the dialogue early
 	UFUNCTION(BlueprintCallable)
-	void End();
+	void End(bool bQuietly);
 	
 	/**
 	 * Restart the dialogue, either from the start or from a named label.
