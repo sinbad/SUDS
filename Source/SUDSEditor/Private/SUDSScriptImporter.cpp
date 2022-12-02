@@ -32,6 +32,7 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 	BodyTree.Reset();
 	bHeaderDone = false;
 	bHeaderInProgress = false;
+	bTooLateForHeader = false;
 	bool bImportedOK = true;
 	ChoiceUniqueId = 0;
 	TextIDHighestNumber = 0;
