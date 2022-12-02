@@ -522,7 +522,7 @@ void USUDSDialogue::End(bool bQuietly)
 void USUDSDialogue::ResetState(bool bResetVariables, bool bResetPosition, bool bResetVisited)
 {
 	if (bResetVariables)
-		VariableState.Reset();
+		InitVariables();
 	if (bResetPosition)
 		SetCurrentSpeakerNode(nullptr, true);
 	if (bResetVisited)
@@ -568,7 +568,7 @@ void USUDSDialogue::Restart(bool bResetState, FName StartLabel, bool bReRunHeade
 
 	RaiseStarting(StartLabel);
 
-	if (bReRunHeader)
+	if (!bResetState && bReRunHeader)
 	{
 		// Run header nodes but don't re-init
 		RunUntilNextSpeakerNodeOrEnd(BaseScript->GetHeaderNode(), false);
