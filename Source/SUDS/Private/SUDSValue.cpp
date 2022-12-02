@@ -18,7 +18,7 @@ FArchive& operator<<(FArchive& Ar, FSUDSValue& Value)
 		if (Ar.IsLoading())
 			Value.TextValue = Text;
 	}
-	else if (Value.Type == ESUDSValueType::Variable)
+	else if (Value.Type == ESUDSValueType::Variable || Value.Type == ESUDSValueType::Name)
 	{
 		FString VarNameStr = Value.Name.Get(NAME_None).ToString();
 		Ar << VarNameStr;
