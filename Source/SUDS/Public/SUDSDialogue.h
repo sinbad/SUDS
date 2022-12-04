@@ -29,13 +29,13 @@ struct FSUDSDialogueState
 {
 	GENERATED_BODY()
 protected:
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, SaveGame)
 	FString TextNodeID;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, SaveGame)
 	TMap<FName, FSUDSValue> Variables;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, SaveGame)
 	TArray<FString> ChoicesTaken;
 	
 public:
