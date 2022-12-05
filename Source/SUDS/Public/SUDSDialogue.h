@@ -167,6 +167,7 @@ protected:
 	void UpdateChoices();
 	void RecurseAppendChoices(const USUDSScriptNode* Node, TArray<FSUDSScriptEdge>& OutChoices);
 
+	FText ResolveParameterisedText(const TArray<FName> Params, const FTextFormat& TextFormat);
 	void GetTextFormatArgs(const TArray<FName>& ArgNames, FFormatNamedArguments& OutArgs) const;
 public:
 	USUDSDialogue();
@@ -210,12 +211,12 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable)
 	void SetParticipants(const TArray<UObject*>& NewParticipants);
-	
+
 
 	/// Get the speech text for the current dialogue node
 	/// Any parameters required will be requested from participants in the dialogue and replaced 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	FText GetText() const;
+	FText GetText();
 
 	/// Get the ID of the current speaker
 	UFUNCTION(BlueprintCallable, BlueprintPure)
@@ -242,7 +243,7 @@ public:
 	 *    line just like any other.
 	 */
 	UFUNCTION(BlueprintCallable)
-	FText GetChoiceText(int Index) const;
+	FText GetChoiceText(int Index);
 
 	/// Get all the current choices available, if you prefer this format
 	UFUNCTION(BlueprintCallable)

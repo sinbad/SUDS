@@ -268,6 +268,20 @@ void USUDSDialogue::SetCurrentSpeakerNode(USUDSScriptNodeText* Node, bool bQuiet
 
 }
 
+FText USUDSDialogue::ResolveParameterisedText(const TArray<FName> Params, const FTextFormat& TextFormat)
+{
+	for (const auto& P : Params)
+	{
+		RaiseVariableRequested(P);
+	}
+	// Need to make a temp arg list for compatibility
+	// Also lets us just set the ones we need to
+	FFormatNamedArguments Args;
+	GetTextFormatArgs(Params, Args);
+	return FText::Format(TextFormat, Args);
+	
+}
+
 void USUDSDialogue::GetTextFormatArgs(const TArray<FName>& ArgNames, FFormatNamedArguments& OutArgs) const
 {
 	for (auto& Name : ArgNames)
@@ -280,17 +294,13 @@ void USUDSDialogue::GetTextFormatArgs(const TArray<FName>& ArgNames, FFormatName
 	}
 }
 
-FText USUDSDialogue::GetText() const
+FText USUDSDialogue::GetText()
 {
 	if (CurrentSpeakerNode)
 	{
 		if (CurrentSpeakerNode->HasParameters())
 		{
-			// Need to make a temp arg list for compatibility
-			// Also lets us just set the ones we need to
-			FFormatNamedArguments Args;
-			GetTextFormatArgs(CurrentSpeakerNode->GetParameterNames(), Args);
-			return FText::Format(CurrentSpeakerNode->GetTextFormat(), Args);
+			return ResolveParameterisedText(CurrentSpeakerNode->GetParameterNames(), CurrentSpeakerNode->GetTextFormat());
 		}
 		else
 		{
@@ -447,7 +457,7 @@ int USUDSDialogue::GetNumberOfChoices() const
 	return CurrentChoices.Num();
 }
 
-FText USUDSDialogue::GetChoiceText(int Index) const
+FText USUDSDialogue::GetChoiceText(int Index)
 {
 
 	if (CurrentChoices.IsValidIndex(Index))
@@ -455,11 +465,7 @@ FText USUDSDialogue::GetChoiceText(int Index) const
 		auto& Choice = CurrentChoices[Index];
 		if (Choice.HasParameters())
 		{
-			// Need to make a temp arg list for compatibility
-			// Also lets us just set the ones we need to
-			FFormatNamedArguments Args;
-			GetTextFormatArgs(Choice.GetParameterNames(), Args);
-			return FText::Format(Choice.GetTextFormat(), Args);
+			ResolveParameterisedText(Choice.GetParameterNames(), Choice.GetTextFormat());
 		}
 		else
 		{
