@@ -465,7 +465,7 @@ FText USUDSDialogue::GetChoiceText(int Index)
 		auto& Choice = CurrentChoices[Index];
 		if (Choice.HasParameters())
 		{
-			ResolveParameterisedText(Choice.GetParameterNames(), Choice.GetTextFormat());
+			return ResolveParameterisedText(Choice.GetParameterNames(), Choice.GetTextFormat());
 		}
 		else
 		{
