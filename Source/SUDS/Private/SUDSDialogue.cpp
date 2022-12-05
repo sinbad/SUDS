@@ -603,11 +603,11 @@ void USUDSDialogue::Restart(bool bResetState, FName StartLabel, bool bReRunHeade
 			UE_LOG(LogSUDSDialogue, Error, TEXT("No start label called %s in dialogue %s"), *StartLabel.ToString(), *BaseScript->GetName());
 			StartNode = BaseScript->GetFirstNode();
 		}
-		else if (StartNode->GetNodeType() != ESUDSScriptNodeType::Text)
+		else if (StartNode->GetNodeType() == ESUDSScriptNodeType::Choice)
 		{
 			UE_LOG(LogSUDSDialogue,
 			       Error,
-			       TEXT("Label %s in dialogue %s cannot be used as a start point, does not point to a text line."),
+			       TEXT("Label %s in dialogue %s cannot be used as a start point, points to a choice."),
 			       *StartLabel.ToString(),
 			       *BaseScript->GetName());
 			StartNode = BaseScript->GetFirstNode();
