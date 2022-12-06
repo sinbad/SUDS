@@ -36,20 +36,20 @@ public class YourProject : ModuleRules
 		get { return Path.GetFullPath( Path.Combine( ModuleDirectory, "../../Plugins/" ) ); }
 	}
 	
-	protected void AddSUQS() {
+	protected void AddSUDS() {
 		// Linker
-		PrivateDependencyModuleNames.AddRange(new string[] { "SUQS" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "SUDS" });
 		// Headers
-		PublicIncludePaths.Add(Path.Combine( PluginsPath, "SUQS", "Source", "SUQS", "Public"));
+		PublicIncludePaths.Add(Path.Combine( PluginsPath, "SUDS", "Source", "SUDS", "Public"));
 	}
 
-	public SUQSExamples(ReadOnlyTargetRules Target) : base(Target)
+	public SUDSExamples(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
 		
-		AddSUQS();
+		AddSUDS();
 	}
 }
 ```
