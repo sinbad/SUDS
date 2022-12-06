@@ -11,7 +11,7 @@ SUDS has two primary concepts:
 For this section, we're concerned only with writing the **Script**. We'll cover
 [how to run Dialogues](RunningDialogue.md) later.
 
-## Importing into Unreal
+## Source Scripts and Unreal Assets
 
 In SUDS you write the script as a text file, with the extension `.sud`. We'll 
 call this the *SUDS Script Source File*.
@@ -33,7 +33,7 @@ The [VSCode extension](vscode.md) means "SUDS" is a recognised language and will
 automatically used whenever you save a file with the `.sud` extension.
 It's **highly recommended** to use VSCode with this extension as your script editing tool.
 
-## Main Script Features
+## Writing A Script
 
 ### Scripts Are Line Based
 
@@ -44,12 +44,13 @@ multiple statements into a single line.
 ### Lines are trimmed at the start & end
 
 You don't have to worry about whitespace at the start/end of your lines, it will be removed.
-However the indenting does matter when it comes to choices, which we'll cover later.
+However indenting can matter when it comes to branching due to player choices, 
+which we'll cover later.
 
 ### Speaker lines
 
-The basic building block of a script is the speaker line. This is some kind of
-speaker saying a line, for example:
+The basic building block of a script is the *speaker line*. This is some kind of
+speaker saying a line of dialogue, for example:
 
 ```yaml
 Vagabond: Well met, fellow traveller!
@@ -82,15 +83,17 @@ Technically the prefix "Vagabond" in the previous example is the *speaker ID*, n
 the display name, but if you don't specify otherwise, that *speaker ID* is used
 as the display name as well. 
 
-However, for example Speaker ID's can't have whitespace in them. For this and 
-other reasons (brevity, localisation) you might want to explicitly define 
-[Speaker Display Names](SpeakerLines.md#speaker-display-names).
+One limitation is that Speaker ID's can't have whitespace in them. For this and 
+other reasons (brevity, localisation) you might want to use a short internal term
+for the speaker ID, and explicitly define 
+[Speaker Display Names](SpeakerLines.md#speaker-display-names) for showing the
+player. But we won't do that right now.
 
 ### Choice lines
 
 Multiple speaker lines simply following each other simply require the player to 
-step through them in sequence, but when you want to offer a choice you add
-*choice lines*.
+step through them in sequence, but when you want to branch the dialogue based on
+a decision by the player, you add *choice lines*.
 
 ```yaml
 Vagabond: Well met, fellow traveller!
