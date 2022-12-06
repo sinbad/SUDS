@@ -3,9 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Modules/ModuleManager.h"
+
 
 class FSUDSScriptActions;
+class FSlateStyleSet;
+
 DECLARE_LOG_CATEGORY_EXTERN(LogSUDSEditor, Verbose, All);
 
 class FSUDSEditorModule : public IModuleInterface
@@ -18,4 +20,5 @@ public:
 
 protected:
 	TSharedPtr<FSUDSScriptActions> ScriptActions;
+	TSharedPtr<FSlateStyleSet> StyleSet;
 };
