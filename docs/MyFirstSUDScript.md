@@ -212,4 +212,4 @@ see [Running Dialogue](RunningDialogue.md).
 > Next:
 > * [Script Reference](ScriptReference.md)
 > * [Running Dialogue in UE](RunningDialogue.md)
-> * [Full Documentation Index](Index.md)
+> * [Full Documentation Index](../Index.md)
