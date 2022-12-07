@@ -361,10 +361,15 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line,
 		
 		auto& Ctx = Tree.IndentLevelStack.Top();
 
-		// How about: try to find the previous choice at the right level by scanning upward in nodes
-		// stop if we hit a text node < Indent
-		// ignore anything on a different conditional node
-		int ChoiceNodeIdx = FindLastChoiceNode(Tree, IndentLevel);
+
+		// Find a previous choice node to join with
+		int ChoiceNodeIdx = - 1;
+		// however, if there are pending goto labels, they MUST split the choice
+		if (Tree.PendingGotoLabels.Num() == 0)
+		{
+			ChoiceNodeIdx = FindLastChoiceNode(Tree, IndentLevel);
+		}
+		
 		// If the current indent context node is NOT a choice, create a choice node, and connect to previous node (using pending edge if needed)
 		if (ChoiceNodeIdx == -1)
 		{

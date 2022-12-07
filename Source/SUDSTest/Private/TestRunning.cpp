@@ -79,6 +79,23 @@ Player: Well
 	
 )RAWSUD";
 
+const FString FallthroughEdgeCaseInput = R"RAWSUD(
+NPC: First line
+  * Option 1
+	NPC: Fallthrough via goto
+    # This will work
+	[goto secondchoice]
+  * Option 2
+	NPC: Fallthrough implicitly
+    # This will NOT work
+
+:secondchoice
+  * Fallthrough 1
+	NPC: text 1
+  * Fallthrough 2
+	NPC: text 2
+)RAWSUD";
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestSimpleRunning,
 								 "SUDSTest.TestSimpleRunning",
 								 EAutomationTestFlags::EditorContext |
@@ -335,6 +352,49 @@ bool FTestSpeakerNames::RunTest(const FString& Parameters)
 	TestEqual("NPC speaker name should have changed", Dlg->GetSpeakerDisplayName().ToString(), "Actually A Villain");
 
 
+	
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestFallthroughEdgeCase,
+								 "SUDSTest.TestFallthroughEdgeCase",
+								 EAutomationTestFlags::EditorContext |
+								 EAutomationTestFlags::ClientContext |
+								 EAutomationTestFlags::ProductFilter)
+
+
+
+bool FTestFallthroughEdgeCase::RunTest(const FString& Parameters)
+{
+	FSUDSScriptImporter Importer;
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(FallthroughEdgeCaseInput), FallthroughEdgeCaseInput.Len(), "FallthroughEdgeCaseInput", true));
+
+	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
+	const ScopedStringTableHolder StringTableHolder;
+	Importer.PopulateAsset(Script, StringTableHolder.StringTable);
+
+	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
+	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
+	Dlg->Start();
+
+	TestDialogueText(this, "Initial text", Dlg, "NPC", "First line");
+	TestEqual("Initial num choices", Dlg->GetNumberOfChoices(), 2);
+	TestTrue("Choice 1", Dlg->Choose(0));
+	TestDialogueText(this, "Second text", Dlg, "NPC", "Fallthrough via goto");
+	if (TestEqual("Second num choices", Dlg->GetNumberOfChoices(), 2))
+	{
+		TestEqual("Choice text", Dlg->GetChoiceText(0).ToString(), "Fallthrough 1");
+		TestEqual("Choice text", Dlg->GetChoiceText(1).ToString(), "Fallthrough 2");
+	}
+
+	// Now prove that implicit fallthrough doesn't work
+	Dlg->Restart();
+	TestTrue("Choice 2", Dlg->Choose(1));
+	TestDialogueText(this, "Second text", Dlg, "NPC", "Fallthrough implicitly");
+	TestEqual("Second num choices v2", Dlg->GetNumberOfChoices(), 1);
+	TestFalse("Fallthrough fails & goes to end", Dlg->Continue());
+	TestTrue("Should be at end", Dlg->IsEnded());
 	
 	return true;
 }
