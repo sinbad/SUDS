@@ -91,18 +91,18 @@ player. But we won't do that right now.
 
 ### Choice lines
 
-Multiple speaker lines simply following each other simply require the player to 
+Multiple speaker lines following each other simply require the player to 
 step through them in sequence, but when you want to branch the dialogue based on
 a decision by the player, you add *choice lines*.
 
 ```yaml
 Vagabond: Well met, fellow traveller!
-  * Er, hi?
-    Vagabond: Verily, 'tis wondrous to see such a fine fellow on the road this morn!
-  * (Keep quiet)
-    Vagabond: What, cat got your tongue?
-  * Jog on, mate
-    Vagabond: Well, really! Good day then sir!
+* Er, hi?
+Vagabond: Verily, 'tis wondrous to see such a fine fellow on the road this morn!
+* (Keep quiet)
+Vagabond: What, cat got your tongue?
+* Jog on, mate
+Vagabond: Well, really! Good day then sir!
 Narrator: (The Vagabond leaves)
 ```
 > Note: unfortunately Markdown can't do the same syntax highlighting as the 

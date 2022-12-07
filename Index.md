@@ -10,7 +10,7 @@
     - [Choice Lines](docs/ChoiceLines.md)
     - [Goto Lines](docs/GotoLines.md)
     - [Set Lines](docs/SetLines.md)
-    - [Conditional Lines](docs/ConditionalLines) 
+    - [Conditional Lines](docs/ConditionalLines.md) 
     - [Event Lines](docs/EventLines.md)
 1. [Variables](docs/Variables.md)
 1. [Visual Studio Code Extension](docs/vscode.md)

@@ -56,13 +56,13 @@ This example creates a dialogue tree that could be visualised like this:
 
 ```mermaid
 flowchart TD
-  A[What's up?] -- What's going on? --> B[What, generally or was there something specific?];
-  A -- Oh, never mind --> C[OK bye];
-  B -- Oh, er generally I guess --> D[Not much.];
-  B -- How's the weather? --> E[Ehh, not bad. Probably rain later.];
-  E -- Rain? Oh no. --> F[It is April after all];
-  E -- I quite like rain --> G[It's fine until it gets into your shoes.];
-  B -- Did you see that ludicrous display last night? --> H[Thing about Arsenal, they always try and walk it in.];
+  A(What's up?) -- What's going on? --> B(What, generally or was there something specific?);
+  A -- Oh, never mind --> C(OK bye);
+  B -- Oh, er generally I guess --> D(Not much.);
+  B -- How's the weather? --> E(Ehh, not bad. Probably rain later.);
+  E -- Rain? Oh no. --> F(It is April after all);
+  E -- I quite like rain --> G(It's fine until it gets into your shoes.);
+  B -- Did you see that ludicrous display last night? --> H(Thing about Arsenal, they always try and walk it in.);
 ```
 
 You might be wondering what happens when the dialogue reaches the end of a
@@ -95,3 +95,144 @@ line that started off the sequence. It's good for looping dialogue, letting you
 re-present the same list of choices but in the context of the last dialogue line.
 
 ### Fallthrough
+
+What happens when you reach the end of a choice branch, and there's no [goto](GotoLines.md)
+sending the execution somewhere else?
+
+In that case dialogue execution "falls through" to the next line which is outdented
+more than the current line, and is on the same "choice path" (i.e. it doesn't
+cross to a place where you'd have had to pick a different choice to get there).
+
+Let's take the previous example and add some additional lines as intermediate fallthrough points
+(the previous example would have fallen through to the end in every case).
+
+```yaml
+NPC: What's up?
+  * What's going on?
+    NPC: What, generally or was there something specific?
+      * Oh, er generally I guess
+        NPC: Not much.
+      * How's the weather?
+        NPC: Ehh, not bad. Probably rain later.
+          * Rain? Oh no.
+            NPC: It is April after all
+          * I quite like rain
+            NPC: It's fine until it gets into your shoes.
+        NPC: Still, they say it's going to clear up next week
+      * Did you see that ludicrous display last night?
+        NPC:  Thing about Arsenal, they always try and walk it in.
+    Player: Well, that's all I wanted to ask.
+  * Oh, never mind
+    NPC: OK bye
+Player: Later!
+```
+
+Let's update that flowchart to show where the fallthroughs happen:
+
+```mermaid
+flowchart TD
+  A[What's up?] -- What's going on? --> B[What, generally or was there something specific?];
+  A -- Oh, never mind --> C[OK bye];
+  C -.-> Z[Later!]
+  B -- Oh, er generally I guess --> D[Not much.];
+  B -- How's the weather? --> E[Ehh, not bad. Probably rain later.];
+  E -- Rain? Oh no. --> F[It is April after all];
+  E -- I quite like rain --> G[It's fine until it gets into your shoes.];
+  B -- Did you see that ludicrous display last night? --> H[Thing about Arsenal, they always try and walk it in.];
+  F -.-> Y[Still, they say it's going to clear up next week];
+  H -.-> X[Well, that's all I wanted to ask];
+  D -.-> X;
+  G -.-> Y;
+  Y -.-> X;
+  X -.-> Z;
+```
+
+The fallthrough points are shown by dotted lines. To follow how this works, 
+let's take an inner snippet; Let's say we're on the line indicated by the arrow, "It is April after all":
+
+```yaml
+        NPC: Ehh, not bad. Probably rain later.
+          * Rain? Oh no.
+----->      NPC: It is April after all
+          * I quite like rain
+            NPC: It's fine until it gets into your shoes.        
+        NPC: Still, they say it's going to clear up next week
+```
+
+When we continue, we find there's no more lines under this choice, so we fall
+through to the next outdented line that is NOT on a different choice path.
+So even though "I quite like rain" is outdented, it's a different choice path, 
+so we skip it. 
+
+The next line that's outdented but on the same choice path is the speaker line
+"Still, they say it's going to clear up next week".
+
+```yaml
+        NPC: Ehh, not bad. Probably rain later.
+          * Rain? Oh no.
+   .-----   NPC: It is April after all
+   |      * I quite like rain
+   |        NPC: It's fine until it gets into your shoes.        
+   `->  NPC: Still, they say it's going to clear up next week
+```
+
+You can fallthrough to lines other than speaker lines, including [Set lines](SetLines.md), 
+[Goto lines](GotoLines.md), [Event lines](EventLines.md). 
+
+### Fallthrough to choices
+
+You cannot fallthrough directly to other choices. This is ***not valid*** for example: 
+
+```yaml
+NPC: Some text
+  * Option 1
+    NPC: Let's say I want to fall through from here to the choice below
+
+
+  * Intended fallthrough choice
+  ...
+```
+
+This is because it's ambiguous - that choice is actually a different
+branch of the same choice list, not something you can fall through from.
+You can fix this by introducing another line between them; either another
+speaker line:
+
+```yaml
+NPC: Some text
+  * Option 1
+    NPC: Let's say I want to fall through from here to the choice below
+
+NPC: New speaker line which is a valid fallthrough target
+  * Intended fallthrough choice
+  ...
+```
+
+Or, if you didn't want to add an extra line you can make it an explicit [goto](GotoLines.md)
+instead of a fallthrough:
+
+```yaml
+NPC: Some text
+  * Option 1
+    NPC: Let's say I want to fall through from here to the choice below
+    [goto secondchoice]
+
+:secondchoice
+  * Intended fallthrough choice
+  ...
+```
+
+The addition of the label and goto splits the choice list up and removes the
+ambiguity, while still allowing you to go directly from the speaker line inside
+the "Option 1" choice to the later choice list, without an intervening speaker line.
+
+Also, sometimes it can just make your script clearer if you use explicit
+[gotos](GotoLines.md) instead of relying on fallthrough behaviour.
+
+
+### Conditionals and fallthroughs
+
+Lines in one [Conditional Block](ConditionalLines.md) can only fall through to 
+lines which are in the same block, or in a containing block (including outside 
+any conditional).
+

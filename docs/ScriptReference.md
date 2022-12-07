@@ -66,7 +66,7 @@ A few things can alter this simple top-to-bottom sequence:
     that choice is picked. 
 * [Gotos](GotoLines.md): goto lines jump the dialogue execution to either a 
     [label](GotoLines.md#labels), or to `end`, which terminates the dialogue.
-* [Conditionals](ConditionalLines): conditional lines include or exclude sections of the dialogue
+* [Conditionals](ConditionalLines.md): conditional lines include or exclude sections of the dialogue
     based on [variable state](Variables.md).
 * [Headers](Header.md): Lines contained in the [header](Header.md) section of
     the script are executed when the dialogue is initialised.
