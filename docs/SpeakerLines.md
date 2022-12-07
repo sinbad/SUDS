@@ -89,9 +89,11 @@ Urchin: Yeah I saw the <red>thief</> mister, he ran down {DiversionaryStreetName
 
 For more information, see [Text Markup](TextMarkup.md).
 
-> ### See Also:
-> * [Text Markup](TextMarkup.md)
-> * [Running Dialogue in UE](RunningDialogue.md)
-> * [Variables](Variables.md)
-> * [Localisation](Localisation.md)
-> * [Full Documentation Index](../Index.md)
+---
+
+### See Also:
+* [Text Markup](TextMarkup.md)
+* [Running Dialogue in UE](RunningDialogue.md)
+* [Variables](Variables.md)
+* [Localisation](Localisation.md)
+* [Full Documentation Index](../Index.md)

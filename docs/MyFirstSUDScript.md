@@ -212,7 +212,9 @@ Of course, that's just one line. From here you'd need to tell the dialogue to
 continue, or pick choices and so on. For more details about this process, 
 see [Running Dialogue](RunningDialogue.md).
 
-> Next:
-> * [Script Reference](ScriptReference.md)
-> * [Running Dialogue in UE](RunningDialogue.md)
-> * [Full Documentation Index](../Index.md)
+---
+
+### Next:
+* [Script Reference](ScriptReference.md)
+* [Running Dialogue in UE](RunningDialogue.md)
+* [Full Documentation Index](../Index.md)

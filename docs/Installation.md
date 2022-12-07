@@ -53,7 +53,7 @@ public class YourProject : ModuleRules
 	}
 }
 ```
-
-> Next:
-> *  [Your First SUDS Script](MyFirstSUDScript.md)
->
+---
+### Next:
+* [Your First SUDS Script](MyFirstSUDScript.md)
+* [Full Documentation Index](../Index.md)

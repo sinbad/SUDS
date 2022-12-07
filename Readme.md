@@ -18,13 +18,13 @@ Scripts look something like this:
 SUDS has many features, including:
 
 * Dialogue flow is expressed in a text file for a focussed writing experience
-* Multi-line speech support
-* Player choices with unlimited embedded responses
-* Flow control, conditional branching
-* Persistent variable state
-* Send events back to code/blueprints with any number of arguments
-* Supports all the [text replacement and formatting features](https://docs.unrealengine.com/4.26/en-US/ProductionPipelines/Localization/Formatting/#textformatting) in the same way Unreal does
-* Localisation support
+* Multi-line [speech](docs/SpeakerLines.md) support
+* Player [choices](docs/ChoiceLines.md) with unlimited embedded responses
+* Flow control via [goto](docs/GotoLines.md) and [conditional branching](docs/ConditionalLines)
+* Persistent [variable state](docs/Variables.md)
+* Send [events](docs/EventLines.md) back to code/blueprints with any number of arguments
+* Supports all the [variable substitution and formatting features](docs/TextMarkup.md) in the same way Unreal does
+* [Localisation](docs/Localisation.md) support
 * Easy integration with save games ([SPUD](https://github.com/sinbad/SPUD) or otherwise)
 
 > SUDS was inspired by [Ink](https://www.inklestudios.com/ink/) and
@@ -37,9 +37,11 @@ SUDS has many features, including:
 
 * [Installation](docs/Installation.md)
 * [Your First SUD Script](docs/MyFirstSUDScript.md)
-* [Running Dialogue in UE](docs/RunningDialogue.md)
-* [Script reference](docs/ScriptReference.md)
-* [Full Documentation Index](docs/Index.md)
+
+> ### See Also
+> * [Running Dialogue in UE](docs/RunningDialogue.md)
+> * [Script reference](docs/ScriptReference.md)
+> * [Full Documentation Index](docs/Index.md)
 
 
 
