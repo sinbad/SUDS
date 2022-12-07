@@ -28,7 +28,7 @@ OptionalContinuation*
 |||
 |---------|---------|
 | SpeakerID | Identifier for the speaker; also its [display name](#speaker-display-names) unless otherwise defined. Cannot contain whitespace. |
-| Line | The line of dialogue text. Any characters allowed, can contain [variable substitution](#variable-substitution).|
+| Line | The line of dialogue text. Any characters allowed, can include [variables and rich text formatting](#variables-and-text-formatting).|
 | OptionalContinuation | One or more continuation lines which append their contents to the previous speaker line, with the carriage return preserved (but leading/trailing whitespace removed)|
 
 
@@ -75,4 +75,23 @@ reveal of a character's name later in the dialogue.
 > here and localise it later.
 
 
-## Variable Substitution
+## Variables and Text Formatting
+
+In the text sections of a speaker line, you can substitute the values of [variables](Variables.md), 
+and add rich text formatting markup. 
+
+As a quick guide, add variables using curly braces (`{}`), and rich text formatting 
+using angle brackets (`<>`), something like this:
+
+```yaml
+Urchin: Yeah I saw the <red>thief</> mister, he ran down {DiversionaryStreetName}!
+```
+
+For more information, see [Text Markup](TextMarkup.md).
+
+> ### See Also:
+> * [Text Markup](TextMarkup.md)
+> * [Running Dialogue in UE](RunningDialogue.md)
+> * [Variables](Variables.md)
+> * [Localisation](Localisation.md)
+> * [Full Documentation Index](../Index.md)
