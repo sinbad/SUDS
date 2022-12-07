@@ -94,7 +94,18 @@ continuations from that line, and we don't have to repeat the original "What wil
 line that started off the sequence. It's good for looping dialogue, letting you
 re-present the same list of choices but in the context of the last dialogue line.
 
-### Fallthrough
+## Variable Substitution
+
+In the text sections of a choice, you can substitute the values of [variables](Variables.md)
+using curly braces (`{}`), something like this:
+
+```yaml
+  * Did you see {SuspectName} on the night of July 3rd?
+```
+
+For more information, see [Text Markup](TextMarkup.md).
+
+## Fallthrough
 
 What happens when you reach the end of a choice branch, and there's no [goto](GotoLines.md)
 sending the execution somewhere else?
@@ -131,16 +142,16 @@ Let's update that flowchart to show where the fallthroughs happen:
 
 ```mermaid
 flowchart TD
-  A[What's up?] -- What's going on? --> B[What, generally or was there something specific?];
-  A -- Oh, never mind --> C[OK bye];
-  C -.-> Z[Later!]
-  B -- Oh, er generally I guess --> D[Not much.];
-  B -- How's the weather? --> E[Ehh, not bad. Probably rain later.];
-  E -- Rain? Oh no. --> F[It is April after all];
-  E -- I quite like rain --> G[It's fine until it gets into your shoes.];
-  B -- Did you see that ludicrous display last night? --> H[Thing about Arsenal, they always try and walk it in.];
-  F -.-> Y[Still, they say it's going to clear up next week];
-  H -.-> X[Well, that's all I wanted to ask];
+  A(What's up?) -- What's going on? --> B(What, generally or was there something specific?);
+  A -- Oh, never mind --> C(OK bye);
+  C -.-> Z(Later!)
+  B -- Oh, er generally I guess --> D(Not much.);
+  B -- How's the weather? --> E(Ehh, not bad. Probably rain later.);
+  E -- Rain? Oh no. --> F(It is April after all);
+  E -- I quite like rain --> G(It's fine until it gets into your shoes.);
+  B -- Did you see that ludicrous display last night? --> H(Thing about Arsenal, they always try and walk it in.);
+  F -.-> Y(Still, they say it's going to clear up next week);
+  H -.-> X(Well, that's all I wanted to ask);
   D -.-> X;
   G -.-> Y;
   Y -.-> X;
@@ -236,3 +247,12 @@ Lines in one [Conditional Block](ConditionalLines.md) can only fall through to
 lines which are in the same block, or in a containing block (including outside 
 any conditional).
 
+---
+
+### See Also:
+* [Text Markup](TextMarkup.md)
+* [Speaker lines](SpeakerLines.md)
+* [Running Dialogue in UE](RunningDialogue.md)
+* [Variables](Variables.md)
+* [Localisation](Localisation.md)
+* [Full Documentation Index](../Index.md)
