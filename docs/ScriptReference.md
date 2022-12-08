@@ -55,7 +55,7 @@ Here are all the types of lines you can include in your scripts:
 ## Script Sequence
 
 A script is generally run from top to bottom, starting at the top unless told to start from
-a [label](GotoLines.md#labels). Lines are executed one after the other until 
+a [label](GotoLines.md#label-lines). Lines are executed one after the other until 
 a [Speaker line](SpeakerLines.md) is hit, at which point the dialogue will pause 
 and wait to be told to continue; potentially via a player choice, or simply just a continue prompt.
 
@@ -65,7 +65,7 @@ A few things can alter this simple top-to-bottom sequence:
     Everything indented under a [choice line](ChoiceLines.md) is only executed if 
     that choice is picked. 
 * [Gotos](GotoLines.md): goto lines jump the dialogue execution to either a 
-    [label](GotoLines.md#labels), or to `end`, which terminates the dialogue.
+    [label](GotoLines.md#label-lines), or to `end`, which terminates the dialogue.
 * [Conditionals](ConditionalLines.md): conditional lines include or exclude sections of the dialogue
     based on [variable state](Variables.md).
 * [Headers](Header.md): Lines contained in the [header](Header.md) section of
