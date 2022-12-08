@@ -131,6 +131,16 @@ next less indented line on the same narrative path. So in this case, all 3
 choices will show one unique speaker line, then fall through to the "Narrator" line
 at the end.
 
+### Comments
+
+You can include [comments](CommentLines.md) in your script by starting the line
+with a hash/pound (`#`) character:
+
+```yaml
+# This is a Comment
+NPC: Did you say something?
+```
+
 ### Goto lines
 
 Sometimes you just want to jump the conversation somewhere else. 

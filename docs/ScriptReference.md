@@ -50,6 +50,7 @@ Here are all the types of lines you can include in your scripts:
 | [Set lines](SetLines.md)          | Set variable values) |
 | [Conditional lines](ConditionalLines.md)  | Include/exclude parts of the dialogue based on state |
 | [Event lines](EventLines.md)              | Raise events to be received by code |
+| [Comment Lines](CommentLines.md) | Ignored by the importer |
 
 
 ## Script Sequence
