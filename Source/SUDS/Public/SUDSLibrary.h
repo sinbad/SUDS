@@ -98,5 +98,19 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="SUDS")
 	static UPARAM(DisplayName="Success") bool GetDialogueValueAsName(const FSUDSValue& Value, FName& NameValue);
+
+	/** Retrieve the type of a SUDS value.
+	 * @param Value The SUDS value, which may contain many types of value
+	 * @return The value type 
+	 */
+	UFUNCTION(BlueprintCallable, Category="SUDS")
+	static ESUDSValueType GetDialogueValueType(const FSUDSValue& Value);
+
+	/** Determine whether a SUDS value is empty (uninitialised).
+	 * @param Value The SUDS value, which may contain many types of value
+	 * @return Whether the value is empty 
+	 */
+	UFUNCTION(BlueprintCallable, Category="SUDS")
+	static bool GetDialogueValueIsEmpty(const FSUDSValue& Value);
 	
 };

@@ -202,7 +202,9 @@ bool FTestSimpleRunning::RunTest(const FString& Parameters)
 	// Should have fallen through
 	TestDialogueText(this, "Direct goto", Dlg, "Player", "This is the latter half of the discussion");
 
-	
+
+	Dlg->SetVariable("NumCats", 3);
+	Dlg->SetVariable("HasLaserPointer", true);
 	return true;
 }
 
