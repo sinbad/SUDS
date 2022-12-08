@@ -1,0 +1,50 @@
+# Events
+
+Events are the most direct way to send ad-hoc messages back to the rest of your game.
+You can also just set [variables](Variables.md), because code can be notified on
+variable changes, but if you want to send back a message with multiple argument
+values, events have your back.
+
+An event line might look something like this:
+
+```yaml
+[event MyAwesomeEvent 23, `Boop`, false]
+```
+
+## Event Name
+
+The first parameter is the event name, in this case "`MyAwesomeEvent`".
+
+Event names can be any sequence of alphanumeric characters or underscores; note
+that dashes or other symbols are not allowed (much like [Labels](GotoLines.md#label-lines)).
+
+## Event Arguments
+
+Optionally you can include *any number* of arguments after the event name, separated
+by commas.
+
+Arguments can be literal values, as shown above, or they can be [expressions](Expressions.md),
+referencing variables and optionally doing operations on them. For example:
+
+```yaml
+[event MyAwesomeEvent {NumCats}, `Boop`, {HasLaserPointer} or {HasTreats}]
+```
+
+See the [Variables](Variables.md) and [Expressions](Expressions.md) sections for
+more detail.
+
+## Receiving Events
+
+C++ or Blueprint code can receive events either by
+[subscribing](RunningDialogue.md#events) to the `OnEvent` delegate hook of a
+dialogue, or by being a [Participant](Participants.md) in the dialogue.
+
+---
+
+## See Also
+
+* [Variables](Variables.md)
+* [Expressions](Expressions.md)
+* [Script Reference](ScriptReference.md)
+* [Localisation](Localisation.md)
+* [Running Dialogue](RunningDialogue.md)
