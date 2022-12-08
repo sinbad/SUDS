@@ -48,3 +48,4 @@ dialogue, or by being a [Participant](Participants.md) in the dialogue.
 * [Script Reference](ScriptReference.md)
 * [Localisation](Localisation.md)
 * [Running Dialogue](RunningDialogue.md)
+* [Participants](Participants.md)
