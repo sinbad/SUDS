@@ -17,14 +17,11 @@ from simple literals:
 
 ### Integers
 
-Underlying type: int32
 ```yaml
 [set SomeInt 5]
 ```
 
 ### Floating point
-
-Underlying type: float
 
 ```yaml
 [set SomeFloat 53.835]
@@ -32,8 +29,6 @@ Underlying type: float
 
 > Note: do not include any suffix like 'f'
 ### Boolean
-
-Underlying type: bool
 
 ```yaml
 [set SomeBool true]
@@ -43,9 +38,7 @@ Underlying type: bool
 
 ### Text
 
-Underlying type: FText
-
-This is for text you expect to display to the player. 
+This is for text (FText) you expect to display to the player. 
 ```yaml
 [set SomeText "Hello world"]
 ```
@@ -55,9 +48,7 @@ This is for text you expect to display to the player.
 
 ### Name
 
-Underlying type: FName
-
-Names are not localised, unlike text, so are good for signalling more descriptive
+Names (FNames) are not localised unlike text, so are good for signalling more descriptive
 values to / from code.
 
 ```yaml
@@ -65,8 +56,6 @@ values to / from code.
 ```
 
 ### Gender
-
-Underlying type: ETextGender
 
 ```yaml
 [set SomeGender feminine]
