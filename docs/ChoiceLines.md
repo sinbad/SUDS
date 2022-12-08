@@ -190,6 +190,8 @@ The next line that's outdented but on the same choice path is the speaker line
 You can fallthrough to lines other than speaker lines, including [Set lines](SetLines.md), 
 [Goto lines](GotoLines.md), [Event lines](EventLines.md). 
 
+When there's nothing left to fall through to, the dialogue ends.
+
 ### Fallthrough to choices
 
 You cannot fallthrough directly to other choices. This is ***not valid*** for example: 
@@ -236,6 +238,7 @@ NPC: Some text
 The addition of the label and goto splits the choice list up and removes the
 ambiguity, while still allowing you to go directly from the speaker line inside
 the "Option 1" choice to the later choice list, without an intervening speaker line.
+You do still need both the goto and the label.
 
 Also, sometimes it can just make your script clearer if you use explicit
 [gotos](GotoLines.md) instead of relying on fallthrough behaviour.
@@ -252,7 +255,8 @@ any conditional).
 ### See Also:
 * [Text Markup](TextMarkup.md)
 * [Speaker lines](SpeakerLines.md)
-* [Running Dialogue in UE](RunningDialogue.md)
+* [Script Reference](ScriptReference.md)
 * [Variables](Variables.md)
+* [Running Dialogue in UE](RunningDialogue.md)
 * [Localisation](Localisation.md)
 * [Full Documentation Index](../Index.md)

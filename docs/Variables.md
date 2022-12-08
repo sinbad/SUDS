@@ -1,6 +1,7 @@
 # Variables
 
 
+## Supported Types
 
 ## Setting Variables In Script
 
@@ -15,3 +16,4 @@ NPC: Wow, look at that {Thing}!
 
 
 ## Setting Variables In Code
+

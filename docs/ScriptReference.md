@@ -74,10 +74,12 @@ A few things can alter this simple top-to-bottom sequence:
 There are also [fallthrough rules](ChoiceLines.md#fallthrough) which control what
 happens when you reach the bottom of an indented section (under a choice).
 
-> ### See Also
-> 
-> * [Visual Studio Extension](vscode.md)
-> * [Variables](Variables.md)
-> * [Localisation](Localisation.md)
-> * [Running Dialogue](RunningDialogue.md)
+---
+
+### See Also
+
+* [Visual Studio Extension](vscode.md)
+* [Variables](Variables.md)
+* [Localisation](Localisation.md)
+* [Running Dialogue](RunningDialogue.md)
 
