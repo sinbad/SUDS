@@ -109,3 +109,13 @@ bool USUDSLibrary::GetDialogueValueAsName(const FSUDSValue& Value, FName& NameVa
 	return false;
 	
 }
+
+ESUDSValueType USUDSLibrary::GetDialogueValueType(const FSUDSValue& Value)
+{
+	return Value.GetType();
+}
+
+bool USUDSLibrary::GetDialogueValueIsEmpty(const FSUDSValue& Value)
+{
+	return Value.IsEmpty();
+}
