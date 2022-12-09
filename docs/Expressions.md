@@ -35,7 +35,7 @@ for example
 {NumCats}
 ```
 
-Variables are ***case insensitive**. See [Variables](Variables.md) for more details.
+Variables are ***case insensitive***. See [Variables](Variables.md) for more details.
 
 ## Operators
 
