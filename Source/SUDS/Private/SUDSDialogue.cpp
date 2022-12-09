@@ -57,11 +57,16 @@ void USUDSDialogue::InitVariables()
 
 void USUDSDialogue::Start(FName Label)
 {
-	// Note that we don't reset state by default here. This is to allow long-term memory on dialogue, such as
-	// knowing whether you've met a character before etc.
-	// We also don't re-run headers here since they will have been run on Initialise()
-	// This is to allow callers to set variables before Start() that override headers
-	Restart(false, Label, false);
+	// Only start if not already on a speaker node
+	// This makes the restore sequence easier, you don't have to test IsEnded
+	if (!IsValid(CurrentSpeakerNode))
+	{
+		// Note that we don't reset state by default here. This is to allow long-term memory on dialogue, such as
+		// knowing whether you've met a character before etc.
+		// We also don't re-run headers here since they will have been run on Initialise()
+		// This is to allow callers to set variables before Start() that override headers
+		Restart(false, Label, false);
+	}
 }
 
 void USUDSDialogue::SetParticipants(const TArray<UObject*>& InParticipants)
