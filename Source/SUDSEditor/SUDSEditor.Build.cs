@@ -38,6 +38,7 @@ public class SUDSEditor : ModuleRules
 				"Slate",
 				"SlateCore",
 				"Projects", // So that we can use the IPluginManager, required for our custom style
+				"ToolMenus",
 				"UnrealEd"
 				// ... add private dependencies that you statically link with here ...	
 			}

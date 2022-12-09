@@ -296,4 +296,5 @@ public:
 	const FSUDSParsedNode* GetHeaderNode(int Index = 0);
 	/// Resolve a goto label to a target index (after import), or -1 if not resolvable
 	int GetGotoTargetNodeIndex(const FString& Label);
+	static bool RetrieveTextIDFromLine(const FString& InLine, FString& OutTextID, FString& OutLineWithoutIt, int& OutNumber);
 };

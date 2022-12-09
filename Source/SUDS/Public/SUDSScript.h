@@ -43,6 +43,12 @@ public:
 	                 TArray<FString>** SpeakerList);
 	void FinishImport();
 
+	const TArray<USUDSScriptNode*>& GetNodes() const { return Nodes; }
+	const TArray<USUDSScriptNode*>& GetHeaderNodes() const { return HeaderNodes; }
+	const TMap<FName, int>& GetLabelList() const { return LabelList; }
+	const TMap<FName, int>& GetHeaderLabelList() const { return HeaderLabelList; }
+	
+
 	/// Get the first header node, if any (header nodes are run every time the script starts)
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	USUDSScriptNode* GetHeaderNode() const;
