@@ -40,7 +40,7 @@ more detail.
 ## Receiving Events
 
 C++ or Blueprint code can receive events either by
-[subscribing](RunningDialogue.md#events) to the `OnEvent` delegate hook of a
+[subscribing](RunningDialogue.md#delegates) to the `OnEvent` delegate hook of a
 dialogue, or by being a [Participant](Participants.md) in the dialogue.
 
 ---
