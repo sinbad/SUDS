@@ -49,6 +49,17 @@ USUDSDialogue* USUDSLibrary::CreateDialogueWithParticipants(UObject* Owner,
 		
 }
 
+USUDSDialogue* USUDSLibrary::CreateDialogueWithParticipant(UObject* Owner,
+	USUDSScript* Script,
+	UObject* Participant,
+	bool bStartImmediately,
+	FName StartLabel)
+{
+	TArray<UObject*> Participants;
+	Participants.Add(Participant);
+	return CreateDialogueWithParticipants(Owner, Script, Participants, bStartImmediately, StartLabel);
+}
+
 bool USUDSLibrary::GetDialogueValueAsText(const FSUDSValue& Value, FText& TextValue)
 {
 	if (Value.GetType() == ESUDSValueType::Text)

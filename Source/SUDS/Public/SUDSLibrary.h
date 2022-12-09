@@ -51,6 +51,25 @@ public:
 
 
 	/**
+	* Create a dialogue instance based on a script, with a single participants.
+	* @param Owner The owner of this instance. Can be any object but determines the lifespan of this dialogue,
+	*   could make sense to make the owner the NPC you're talking to for example.
+	* @param Script The script to base this dialogue on
+	* @param Participant The participant, which must implement the ISUDSParticipant interface to be used.
+	*	Participants are objects that want to be closely involved in the dialogue to provide variables and receive all events.
+	*	Other objects can subscribe to events separately but do not have as much control.
+	* @param bStartImmediately Whether to call Start() on the dialogue automatically before returning
+	* @param StartLabel If set to start immediately, which label to start from (None means start from the beginning)
+	* @return The dialogue instance. 
+	*/
+	UFUNCTION(BlueprintCallable, Category="SUDS")
+	static USUDSDialogue* CreateDialogueWithParticipant(UObject* Owner,
+														 USUDSScript* Script,
+														 UObject* Participant,
+														 bool bStartImmediately = false,
+														 FName StartLabel = NAME_None);
+	
+	/**
 	 * Try to extract a text value from a general SUDS value.
 	 * @param Value The SUDS value, which may contain many types of value
 	 * @param TextValue The text value
