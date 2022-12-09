@@ -37,3 +37,12 @@ Player: Not much to be honest.
 With the extension:
 
 ![Script with VSCode Extension](img/samplescript.png)
+
+
+---
+
+### See Also
+ 
+* [Script Reference](ScriptReference.md)
+* [Running Dialogue](RunningDialogue.md)
+* [Full Documentation Index](../Index.md)

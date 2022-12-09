@@ -91,3 +91,4 @@ Which would yield a result of 16 instead.
 * [Variables](Variables.md)
 * [Set Lines](SetLines.md)
 * [Script Reference](ScriptReference.md)
+* [Full Documentation Index](../Index.md)

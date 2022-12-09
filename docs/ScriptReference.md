@@ -83,4 +83,4 @@ happens when you reach the bottom of an indented section (under a choice).
 * [Variables](Variables.md)
 * [Localisation](Localisation.md)
 * [Running Dialogue](RunningDialogue.md)
-
+* [Full Documentation Index](../Index.md)

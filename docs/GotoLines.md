@@ -73,4 +73,4 @@ you put the `:choices` label above it).
 * [Script Reference](ScriptReference.md)
 * [Localisation](Localisation.md)
 * [Running Dialogue](RunningDialogue.md)
-
+* [Full Documentation Index](../Index.md)

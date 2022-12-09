@@ -29,3 +29,4 @@ if you wish.
 * [Variables](Variables.md)
 * [Script Reference](ScriptReference.md)
 * [Running Dialogue](RunningDialogue.md)
+* [Full Documentation Index](../Index.md)

@@ -130,3 +130,4 @@ false, if numeric you get 0, and for text you get a blank string.
 * [Script Reference](ScriptReference.md)
 * [Localisation](Localisation.md)
 * [Running Dialogue](RunningDialogue.md)
+* [Full Documentation Index](../Index.md)

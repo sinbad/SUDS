@@ -103,4 +103,4 @@ or put the `NPC: Hello` line *inside* both blocks instead.
 * [Expressions](Expressions.md)
 * [Script Reference](ScriptReference.md)
 * [Running Dialogue](RunningDialogue.md)
-
+* [Full Documentation Index](../Index.md)
