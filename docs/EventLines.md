@@ -33,6 +33,10 @@ referencing variables and optionally doing operations on them. For example:
 See the [Variables](Variables.md) and [Expressions](Expressions.md) sections for
 more detail.
 
+> Note: Text literals in event arguments are not localised. If you need them to 
+> be, consider using a [set line](SetLines.md) which can localise text and passing
+> the variable instead. Or, pass another type and generate localised text in code.
+
 ## Receiving Events
 
 C++ or Blueprint code can receive events either by

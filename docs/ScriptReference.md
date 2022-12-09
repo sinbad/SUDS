@@ -62,6 +62,8 @@ and wait to be told to continue; potentially via a player choice, or simply just
 
 A few things can alter this simple top-to-bottom sequence:
 
+* [Headers](Header.md): Lines contained in the [header](Header.md) section of
+    the script are executed when the dialogue is created.
 * [Choices](ChoiceLines.md): choices represent player decisions which branch the dialogue.
     Everything indented under a [choice line](ChoiceLines.md) is only executed if 
     that choice is picked. 
@@ -69,8 +71,6 @@ A few things can alter this simple top-to-bottom sequence:
     [label](GotoLines.md#label-lines), or to `end`, which terminates the dialogue.
 * [Conditionals](ConditionalLines.md): conditional lines include or exclude sections of the dialogue
     based on [variable state](Variables.md).
-* [Headers](Header.md): Lines contained in the [header](Header.md) section of
-    the script are executed when the dialogue is initialised.
 
 There are also [fallthrough rules](ChoiceLines.md#fallthrough) which control what
 happens when you reach the bottom of an indented section (under a choice).
