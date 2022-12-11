@@ -93,7 +93,7 @@ void FSUDSScriptActions::WriteBackTextIDs(USUDSScript* Script)
 		auto Package = Script->GetPackage();
 		if (FPaths::IsRelative(SourceFile) && Package)
 		{
-			FString PackagePath = FPackageName::GetLongPackagePath(Package->GetPathName());
+			FString PackagePath = FPackageName::LongPackageNameToFilename(FPackageName::GetLongPackagePath(Package->GetPathName()));
 			SourceFile = FPaths::ConvertRelativePathToFull(PackagePath, SourceFile);
 		}
 		if (FFileHelper::LoadFileToStringArray(Lines, *SourceFile))
@@ -137,7 +137,7 @@ void FSUDSScriptActions::WriteBackTextIDs(USUDSScript* Script)
 			}
 			else
 			{
-				// TODO: Print no changes needed
+				FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("No changes were required in source SUD script file."));
 			}
 
 		}
