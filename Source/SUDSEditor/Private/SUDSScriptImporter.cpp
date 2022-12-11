@@ -1009,13 +1009,11 @@ void FSUDSScriptImporter::RetrieveAndRemoveOrGenerateTextID(FStringView& InOutLi
 
 bool FSUDSScriptImporter::RetrieveAndRemoveTextID(FStringView& InOutLine, FString& OutTextID)
 {
-	const FString LineStr(InOutLine);
 
 	FString LineWithout;
 	int Number;
-	if (RetrieveTextIDFromLine(LineStr, OutTextID, LineWithout, Number))
+	if (RetrieveTextIDFromLine(InOutLine, OutTextID, Number))
 	{
-		InOutLine = LineWithout;
 		TextIDHighestNumber = Number;
 		return true;
 	}
@@ -1024,15 +1022,18 @@ bool FSUDSScriptImporter::RetrieveAndRemoveTextID(FStringView& InOutLine, FStrin
 
 }
 
-bool FSUDSScriptImporter::RetrieveTextIDFromLine(const FString& InLine, FString& OutTextID, FString& OutLineWithoutIt, int& OutNumber)
+bool FSUDSScriptImporter::RetrieveTextIDFromLine(FStringView& InOutLine, FString& OutTextID, int& OutNumber)
 {
+	const FString LineStr(InOutLine);
 	const FRegexPattern TextIDPattern(TEXT("(\\@([0-9a-fA-F]+)\\@)"));
-	FRegexMatcher TextIDRegex(TextIDPattern, InLine);
+	FRegexMatcher TextIDRegex(TextIDPattern, LineStr);
 	if (TextIDRegex.FindNext())
 	{
 		OutTextID = TextIDRegex.GetCaptureGroup(1);
 		// Chop the incoming string to the left of the TextID
-		OutLineWithoutIt = InLine.Left(TextIDRegex.GetCaptureGroupBeginning(1)).TrimEnd();
+		InOutLine = InOutLine.Left(TextIDRegex.GetCaptureGroupBeginning(1));
+		// Also trim right
+		InOutLine = InOutLine.TrimEnd();
 		// FDefaultValueHelper::ParseInt requires an "0x" prefix but we're not using that
 		// Plus does extra checking we don't need
 		OutNumber = FCString::Strtoi(*TextIDRegex.GetCaptureGroup(2), nullptr, 16);
