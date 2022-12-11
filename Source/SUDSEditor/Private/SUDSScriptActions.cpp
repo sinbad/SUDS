@@ -89,7 +89,13 @@ void FSUDSScriptActions::WriteBackTextIDs(USUDSScript* Script)
 	if (SrcData.SourceFiles.Num() == 1)
 	{
 		TArray<FString> Lines;
-		const FString SourceFile = SrcData.SourceFiles[0].RelativeFilename;
+		FString SourceFile =  SrcData.SourceFiles[0].RelativeFilename;
+		auto Package = Script->GetPackage();
+		if (FPaths::IsRelative(SourceFile) && Package)
+		{
+			FString PackagePath = FPackageName::GetLongPackagePath(Package->GetPathName());
+			SourceFile = FPaths::ConvertRelativePathToFull(PackagePath, SourceFile);
+		}
 		if (FFileHelper::LoadFileToStringArray(Lines, *SourceFile))
 		{
 			const bool bHeaderChanges = WriteBackTextIDsFromNodes(Script->GetHeaderNodes(), Lines, Script->GetName());
