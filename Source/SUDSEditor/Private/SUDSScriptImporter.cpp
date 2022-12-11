@@ -1477,6 +1477,18 @@ void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset, UStringTable* String
 	Asset->FinishImport();
 }
 
+FMD5Hash FSUDSScriptImporter::CalculateHash(const TCHAR* Buffer, int32 Len)
+{
+	FMD5Hash Hash;
+	FMD5 MD5;
+
+	MD5.Update((uint8*)Buffer, Len * sizeof(TCHAR));
+
+	Hash.Set(MD5);
+	return Hash;
+	
+}
+
 void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
                                                 const FSUDSScriptImporter::ParsedTree& Tree,
                                                 TArray<USUDSScriptNode*>* pOutNodes,

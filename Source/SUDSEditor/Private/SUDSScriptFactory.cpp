@@ -57,7 +57,8 @@ UObject* USUDSScriptFactory::FactoryCreateText(UClass* InClass,
 		FAssetRegistryModule::AssetCreated(StringTable);
 
 		// Register source info
-		Result->AssetImportData->Update(FactoryCurrentFilename);
+		const FMD5Hash Hash = FSUDSScriptImporter::CalculateHash(Buffer, BufferEnd - Buffer);
+		Result->AssetImportData->Update(FactoryCurrentFilename, Hash);
 
 	}
 

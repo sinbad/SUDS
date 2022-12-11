@@ -92,26 +92,52 @@ void FSUDSScriptActions::WriteBackTextIDs(USUDSScript* Script)
 		const FString SourceFile = SrcData.SourceFiles[0].RelativeFilename;
 		if (FFileHelper::LoadFileToStringArray(Lines, *SourceFile))
 		{
-			WriteBackTextIDsFromNodes(Script->GetHeaderNodes(), Lines);
-			WriteBackTextIDsFromNodes(Script->GetNodes(), Lines);
-			
-			// Write data to new file then close
-			const FString DestFile = FPaths::CreateTempFilename(*FPaths::ProjectSavedDir());
-			FFileHelper::SaveStringArrayToFile(Lines, *DestFile);
-			// BEFORE flipping over the files, we'll need to update the file hash
-			const auto FileHash = FMD5Hash::HashFile(*DestFile);
-			Script->AssetImportData->Update(SourceFile, FileHash);
+			const bool bHeaderChanges = WriteBackTextIDsFromNodes(Script->GetHeaderNodes(), Lines, Script->GetName());
+			const bool bBodyChanges = WriteBackTextIDsFromNodes(Script->GetNodes(), Lines, Script->GetName());
 
-			// TODO:
-			//   1. Perform source control checkout of source file
-			//   2. Flip orig source to a temp old file
-			//   3. Flip temp dest to source
-			//   4. Delete temp old
+			if (bHeaderChanges || bBodyChanges)
+			{
+				// We need to re-hash file in memory before saving to prevent re-import
+				int32 Length = 10;
+				for(const FString& Line : Lines)
+				{
+					Length += Line.Len() + UE_ARRAY_COUNT(LINE_TERMINATOR);
+				}
+				FString CombinedString;
+				CombinedString.Reserve(Length);
+
+				for(const FString& Line : Lines)
+				{
+					CombinedString += Line;
+					CombinedString += LINE_TERMINATOR;
+				}
+				
+				const FMD5Hash FileHash = FSUDSScriptImporter::CalculateHash(*CombinedString, CombinedString.Len());
+				Script->AssetImportData->Update(SourceFile, FileHash);
+
+				// Need to mark asset dirty since hash has changed
+				// Try to find the outer package so we can dirty it up
+				if (Script->GetOuter())
+				{
+					Script->GetOuter()->MarkPackageDirty();
+				}
+				else
+				{
+					Script->MarkPackageDirty();
+				}
+
+				// Write source file back; always encode as UTF8 not default ANSI/UTF16
+				FFileHelper::SaveStringToFile(FStringView(CombinedString), *SourceFile, FFileHelper::EEncodingOptions::ForceUTF8);
+			}
+			else
+			{
+				// TODO: Print no changes needed
+			}
+
 		}
 		else
 		{
-			UE_LOG(LogSUDSEditor, Error, TEXT("Error opening source asset %s"), *Script->GetName());
-			
+			UE_LOG(LogSUDSEditor, Error, TEXT("Error opening source asset %s"), *SourceFile);
 		}
 	}
 	else
@@ -120,8 +146,9 @@ void FSUDSScriptActions::WriteBackTextIDs(USUDSScript* Script)
 	}
 }
 
-void FSUDSScriptActions::WriteBackTextIDsFromNodes(const TArray<USUDSScriptNode*> Nodes, TArray<FString>& Lines)
+bool FSUDSScriptActions::WriteBackTextIDsFromNodes(const TArray<USUDSScriptNode*> Nodes, TArray<FString>& Lines, const FString& NameForErrors)
 {
+	bool bAnyChanges = false;
 	// For each speaker line, set line and choice edge, use source line no to append text ID
 	for (const auto N : Nodes)
 	{
@@ -129,7 +156,7 @@ void FSUDSScriptActions::WriteBackTextIDsFromNodes(const TArray<USUDSScriptNode*
 		{
 			if (const auto* TN = Cast<USUDSScriptNodeText>(N))
 			{
-				WriteBackTextID(TN->GetText(), TN->GetSourceLineNo(), Lines);
+				bAnyChanges = WriteBackTextID(TN->GetText(), TN->GetSourceLineNo(), Lines, NameForErrors) || bAnyChanges;
 			}
 		}
 		else if (N->GetNodeType() == ESUDSScriptNodeType::SetVariable)
@@ -140,7 +167,7 @@ void FSUDSScriptActions::WriteBackTextIDsFromNodes(const TArray<USUDSScriptNode*
 				{
 					FText Literal = SN->GetExpression().GetTextLiteralValue();
 					
-					WriteBackTextID(Literal, SN->GetSourceLineNo(), Lines);
+					bAnyChanges = WriteBackTextID(Literal, SN->GetSourceLineNo(), Lines, NameForErrors) || bAnyChanges;
 				}
 			}
 			
@@ -150,43 +177,106 @@ void FSUDSScriptActions::WriteBackTextIDsFromNodes(const TArray<USUDSScriptNode*
 			// Edges
 			for (auto& Edge : N->GetEdges())
 			{
-				WriteBackTextID(Edge.GetText(), Edge.GetSourceLineNo(), Lines);
+				bAnyChanges = WriteBackTextID(Edge.GetText(), Edge.GetSourceLineNo(), Lines, NameForErrors) || bAnyChanges;
 			}
 		}
 	}
-	
+
+	return bAnyChanges;
 }
 
-void FSUDSScriptActions::WriteBackTextID(const FText& Text, int LineNo, TArray<FString>& Lines)
+bool FSUDSScriptActions::WriteBackTextID(const FText& AssetText, int LineNo, TArray<FString>& Lines, const FString& NameForErrors)
 {
-	if (Text.IsEmpty())
-		return;
+	if (AssetText.IsEmpty())
+		return false;
 
-	if (!Lines.IsValidIndex(LineNo))
+	// Line numbers are 1-based
+	const int Idx = LineNo - 1;
+
+	if (!Lines.IsValidIndex(Idx))
 	{
-		UE_LOG(LogSUDSEditor, Error, TEXT("Cannot write back TextID for '%s', source line number %d is invalid"), *Text.ToString(), LineNo);
-		return;
+		UE_LOG(LogSUDSEditor,
+		       Error,
+		       TEXT("Cannot write back TextID to '%s', source line number %d is invalid (Text: '%s')"),
+		       *NameForErrors,
+		       LineNo,
+		       *AssetText.ToString());
+		return false;
 	}
 
-	const FString& SourceLine = Lines[LineNo];
-	FString LineWithout;
+	const FString& SourceLine = Lines[Idx];
 	FString ExistingTextID;
 	int ExistingNum;
-	if (FSUDSScriptImporter::RetrieveTextIDFromLine(SourceLine, ExistingTextID, LineWithout, ExistingNum))
+	FStringView SourceLineView(SourceLine);
+	if (FSUDSScriptImporter::RetrieveTextIDFromLine(SourceLineView, ExistingTextID, ExistingNum))
 	{
-		// TODO: Existing TextID - replace if already there and warn if not the same?
+		// Existing TextID - replace if already there
+		const FString TextID = FTextInspector::GetTextId(AssetText).GetKey().GetChars();
+		if (ExistingTextID != TextID)
+		{
+			if (TextIDCheckMatch(AssetText, SourceLine))
+			{
+				FString Prefix(SourceLineView);
+				FString UpdatedLine = FString::Printf(TEXT("%s    %s"), *Prefix, *TextID); 
+				Lines[LineNo] = UpdatedLine;
+				return true;
+			}
+			else
+			{
+				UE_LOG(LogSUDSEditor,
+					   Error,
+					   TEXT("Tried to update TextID on line %d of %s but source file did not contain expected text '%s'"
+					   ),
+					   LineNo,
+					   *NameForErrors,
+					   *AssetText.ToString());
+				return false;
+				
+			}
+		}
+		// Same, no need to change
+		return false;
 		
 	}
 	else
 	{
-		// Text from our asset must start with the text in the line
-		// StartWith with because source might be multiple lines
-		if (!Text.ToString().StartsWith(Lines[LineNo]))
+		if (TextIDCheckMatch(AssetText, SourceLine))
 		{
-			return;
+			const FString TextID = FTextInspector::GetTextId(AssetText).GetKey().GetChars();
+			FString UpdatedLine = FString::Printf(TEXT("%s    %s"), *(Lines[LineNo]), *TextID); 
+			Lines[LineNo] = UpdatedLine;
+			return true;
 		}
-		FString TextID = FTextInspector::GetTextId(Text).GetKey().GetChars();
-		FString UpdatedLine = FString::Printf(TEXT("%s    %s"), *(Lines[LineNo]), *TextID); 
-		Lines[LineNo] = UpdatedLine;
+		else
+		{
+			UE_LOG(LogSUDSEditor,
+			       Error,
+			       TEXT("Tried to write TextID back to line %d of %s but source file did not contain expected text '%s'"
+			       ),
+			       LineNo,
+			       *NameForErrors,
+			       *AssetText.ToString());
+			return false;
+		}
 	}
+}
+
+bool FSUDSScriptActions::TextIDCheckMatch(const FText& AssetText, const FString& SourceLine)
+{
+	// Text from our asset must be present in the text in the source line
+	// However, in case this is a multi-line string, take the first line only
+	FString AssetStr = AssetText.ToString();
+	{
+		FString L, R;
+		if (AssetStr.Split("\n", &L, &R))
+		{
+			AssetStr = L.TrimStartAndEnd();
+		}
+	}
+
+	// Bear in mind that this line might be a text line, a choice or a set line
+	// therefore we only check if the source line contains the asset text
+
+	return SourceLine.Contains(AssetStr);
+	
 }

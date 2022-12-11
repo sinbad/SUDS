@@ -25,7 +25,8 @@ public:
 protected:
 	void WriteBackTextIDs(TArray<TWeakObjectPtr<USUDSScript>> Scripts);
 	void WriteBackTextIDs(USUDSScript* Script);
-	void WriteBackTextIDsFromNodes(const TArray<USUDSScriptNode*> Nodes, TArray<FString>& Lines);
-	void WriteBackTextID(const FText& Text, int LineNo, TArray<FString>& Lines);
+	bool WriteBackTextIDsFromNodes(const TArray<USUDSScriptNode*> Nodes, TArray<FString>& Lines, const FString& NameForErrors);
+	bool WriteBackTextID(const FText& AssetText, int LineNo, TArray<FString>& Lines, const FString& NameForErrors);
+	bool TextIDCheckMatch(const FText& AssetText, const FString& SourceLine);
 		
 };
