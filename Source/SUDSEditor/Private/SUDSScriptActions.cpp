@@ -81,6 +81,8 @@ void FSUDSScriptActions::WriteBackTextIDs(TArray<TWeakObjectPtr<USUDSScript>> Sc
 			WriteBackTextIDs(Script.Get());
 		}
 	}
+
+	// TODO: collate error count and prompt
 }
 
 void FSUDSScriptActions::WriteBackTextIDs(USUDSScript* Script)
@@ -224,7 +226,7 @@ bool FSUDSScriptActions::WriteBackTextID(const FText& AssetText, int LineNo, TAr
 			{
 				FString Prefix(SourceLineView);
 				FString UpdatedLine = FString::Printf(TEXT("%s    %s"), *Prefix, *TextID); 
-				Lines[LineNo] = UpdatedLine;
+				Lines[Idx] = UpdatedLine;
 				return true;
 			}
 			else
@@ -249,8 +251,8 @@ bool FSUDSScriptActions::WriteBackTextID(const FText& AssetText, int LineNo, TAr
 		if (TextIDCheckMatch(AssetText, SourceLine))
 		{
 			const FString TextID = FTextInspector::GetTextId(AssetText).GetKey().GetChars();
-			FString UpdatedLine = FString::Printf(TEXT("%s    %s"), *(Lines[LineNo]), *TextID); 
-			Lines[LineNo] = UpdatedLine;
+			FString UpdatedLine = FString::Printf(TEXT("%s    %s"), *SourceLine, *TextID); 
+			Lines[Idx] = UpdatedLine;
 			return true;
 		}
 		else
