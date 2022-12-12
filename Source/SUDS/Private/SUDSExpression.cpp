@@ -2,8 +2,6 @@
 
 #include "Misc/DefaultValueHelper.h"
 
-PRAGMA_DISABLE_OPTIMIZATION
-
 bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& ErrorContext)
 {
 	// Assume invalid until we've parsed something
@@ -419,5 +417,3 @@ FSUDSValue FSUDSExpression::EvaluateOperand(const FSUDSValue& Operand,
 
 	return Operand;
 }
-
-PRAGMA_ENABLE_OPTIMIZATION

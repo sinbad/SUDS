@@ -3,8 +3,6 @@
 #include "SUDSScriptImporter.h"
 #include "SUDSScriptNode.h"
 #include "TestUtils.h"
-#include "Internationalization/StringTable.h"
-#include "Internationalization/StringTableRegistry.h"
 
 PRAGMA_DISABLE_OPTIMIZATION
 

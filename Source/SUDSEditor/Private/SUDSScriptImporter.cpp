@@ -10,8 +10,6 @@
 #include "Internationalization/StringTable.h"
 #include "Internationalization/StringTableCore.h"
 
-PRAGMA_DISABLE_OPTIMIZATION
-
 const FString FSUDSScriptImporter::EndGotoLabel = "end";
 const FString FSUDSScriptImporter::TreePathSeparator = "/";
 
@@ -1680,5 +1678,3 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 	}
 	
 }
-
-PRAGMA_ENABLE_OPTIMIZATION

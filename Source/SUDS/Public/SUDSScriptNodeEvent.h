@@ -3,7 +3,6 @@
 #include "CoreMinimal.h"
 #include "SUDSExpression.h"
 #include "SUDSScriptNode.h"
-#include "SUDSValue.h"
 #include "SUDSScriptNodeEvent.generated.h"
 
 /**

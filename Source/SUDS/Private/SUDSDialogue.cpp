@@ -9,8 +9,6 @@
 
 DEFINE_LOG_CATEGORY(LogSUDSDialogue)
 
-PRAGMA_DISABLE_OPTIMIZATION
-
 const FText USUDSDialogue::DummyText = FText::FromString("INVALID");
 const FString USUDSDialogue::DummyString = "INVALID";
 
@@ -721,5 +719,3 @@ void USUDSDialogue::RaiseProceeding()
 	// Event listeners get it after
 	OnProceeding.Broadcast(this);
 }
-
-PRAGMA_ENABLE_OPTIMIZATION

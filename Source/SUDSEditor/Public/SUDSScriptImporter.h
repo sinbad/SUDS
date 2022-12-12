@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "SUDSExpression.h"
-#include "SUDSValue.h"
 
 class USUDSScript;
 DECLARE_LOG_CATEGORY_EXTERN(LogSUDSImporter, Verbose, All);
