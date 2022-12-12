@@ -51,7 +51,7 @@ It contains:
   was retrieved. 
 
 > It's important to note that Text Node ID and the Choices Taken use the
-> [Text Identifier](Localisation.md#text-identifiers) associated with the speaker
+> [String Keys](Localisation.md#string-keys) associated with the speaker
 > line or choice, which are also used for [Localisation](Localisation.md). 
 >
 > These identifiers are usually generated at import time, but
