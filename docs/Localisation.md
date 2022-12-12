@@ -69,12 +69,15 @@ keys from the string table on the end of each line it came from (it validates
 that the text still matches). From then on you can safely make small edits to
 your original `.sud` file and know that the keys will stay the same. 
 
-> Note: In a perfect world, you would just never change your `.sud` files once
+> Note 1: Writing back the keys will make UE prompt you to re-import the script,
+> which you should accept so it updates the asset hash / timestamps. It also
+> proves that it works to re-import the keys.
+
+> Note 2: In a perfect world, you would just never change your `.sud` files once
 > you got to the stage where you start localising, so you'd never need this
 > feature. But, this feature is here because we don't live in that world. 😉
 
-
-> It's easiest just to save `.sud` files somewhere in your content directory,
+> Note 3: It's easiest just to save `.sud` files somewhere in your content directory,
 > and store them in your source code repository alongside the `.uasset` they created.
 > That way the relative import path is very simple so this tool can easily find them.
 

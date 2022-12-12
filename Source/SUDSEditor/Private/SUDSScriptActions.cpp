@@ -183,7 +183,14 @@ void FSUDSScriptActions::WriteBackTextIDs(USUDSScript* Script, FSUDSMessageLogge
 					CombinedString += Line;
 					CombinedString += LINE_TERMINATOR;
 				}
-				
+
+				// Write source file back; always encode as UTF8 not default ANSI/UTF16
+				// Do this before updating asset import data so it picks up new file timestamp
+				FFileHelper::SaveStringToFile(FStringView(CombinedString), *SourceFile, FFileHelper::EEncodingOptions::ForceUTF8);
+
+				/*  BEGIN try to prevent re-import prompt
+				 *  This unfortunately didn't work, so removed & let it reimport
+				 
 				const FMD5Hash FileHash = FSUDSScriptImporter::CalculateHash(*CombinedString, CombinedString.Len());
 				Script->AssetImportData->Update(SourceFile, FileHash);
 
@@ -198,8 +205,12 @@ void FSUDSScriptActions::WriteBackTextIDs(USUDSScript* Script, FSUDSMessageLogge
 					Script->MarkPackageDirty();
 				}
 
-				// Write source file back; always encode as UTF8 not default ANSI/UTF16
-				FFileHelper::SaveStringToFile(FStringView(CombinedString), *SourceFile, FFileHelper::EEncodingOptions::ForceUTF8);
+				// Even this doesn't work:
+				GUnrealEd->AutoReimportManager->IgnoreFileModification(SourceFile);
+
+				* END try to prevent re-import
+				*/
+
 			}
 			else
 			{
