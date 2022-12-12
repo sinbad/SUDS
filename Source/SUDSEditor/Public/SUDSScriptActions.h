@@ -6,6 +6,7 @@
 
 class USUDSScriptNode;
 class USUDSScript;
+struct FSUDSMessageLogger;
 /**
  * 
  */
@@ -24,9 +25,9 @@ public:
 	virtual bool HasActions(const TArray<UObject*>& InObjects) const override;
 protected:
 	void WriteBackTextIDs(TArray<TWeakObjectPtr<USUDSScript>> Scripts);
-	void WriteBackTextIDs(USUDSScript* Script);
-	bool WriteBackTextIDsFromNodes(const TArray<USUDSScriptNode*> Nodes, TArray<FString>& Lines, const FString& NameForErrors);
-	bool WriteBackTextID(const FText& AssetText, int LineNo, TArray<FString>& Lines, const FString& NameForErrors);
+	void WriteBackTextIDs(USUDSScript* Script, FSUDSMessageLogger& Logger);
+	bool WriteBackTextIDsFromNodes(const TArray<USUDSScriptNode*> Nodes, TArray<FString>& Lines, const FString& NameForErrors, FSUDSMessageLogger& Logger);
+	bool WriteBackTextID(const FText& AssetText, int LineNo, TArray<FString>& Lines, const FString& NameForErrors, FSUDSMessageLogger& Logger);
 	bool TextIDCheckMatch(const FText& AssetText, const FString& SourceLine);
 		
 };

@@ -1,6 +1,7 @@
 ﻿#include "SUDSScriptActions.h"
 
-#include "SUDSEditor.h"
+#include "IMessageLogListing.h"
+#include "MessageLogModule.h"
 #include "SUDSScript.h"
 #include "SUDSScriptImporter.h"
 #include "SUDSScriptNode.h"
@@ -72,20 +73,77 @@ void FSUDSScriptActions::GetActions(const TArray<UObject*>& InObjects, FToolMenu
 }
 
 
+struct FSUDSMessageLogger
+{
+protected:
+	TArray<TSharedRef<FTokenizedMessage>> ErrorMessages;
+
+public:
+	FSUDSMessageLogger() {}
+	~FSUDSMessageLogger()
+	{
+		//Always clear the old message after an import or re-import
+		const TCHAR* LogTitle = TEXT("SUDS");
+		FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
+		TSharedPtr<class IMessageLogListing> LogListing = MessageLogModule.GetLogListing(LogTitle);
+		LogListing->SetLabel(FText::FromString("FBX Import"));
+		LogListing->ClearMessages();
+
+		if(ErrorMessages.Num() > 0)
+		{
+			LogListing->AddMessages(ErrorMessages);
+			MessageLogModule.OpenMessageLog(LogTitle);
+		}
+	}
+
+	bool HasErrors() const
+	{
+		for (const TSharedRef<FTokenizedMessage> Msg : ErrorMessages)
+		{
+			if (Msg->GetSeverity() == EMessageSeverity::CriticalError || Msg->GetSeverity() == EMessageSeverity::Error)
+			{
+				return true;
+			}
+		}
+		return false;		
+	}
+
+	int NumErrors() const
+	{
+		int Errs = 0;
+		for (const TSharedRef<FTokenizedMessage> Msg : ErrorMessages)
+		{
+			if (Msg->GetSeverity() == EMessageSeverity::CriticalError || Msg->GetSeverity() == EMessageSeverity::Error)
+			{
+				++Errs;
+			}
+		}
+		return Errs;
+	}
+	
+	
+	void AddMessage(EMessageSeverity::Type Severity, const FText& Text)
+	{
+		ErrorMessages.Add(FTokenizedMessage::Create(Severity, Text));
+	}
+
+
+};
+
+
 void FSUDSScriptActions::WriteBackTextIDs(TArray<TWeakObjectPtr<USUDSScript>> Scripts)
 {
+	FSUDSMessageLogger Logger;
 	for (auto Script : Scripts)
 	{
 		if (Script.IsValid())
 		{
-			WriteBackTextIDs(Script.Get());
+			WriteBackTextIDs(Script.Get(), Logger);
 		}
 	}
-
-	// TODO: collate error count and prompt
 }
 
-void FSUDSScriptActions::WriteBackTextIDs(USUDSScript* Script)
+void FSUDSScriptActions::WriteBackTextIDs(USUDSScript* Script, FSUDSMessageLogger& Logger)
 {
 	const auto& SrcData = Script->AssetImportData->SourceData; 
 	if (SrcData.SourceFiles.Num() == 1)
@@ -100,10 +158,16 @@ void FSUDSScriptActions::WriteBackTextIDs(USUDSScript* Script)
 		}
 		if (FFileHelper::LoadFileToStringArray(Lines, *SourceFile))
 		{
-			const bool bHeaderChanges = WriteBackTextIDsFromNodes(Script->GetHeaderNodes(), Lines, Script->GetName());
-			const bool bBodyChanges = WriteBackTextIDsFromNodes(Script->GetNodes(), Lines, Script->GetName());
+			const int PrevErrs = Logger.NumErrors();
+			const bool bHeaderChanges = WriteBackTextIDsFromNodes(Script->GetHeaderNodes(), Lines, Script->GetName(), Logger);
+			const bool bBodyChanges = WriteBackTextIDsFromNodes(Script->GetNodes(), Lines, Script->GetName(), Logger);
 
-			if (bHeaderChanges || bBodyChanges)
+			if (Logger.NumErrors() > PrevErrs)
+			{
+				Logger.AddMessage(EMessageSeverity::Info,
+								  FText::FromString(FString::Printf(TEXT("Errors prevented saving updates to %s."), *Script->GetName())));
+			}
+			else if (bHeaderChanges || bBodyChanges)
 			{
 				// We need to re-hash file in memory before saving to prevent re-import
 				int32 Length = 10;
@@ -139,22 +203,26 @@ void FSUDSScriptActions::WriteBackTextIDs(USUDSScript* Script)
 			}
 			else
 			{
-				FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("No changes were required in source SUD script file."));
+				Logger.AddMessage(EMessageSeverity::Info,
+								  FText::FromString(FString::Printf(TEXT("No changes were required to %s"), *Script->GetName())));
 			}
 
 		}
 		else
 		{
-			UE_LOG(LogSUDSEditor, Error, TEXT("Error opening source asset %s"), *SourceFile);
+			Logger.AddMessage(EMessageSeverity::Error,
+			                  FText::FromString(FString::Printf(TEXT("Error opening source asset %s"), *SourceFile)));
 		}
 	}
 	else
 	{
-		UE_LOG(LogSUDSEditor, Error, TEXT("No source files associated with asset %s"), *Script->GetName());
+		Logger.AddMessage(EMessageSeverity::Error,
+		                  FText::FromString(
+			                  FString::Printf(TEXT("No source files associated with asset %s"), *Script->GetName())));
 	}
 }
 
-bool FSUDSScriptActions::WriteBackTextIDsFromNodes(const TArray<USUDSScriptNode*> Nodes, TArray<FString>& Lines, const FString& NameForErrors)
+bool FSUDSScriptActions::WriteBackTextIDsFromNodes(const TArray<USUDSScriptNode*> Nodes, TArray<FString>& Lines, const FString& NameForErrors, FSUDSMessageLogger& Logger)
 {
 	bool bAnyChanges = false;
 	// For each speaker line, set line and choice edge, use source line no to append text ID
@@ -164,7 +232,7 @@ bool FSUDSScriptActions::WriteBackTextIDsFromNodes(const TArray<USUDSScriptNode*
 		{
 			if (const auto* TN = Cast<USUDSScriptNodeText>(N))
 			{
-				bAnyChanges = WriteBackTextID(TN->GetText(), TN->GetSourceLineNo(), Lines, NameForErrors) || bAnyChanges;
+				bAnyChanges = WriteBackTextID(TN->GetText(), TN->GetSourceLineNo(), Lines, NameForErrors, Logger) || bAnyChanges;
 			}
 		}
 		else if (N->GetNodeType() == ESUDSScriptNodeType::SetVariable)
@@ -175,7 +243,7 @@ bool FSUDSScriptActions::WriteBackTextIDsFromNodes(const TArray<USUDSScriptNode*
 				{
 					FText Literal = SN->GetExpression().GetTextLiteralValue();
 					
-					bAnyChanges = WriteBackTextID(Literal, SN->GetSourceLineNo(), Lines, NameForErrors) || bAnyChanges;
+					bAnyChanges = WriteBackTextID(Literal, SN->GetSourceLineNo(), Lines, NameForErrors, Logger) || bAnyChanges;
 				}
 			}
 			
@@ -185,7 +253,7 @@ bool FSUDSScriptActions::WriteBackTextIDsFromNodes(const TArray<USUDSScriptNode*
 			// Edges
 			for (auto& Edge : N->GetEdges())
 			{
-				bAnyChanges = WriteBackTextID(Edge.GetText(), Edge.GetSourceLineNo(), Lines, NameForErrors) || bAnyChanges;
+				bAnyChanges = WriteBackTextID(Edge.GetText(), Edge.GetSourceLineNo(), Lines, NameForErrors, Logger) || bAnyChanges;
 			}
 		}
 	}
@@ -193,7 +261,7 @@ bool FSUDSScriptActions::WriteBackTextIDsFromNodes(const TArray<USUDSScriptNode*
 	return bAnyChanges;
 }
 
-bool FSUDSScriptActions::WriteBackTextID(const FText& AssetText, int LineNo, TArray<FString>& Lines, const FString& NameForErrors)
+bool FSUDSScriptActions::WriteBackTextID(const FText& AssetText, int LineNo, TArray<FString>& Lines, const FString& NameForErrors, FSUDSMessageLogger& Logger)
 {
 	if (AssetText.IsEmpty())
 		return false;
@@ -203,12 +271,12 @@ bool FSUDSScriptActions::WriteBackTextID(const FText& AssetText, int LineNo, TAr
 
 	if (!Lines.IsValidIndex(Idx))
 	{
-		UE_LOG(LogSUDSEditor,
-		       Error,
-		       TEXT("Cannot write back TextID to '%s', source line number %d is invalid (Text: '%s')"),
-		       *NameForErrors,
-		       LineNo,
-		       *AssetText.ToString());
+		Logger.AddMessage(EMessageSeverity::Error,
+		                  FText::FromString(FString::Printf(
+			                  TEXT("Cannot write back TextID to '%s', source line number %d is invalid (Text: '%s')"),
+			                  *NameForErrors,
+			                  LineNo,
+			                  *AssetText.ToString())));
 		return false;
 	}
 
@@ -231,13 +299,13 @@ bool FSUDSScriptActions::WriteBackTextID(const FText& AssetText, int LineNo, TAr
 			}
 			else
 			{
-				UE_LOG(LogSUDSEditor,
-					   Error,
-					   TEXT("Tried to update TextID on line %d of %s but source file did not contain expected text '%s'"
-					   ),
-					   LineNo,
-					   *NameForErrors,
-					   *AssetText.ToString());
+				Logger.AddMessage(EMessageSeverity::Error,
+				                  FText::FromString(FString::Printf(TEXT(
+					                  "Tried to update TextID on line %d of %s but source file did not contain expected text '%s'"
+				                  ),
+				                                                    LineNo,
+				                                                    *NameForErrors,
+				                                                    *AssetText.ToString())));
 				return false;
 				
 			}
@@ -257,13 +325,13 @@ bool FSUDSScriptActions::WriteBackTextID(const FText& AssetText, int LineNo, TAr
 		}
 		else
 		{
-			UE_LOG(LogSUDSEditor,
-			       Error,
-			       TEXT("Tried to write TextID back to line %d of %s but source file did not contain expected text '%s'"
-			       ),
-			       LineNo,
-			       *NameForErrors,
-			       *AssetText.ToString());
+			Logger.AddMessage(EMessageSeverity::Error,
+			                  FText::FromString(FString::Printf(TEXT(
+				                  "Tried to write TextID back to line %d of %s but source file did not contain expected text '%s'"
+			                  ),
+			                                                    LineNo,
+			                                                    *NameForErrors,
+			                                                    *AssetText.ToString())));
 			return false;
 		}
 	}
