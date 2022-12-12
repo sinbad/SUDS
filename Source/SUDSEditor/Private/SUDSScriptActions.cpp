@@ -211,11 +211,14 @@ void FSUDSScriptActions::WriteBackTextIDs(USUDSScript* Script, FSUDSMessageLogge
 				* END try to prevent re-import
 				*/
 
+				Logger.AddMessage(EMessageSeverity::Info,
+								  FText::FromString(FString::Printf(TEXT("Successfully updated %s"), *SourceFile)));
+				
 			}
 			else
 			{
 				Logger.AddMessage(EMessageSeverity::Info,
-								  FText::FromString(FString::Printf(TEXT("No changes were required to %s"), *Script->GetName())));
+								  FText::FromString(FString::Printf(TEXT("No changes were required to %s"), *SourceFile)));
 			}
 
 		}
