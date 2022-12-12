@@ -176,6 +176,18 @@ FORCEINLINE bool TestParsedSelectEdge(FAutomationTestBase* T, const FString& Nam
 	
 }
 
+FORCEINLINE bool TestParsedGoto(FAutomationTestBase* T, const FString& NameForTest, const FSUDSParsedNode* Node, FSUDSScriptImporter& Importer, const FSUDSParsedNode** OutNode)
+{
+	if (T->TestNotNull(NameForTest, Node))
+	{
+		T->TestEqual(NameForTest, Node->NodeType, ESUDSParsedNodeType::Goto);
+		const int Target = Importer.GetGotoTargetNodeIndex(Node->Identifier);
+		*OutNode = Importer.GetNode(Target);
+		return true;
+	}
+	return false;
+}
+
 FORCEINLINE bool TestTextNode(FAutomationTestBase* T, const FString& NameForTest, const USUDSScriptNode* Node, const FString& Speaker, const FString& Text)
 {
 	if (T->TestNotNull(NameForTest, Node))

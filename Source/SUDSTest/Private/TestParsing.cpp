@@ -851,4 +851,58 @@ bool FTestConversionToRuntime::RunTest(const FString& Parameters)
 
 	return true;
 }
+
+const FString PartiallyLocalisedInput = R"RAWSUD(
+Vagabond: Well met, fellow!
+  * Er, hi?    
+	Vagabond: Verily, 'tis wondrous to see such a fine fellow on the road this morn!
+	[goto FriendlyChat]
+  * Jog on, mate    @0004@
+	Vagabond: Well, really! Good day then sir!    @0005@
+	[goto end]
+
+:FriendlyChat
+Vagabond: Mayhaps we could travel together a while, and share a tale or two?    @0007@
+What do you say?
+)RAWSUD";
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestPartiallyLocalised,
+								 "SUDSTest.TestPartiallyLocalised",
+								 EAutomationTestFlags::EditorContext |
+								 EAutomationTestFlags::ClientContext |
+								 EAutomationTestFlags::ProductFilter)
+
+
+bool FTestPartiallyLocalised::RunTest(const FString& Parameters)
+{
+	FSUDSScriptImporter Importer;
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(PartiallyLocalisedInput), PartiallyLocalisedInput.Len(), "PartiallyLocalisedInput", true));
+
+	// Test the content of the parsing
+	auto NextNode = Importer.GetNode(0);
+
+	TestParsedText(this, "Start node", NextNode, "Vagabond", "Well met, fellow!");
+	TestGetParsedNextNode(this, "Next", NextNode, Importer, false, &NextNode);
+	if (TestParsedChoice(this, "First choice", NextNode, 2))
+	{
+		TestParsedChoiceEdge(this, "First choice", NextNode, 0, "Er, hi?", Importer, &NextNode);
+		TestParsedText(this, "Next node", NextNode, "Vagabond", "Verily, 'tis wondrous to see such a fine fellow on the road this morn!");
+		TestGetParsedNextNode(this, "Next", NextNode, Importer, false, &NextNode);
+		TestParsedGoto(this, "Goto", NextNode, Importer, &NextNode);
+		TestParsedText(this, "Next node", NextNode, "Vagabond", "Mayhaps we could travel together a while, and share a tale or two?\nWhat do you say?");
+		TestEqual("TextID should be correct", NextNode->TextID, "@0007@");
+	}
+
+	NextNode = Importer.GetNode(0);
+	TestGetParsedNextNode(this, "Next", NextNode, Importer, false, &NextNode);
+	if (TestParsedChoice(this, "First choice", NextNode, 2))
+	{
+		TestEqual("TextID should be correct", NextNode->Edges[1].TextID, "@0004@");
+		TestParsedChoiceEdge(this, "First choice", NextNode, 1, "Jog on, mate", Importer, &NextNode);
+		TestParsedText(this, "Next node", NextNode, "Vagabond", "Well, really! Good day then sir!");
+		TestEqual("TextID should be correct", NextNode->TextID, "@0005@");
+	}
+	
+	return true;
+}
 PRAGMA_ENABLE_OPTIMIZATION

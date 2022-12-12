@@ -947,7 +947,9 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine,
 	// We generate anyway, because it can be overriden by later lines, but makes sure we have one always
 	FString TextID;
 	FStringView Line = InLine;
-	RetrieveAndRemoveOrGenerateTextID(Line, TextID);
+	// Retrieve, but don't generate text ID at this point
+	// If this is a continuation line, we shouldn't generate one, but we need to trim it off if it's there
+	bool bFoundTextID = RetrieveAndRemoveTextID(Line, TextID);
 	
 	const FString LineStr(Line);
 	const FRegexPattern SpeakerPattern(TEXT("^(\\S+)\\:\\s*(.+)$"));
@@ -962,6 +964,10 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine,
 		// New text node
 		// Text nodes can never introduce another indent context
 		// We've already backed out to the outer indent in caller
+		if (!bFoundTextID)
+		{
+			TextID = GenerateTextID(Line);
+		}
 		Ctx.LastTextNodeIdx = AppendNode(Tree, FSUDSParsedNode(Speaker, Text, TextID, IndentLevel, LineNo));
 
 		ReferencedSpeakers.AddUnique(Speaker);
@@ -978,13 +984,6 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine,
 		if (Node.NodeType == ESUDSParsedNodeType::Text)
 		{
 			Node.Text.Appendf(TEXT("\n%s"), *LineStr);
-
-			// TextID may have been found in the line continuation
-			// We override the generated one silently in this case (can cause gaps in auto numbering but that's ok)
-			if (!TextID.IsEmpty())
-			{
-				Node.TextID = TextID;
-			}
 		}
 		else
 		{
