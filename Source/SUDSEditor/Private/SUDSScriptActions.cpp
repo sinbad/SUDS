@@ -86,7 +86,7 @@ public:
 		const TCHAR* LogTitle = TEXT("SUDS");
 		FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 		TSharedPtr<class IMessageLogListing> LogListing = MessageLogModule.GetLogListing(LogTitle);
-		LogListing->SetLabel(FText::FromString("FBX Import"));
+		LogListing->SetLabel(FText::FromString("SUDS"));
 		LogListing->ClearMessages();
 
 		if(ErrorMessages.Num() > 0)
