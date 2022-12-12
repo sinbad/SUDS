@@ -14,7 +14,7 @@ pull requests if you want. The project should be placed in your project's Plugin
 ```
 > cd YourProject
 > git submodule add https://github.com/sinbad/SUDS Plugins/SUDS
-> git add ../.gitmodules
+> git add .gitmodules
 > git commit
 ```
 
