@@ -100,10 +100,17 @@ that simply observe the dialogue, such as a dialogue UI perhaps.
 For objects which send variables to the dialogue and are otherwise more closely
 involved, it's recommended to use [Participants](#participants) instead.
 
+## SUDS Example Project
+
+If you want to see a fully worked example of using SUDS in practice, see
+the [SUDS Example Project](https://github.com/sinbad/SUDSExample).
+
+
 ---
 
 ### See Also:
 * [Variables](Variables.md)
 * [Script Reference](ScriptReference.md)
 * [Localisation](Localisation.md)
+* [SUDS Example Project](https://github.com/sinbad/SUDSExample)
 * [Full Documentation Index](../Index.md)

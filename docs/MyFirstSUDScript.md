@@ -222,9 +222,15 @@ Of course, that's just one line. From here you'd need to tell the dialogue to
 continue, or pick choices and so on. For more details about this process, 
 see [Running Dialogue](RunningDialogue.md).
 
+## SUDS Example Project
+
+If you want to see a fully worked example of using SUDS in practice, see
+the [SUDS Example Project](https://github.com/sinbad/SUDSExample).
+
 ---
 
 ### Next:
 * [Script Reference](ScriptReference.md)
 * [Running Dialogue in UE](RunningDialogue.md)
+* [SUDS Example Project](https://github.com/sinbad/SUDSExample)
 * [Full Documentation Index](../Index.md)
