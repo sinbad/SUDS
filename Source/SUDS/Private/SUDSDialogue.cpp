@@ -510,12 +510,12 @@ bool USUDSDialogue::Choose(int Index)
 {
 	if (CurrentChoices.IsValidIndex(Index))
 	{
-		ChoicesTaken.Add(CurrentChoices[Index].GetTextID());
-		
 		// ONLY run to choice node if there is one!
 		// This method is called for Continue() too, which has no choice node
 		if (CurrentSpeakerNode->HasChoices())
 		{
+			ChoicesTaken.Add(CurrentChoices[Index].GetTextID());
+			
 			RaiseChoiceMade(Index);
 			RaiseProceeding();
 			// Run any e.g. set nodes between text and choice
