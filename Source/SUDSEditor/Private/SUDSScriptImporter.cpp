@@ -813,8 +813,6 @@ bool FSUDSScriptImporter::ParseGotoLine(const FStringView& Line,
 		AppendNode(Tree, FSUDSParsedNode(Label, IndentLevel, LineNo));
 		return true;
 	}
-	if (!bSilent)
-		UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: malformed goto line"), *NameForErrors, LineNo);
 	return false;
 }
 
