@@ -750,8 +750,6 @@ bool FSUDSScriptImporter::ParseGotoLabelLine(const FStringView& Line,
                                              NameForErrors,
                                              bool bSilent)
 {
-	if (!bSilent)
-		UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: LABEL : %s"), LineNo, IndentLevel, *FString(Line));
 	// We've already established that line starts with ':'
 	// There should not be any spaces in the label
 	const FString LineStr(Line);
@@ -759,6 +757,8 @@ bool FSUDSScriptImporter::ParseGotoLabelLine(const FStringView& Line,
 	FRegexMatcher LabelRegex(LabelPattern, LineStr);
 	if (LabelRegex.FindNext())
 	{
+		if (!bSilent)
+			UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: LABEL : %s"), LineNo, IndentLevel, *FString(Line));
 		// lowercase goto labels so case insensitive
 		FString Label = LabelRegex.GetCaptureGroup(1).ToLower();
 		if (Label == EndGotoLabel)
@@ -790,8 +790,6 @@ bool FSUDSScriptImporter::ParseGotoLine(const FStringView& Line,
                                         NameForErrors,
                                         bool bSilent)
 {
-	if (!bSilent)
-		UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: GOTO  : %s"), LineNo, IndentLevel, *FString(Line));
 	// Unfortunately FRegexMatcher doesn't support FStringView
 	const FString LineStr(Line);
 	// Allow both 'goto' and 'go to'
@@ -799,6 +797,8 @@ bool FSUDSScriptImporter::ParseGotoLine(const FStringView& Line,
 	FRegexMatcher GotoRegex(GotoPattern, LineStr);
 	if (GotoRegex.FindNext())
 	{
+		if (!bSilent)
+			UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: GOTO  : %s"), LineNo, IndentLevel, *FString(Line));
 		// lower case label so case insensitive
 		const FString Label = GotoRegex.GetCaptureGroup(1).ToLower();
 		// note that we do NOT try to resolve the goto label here, to allow forward jumps.
