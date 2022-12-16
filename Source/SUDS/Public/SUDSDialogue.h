@@ -37,21 +37,27 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, SaveGame)
 	TArray<FString> ChoicesTaken;
+
+	UPROPERTY(BlueprintReadOnly, SaveGame)
+	TArray<FString> ReturnStack;
 	
 public:
 	FSUDSDialogueState() {}
 
 	FSUDSDialogueState(const FString& TxtID,
 	                   const TMap<FName, FSUDSValue>& InVars,
-	                   const TSet<FString>& InChoices) : TextNodeID(TxtID),
-	                                                     Variables(InVars),
-	                                                     ChoicesTaken(InChoices.Array())
+	                   const TSet<FString>& InChoices,
+	                   const TArray<FString>& InReturnStack) : TextNodeID(TxtID),
+	                                                           Variables(InVars),
+	                                                           ChoicesTaken(InChoices.Array()),
+	                                                           ReturnStack(InReturnStack)
 	{
 	}
 
 	const FString& GetTextNodeID() const { return TextNodeID; }
 	const TMap<FName, FSUDSValue>& GetVariables() const { return Variables; }
 	const TArray<FString>& GetChoicesTaken() const { return ChoicesTaken; }
+	const TArray<FString>& GetReturnStack() const { return ReturnStack; }
 
 	SUDS_API friend FArchive& operator<<(FArchive& Ar, FSUDSDialogueState& Value);
 	SUDS_API friend void operator<<(FStructuredArchive::FSlot Slot, FSUDSDialogueState& Value);
@@ -132,6 +138,10 @@ protected:
 	typedef TMap<FName, FSUDSValue> FSUDSValueMap;
 	FSUDSValueMap VariableState;
 
+	/// Stack of Gosub nodes to return to
+	UPROPERTY()
+	TArray<USUDSScriptNode*> GosubReturnStack;
+
 	/// Set of all the TextIDs of choices taken already in this dialogue
 	TSet<FString> ChoicesTaken;
 
@@ -164,6 +174,8 @@ protected:
 	USUDSScriptNode* RunSelectNode(USUDSScriptNode* Node);
 	USUDSScriptNode* RunSetVariableNode(USUDSScriptNode* Node);
 	USUDSScriptNode* RunEventNode(USUDSScriptNode* Node);
+	USUDSScriptNode* RunGosubNode(USUDSScriptNode* Node);
+	USUDSScriptNode* RunReturnNode(USUDSScriptNode* Node);
 	void UpdateChoices();
 	void RecurseAppendChoices(const USUDSScriptNode* Node, TArray<FSUDSScriptEdge>& OutChoices);
 

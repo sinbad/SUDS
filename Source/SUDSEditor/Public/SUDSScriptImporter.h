@@ -51,6 +51,10 @@ enum class ESUDSParsedNodeType : uint8
 	/// Gotos are only nodes in the parsing structure, because they need to be discoverable as a fallthrough destination
 	/// When converting to runtime use they just become edges
 	Goto,
+	/// Gosub node, acts like goto except stores return location
+	Gosub,
+	/// Return node, returns from a gosub
+	Return,
 	/// Set variable node
 	SetVariable,
 	/// Event node
@@ -93,16 +97,60 @@ public:
 	/// Although multiple edges can lead here, this index is for the auto-connected parent (may be nothing)
 	int ParentNodeIdx = -1;
 
-	FSUDSParsedNode(ESUDSParsedNodeType InNodeType, int Indent, int LineNo) : NodeType(InNodeType), OriginalIndent(Indent), SourceLineNo(LineNo) {}
+	FSUDSParsedNode(ESUDSParsedNodeType InNodeType, int Indent, int LineNo) : NodeType(InNodeType),
+	                                                                          OriginalIndent(Indent),
+	                                                                          SourceLineNo(LineNo)
+	{
+	}
+
+	FSUDSParsedNode(const FString& Label,
+	                const FString& GosubID,
+	                int Indent,
+	                int LineNo) : NodeType(ESUDSParsedNodeType::Gosub),
+	                              OriginalIndent(Indent),
+	                              Identifier(Label),
+	                              TextID(GosubID),
+	                              SourceLineNo(LineNo)
+	{
+	}
+
 	FSUDSParsedNode(const FString& InSpeaker, const FString& InText, const FString& InTextID, int Indent, int LineNo)
-		:NodeType(ESUDSParsedNodeType::Text), OriginalIndent(Indent), Identifier(InSpeaker), Text(InText), TextID(InTextID), SourceLineNo(LineNo) {}
+		: NodeType(ESUDSParsedNodeType::Text),
+		  OriginalIndent(Indent),
+		  Identifier(InSpeaker),
+		  Text(InText),
+		  TextID(InTextID),
+		  SourceLineNo(LineNo)
+	{
+	}
+
 	FSUDSParsedNode(const FString& GotoLabel, int Indent, int LineNo)
-		:NodeType(ESUDSParsedNodeType::Goto), OriginalIndent(Indent), Identifier(GotoLabel), SourceLineNo(LineNo)  {}
+		: NodeType(ESUDSParsedNodeType::Goto), OriginalIndent(Indent), Identifier(GotoLabel), SourceLineNo(LineNo)
+	{
+	}
 
 	FSUDSParsedNode(const FString& VariableName, const FSUDSExpression& InExpr, int Indent, int LineNo)
-		: NodeType(ESUDSParsedNodeType::SetVariable), OriginalIndent(Indent), Identifier(VariableName), Expression(InExpr), SourceLineNo(LineNo) {}
-	FSUDSParsedNode(const FString& VariableName, const FSUDSExpression& InExpr, const FString& InTextID, int Indent, int LineNo)
-		: NodeType(ESUDSParsedNodeType::SetVariable), OriginalIndent(Indent), Identifier(VariableName), TextID(InTextID), Expression(InExpr), SourceLineNo(LineNo) {}
+		: NodeType(ESUDSParsedNodeType::SetVariable),
+		  OriginalIndent(Indent),
+		  Identifier(VariableName),
+		  Expression(InExpr),
+		  SourceLineNo(LineNo)
+	{
+	}
+
+	FSUDSParsedNode(const FString& VariableName,
+	                const FSUDSExpression& InExpr,
+	                const FString& InTextID,
+	                int Indent,
+	                int LineNo)
+		: NodeType(ESUDSParsedNodeType::SetVariable),
+		  OriginalIndent(Indent),
+		  Identifier(VariableName),
+		  TextID(InTextID),
+		  Expression(InExpr),
+		  SourceLineNo(LineNo)
+	{
+	}
 };
 class SUDSEDITOR_API FSUDSScriptImporter
 {
@@ -234,6 +282,8 @@ protected:
 	int ChoiceUniqueId = 0;
 	/// For generating text IDs
 	int TextIDHighestNumber = 0;
+	/// For generating gosub IDs
+	int GosubIDHighestNumber = 0;
 	/// Parse a single line
 	bool ParseLine(const FStringView& Line, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseHeaderLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
@@ -263,6 +313,8 @@ protected:
 	bool ParseEndIfLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseGotoLabelLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseGotoLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool ParseGosubLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool ParseReturnLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseSetLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseEventLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
 	bool ParseTextLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
@@ -282,6 +334,7 @@ protected:
 	int FindFallthroughNodeIndex(ParsedTree& Tree, int StartNodeIndex, int IndentLessThan, const FString& FromChoicePath, const FString& FromConditionalPath);
 	void RetrieveAndRemoveOrGenerateTextID(FStringView& InOutLine, FString& OutTextID);
 	bool RetrieveAndRemoveTextID(FStringView& InOutLine, FString& OutTextID);
+	bool RetrieveAndRemoveGosubID(FStringView& InOutLine, FString& OutTextID);
 	FString GenerateTextID(const FStringView& Line);
 	const FSUDSParsedNode* GetNode(const ParsedTree& Tree, int Index = 0);
 	int GetGotoTargetNodeIndex(const ParsedTree& Tree, const FString& InLabel);
@@ -297,4 +350,5 @@ public:
 	/// Resolve a goto label to a target index (after import), or -1 if not resolvable
 	int GetGotoTargetNodeIndex(const FString& Label);
 	static bool RetrieveTextIDFromLine(FStringView& InOutLine, FString& OutTextID, int& OutNumber);
+	static bool RetrieveGosubIDFromLine(FStringView& InOutLine, FString& OutID, int& OutNumber);
 };

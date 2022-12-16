@@ -1,7 +1,9 @@
 # Goto Lines
 
 Goto lines simply jump the execution of the dialogue to another
-line. 
+line, and dialogue continues from there.
+
+> If you need to come back to this location again afterwards, see the [Gosub](GosubLines.md) statement.
 
 ```yaml
 [goto SomeOtherPlace]
@@ -68,7 +70,8 @@ you put the `:choices` label above it).
 ---
 
 ### See Also
- 
+
+* [Gosub Lines](GosubLines.md)
 * [Variables](Variables.md)
 * [Script Reference](ScriptReference.md)
 * [Localisation](Localisation.md)

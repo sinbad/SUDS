@@ -4,6 +4,7 @@
 #include "SUDSScript.h"
 #include "SUDSScriptNode.h"
 #include "SUDSScriptNodeEvent.h"
+#include "SUDSScriptNodeGosub.h"
 #include "SUDSScriptNodeSet.h"
 #include "SUDSScriptNodeText.h"
 
@@ -18,6 +19,8 @@ FArchive& operator<<(FArchive& Ar, FSUDSDialogueState& Value)
 	Ar << Value.TextNodeID;
 	Ar << Value.Variables;
 	Ar << Value.ChoicesTaken;
+	Ar << Value.ReturnStack;
+	
 	return Ar;
 }
 
@@ -27,7 +30,8 @@ void operator<<(FStructuredArchive::FSlot Slot, FSUDSDialogueState& Value)
 	Record
 		<< SA_VALUE(TEXT("TextNodeID"), Value.TextNodeID)
 		<< SA_VALUE(TEXT("Variables"), Value.Variables)
-		<< SA_VALUE(TEXT("ChoicesTaken"), Value.ChoicesTaken);
+		<< SA_VALUE(TEXT("ChoicesTaken"), Value.ChoicesTaken)
+		<< SA_VALUE(TEXT("ReturnStack"), Value.ReturnStack);
 
 }
 
@@ -139,6 +143,10 @@ USUDSScriptNode* USUDSDialogue::RunNode(USUDSScriptNode* Node)
 		return RunSetVariableNode(Node);
 	case ESUDSScriptNodeType::Event:
 		return RunEventNode(Node);
+	case ESUDSScriptNodeType::Gosub:
+		return RunGosubNode(Node);
+	case ESUDSScriptNodeType::Return:
+		return RunReturnNode(Node);
 	default: ;
 	}
 
@@ -194,6 +202,49 @@ USUDSScriptNode* USUDSDialogue::RunEventNode(USUDSScriptNode* Node)
 		OnEvent.Broadcast(this, EvtNode->GetEventName(), ArgsResolved);
 	}
 	return GetNextNode(Node);
+}
+
+USUDSScriptNode* USUDSDialogue::RunGosubNode(USUDSScriptNode* Node)
+{
+	if (const USUDSScriptNodeGosub* GosubNode = Cast<USUDSScriptNodeGosub>(Node))
+	{
+		if (auto TargetNode = BaseScript->GetNodeByLabel(GosubNode->GetLabelName()))
+		{
+			// Push this gosub node to the return stack, then jump
+			GosubReturnStack.Push(Node);
+			return TargetNode;
+		}
+		else
+		{
+			UE_LOG(LogSUDSDialogue,
+				   Error,
+				   TEXT("Error in %s: Cannot gosub to label '%s', was not found"),
+				   *BaseScript->GetName(),
+				   *GosubNode->GetLabelName().ToString());
+			
+		}
+	}
+	return GetNextNode(Node);
+}
+
+USUDSScriptNode* USUDSDialogue::RunReturnNode(USUDSScriptNode* Node)
+{
+	if (GosubReturnStack.Num() > 0)
+	{
+		// We return to the next node after the gosub, which temporarily redirected
+		const auto GoSubNode = GosubReturnStack.Pop();
+		return GetNextNode(GoSubNode);
+	}
+	else
+	{
+		UE_LOG(LogSUDSDialogue,
+			   Error,
+			   TEXT("Attempted to return at %s:%d but there was no previous gosub to return to"),
+			   *BaseScript->GetName(),
+			   Node->GetSourceLineNo());
+		return nullptr;
+		
+	}
 }
 
 USUDSScriptNode* USUDSDialogue::RunSetVariableNode(USUDSScriptNode* Node)
@@ -361,9 +412,7 @@ USUDSScriptNode* USUDSDialogue::GetNextNode(const USUDSScriptNode* Node) const
 
 bool USUDSDialogue::ShouldStopAtNodeType(ESUDSScriptNodeType Type)
 {
-	return Type != ESUDSScriptNodeType::SetVariable &&
-		Type != ESUDSScriptNodeType::Select &&
-		Type != ESUDSScriptNodeType::Event;
+	return Type == ESUDSScriptNodeType::Text || Type == ESUDSScriptNodeType::Choice;
 }
 
 const USUDSScriptNode* USUDSDialogue::RunUntilNextChoiceNode(const USUDSScriptNodeText* FromTextNode)
@@ -562,7 +611,17 @@ FSUDSDialogueState USUDSDialogue::GetSavedState() const
 	const FString CurrentNodeId = CurrentSpeakerNode
 		                              ? FTextInspector::GetTextId(CurrentSpeakerNode->GetText()).GetKey().GetChars()
 		                              : FString();
-	return FSUDSDialogueState(CurrentNodeId, VariableState, ChoicesTaken);
+
+	TArray<FString> ExportReturnStack;
+	for (auto Node : GosubReturnStack)
+	{
+		if (auto GN = Cast<USUDSScriptNodeGosub>(Node))
+		{
+			ExportReturnStack.Add(GN->GetGosubID());
+		}
+		
+	}
+	return FSUDSDialogueState(CurrentNodeId, VariableState, ChoicesTaken, ExportReturnStack);
 		  
 }
 
@@ -574,7 +633,18 @@ void USUDSDialogue::RestoreSavedState(const FSUDSDialogueState& State)
 	VariableState.Append(State.GetVariables());
 	ChoicesTaken.Empty();
 	ChoicesTaken.Append(State.GetChoicesTaken());
-
+	GosubReturnStack.Empty();
+	for (auto ID : State.GetReturnStack())
+	{
+		USUDSScriptNodeGosub* Node = BaseScript->GetNodeByGosubID(ID);
+		if (!Node)
+		{
+			UE_LOG(LogSUDSDialogue, Error, TEXT("Restore: Can't find Gosub with ID %s, returns referencing it will go to end"))
+		}
+		// Add anyway, will just go to end
+		GosubReturnStack.Add(Node);
+	}
+	
 	// If not found this will be null
 	if (!State.GetTextNodeID().IsEmpty())
 	{

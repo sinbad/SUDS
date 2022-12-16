@@ -1,6 +1,7 @@
 ﻿#include "SUDSScript.h"
 
 #include "SUDSScriptNode.h"
+#include "SUDSScriptNodeGosub.h"
 #include "SUDSScriptNodeText.h"
 #include "EditorFramework/AssetImportData.h"
 
@@ -115,6 +116,24 @@ USUDSScriptNodeText* USUDSScript::GetNodeByTextID(const FString& TextID) const
 				if (TextID.Equals(TN->GetTextID()))
 				{
 					return TN;
+				}
+			}
+		}
+	}
+	return nullptr;
+}
+
+USUDSScriptNodeGosub* USUDSScript::GetNodeByGosubID(const FString& ID) const
+{
+	for (auto N : Nodes)
+	{
+		if (N->GetNodeType() == ESUDSScriptNodeType::Text)
+		{
+			if (auto GN = Cast<USUDSScriptNodeGosub>(N))
+			{
+				if (ID.Equals(GN->GetGosubID()))
+				{
+					return GN;
 				}
 			}
 		}

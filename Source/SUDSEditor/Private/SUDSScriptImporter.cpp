@@ -4,6 +4,7 @@
 #include "SUDSScript.h"
 #include "SUDSScriptNode.h"
 #include "SUDSScriptNodeEvent.h"
+#include "SUDSScriptNodeGosub.h"
 #include "SUDSScriptNodeSet.h"
 #include "SUDSScriptNodeText.h"
 #include "Internationalization/Regex.h"
@@ -229,6 +230,10 @@ bool FSUDSScriptImporter::ParseBodyLine(const FStringView& Line,
 			bParsed = ParseSetLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
 		if (!bParsed)
 			bParsed = ParseEventLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
+		if (!bParsed)
+			bParsed = ParseGosubLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
+		if (!bParsed)
+			bParsed = ParseReturnLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
 
 		if (!bParsed)
 		{
@@ -816,6 +821,74 @@ bool FSUDSScriptImporter::ParseGotoLine(const FStringView& Line,
 	return false;
 }
 
+bool FSUDSScriptImporter::ParseGosubLine(const FStringView& InLine,
+	ParsedTree& Tree,
+	int IndentLevel,
+	int LineNo,
+	const FString& NameForErrors,
+	bool bSilent)
+{
+	// Attempt to find existing ID
+	// We need these in order to save the return stack
+	FString GosubID;
+	FStringView Line = InLine;
+	// If this is a continuation line, we shouldn't generate one, but we need to trim it off if it's there
+	bool bFoundID = RetrieveAndRemoveGosubID(Line, GosubID);
+	
+	// Unfortunately FRegexMatcher doesn't support FStringView
+	const FString LineStr(Line);
+	// Allow both 'gosub' and 'go sub'
+	const FRegexPattern GosubPattern(TEXT("^\\[go[ ]?sub\\s+(\\w+)\\s*\\]$"));
+	FRegexMatcher GosubRegex(GosubPattern, LineStr);
+	if (GosubRegex.FindNext())
+	{
+		if (!bSilent)
+			UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: GOSUB  : %s"), LineNo, IndentLevel, *FString(Line));
+		// lower case label so case insensitive
+		const FString Label = GosubRegex.GetCaptureGroup(1).ToLower();
+
+		// You CANNOT "gosub end"
+		if (Label == EndGotoLabel)
+		{
+			if (!bSilent)
+				UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: You cannot 'gosub end', will never return. Did you mean goto?"), *NameForErrors, LineNo);
+			
+		}
+		else
+		{
+			// note that we do NOT try to resolve the label here, to allow forward jumps.
+			const auto& Ctx = Tree.IndentLevelStack.Top();
+			// A gosub will become a node of its own in the final runtime
+			// Therefore we don't need to alias labels like we do with gotos
+			AppendNode(Tree, FSUDSParsedNode(Label, GosubID, IndentLevel, LineNo));
+		}
+		return true;
+	}
+	return false;
+	
+}
+
+bool FSUDSScriptImporter::ParseReturnLine(const FStringView& Line,
+	ParsedTree& Tree,
+	int IndentLevel,
+	int LineNo,
+	const FString& NameForErrors,
+	bool bSilent)
+{
+	// Unfortunately FRegexMatcher doesn't support FStringView
+	const FString LineStr(Line);
+	const FRegexPattern ReturnPattern(TEXT("^\\[return\\s*\\]$"));
+	FRegexMatcher ReturnRegex(ReturnPattern, LineStr);
+	if (ReturnRegex.FindNext())
+	{
+		if (!bSilent)
+			UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: RETURN  : %s"), LineNo, IndentLevel, *FString(Line));
+		AppendNode(Tree, FSUDSParsedNode(ESUDSParsedNodeType::Return, IndentLevel, LineNo));
+		return true;
+	}
+	return false;
+}
+
 bool FSUDSScriptImporter::ParseSetLine(const FStringView& InLine,
                                        FSUDSScriptImporter::ParsedTree& Tree,
                                        int IndentLevel,
@@ -940,7 +1013,6 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine,
 
 	// Attempt to find existing text ID
 	// For multiple lines, may not be present until last line (but in fact can be on any line)
-	// We generate anyway, because it can be overriden by later lines, but makes sure we have one always
 	FString TextID;
 	FStringView Line = InLine;
 	// Retrieve, but don't generate text ID at this point
@@ -1032,6 +1104,43 @@ bool FSUDSScriptImporter::RetrieveTextIDFromLine(FStringView& InOutLine, FString
 		// FDefaultValueHelper::ParseInt requires an "0x" prefix but we're not using that
 		// Plus does extra checking we don't need
 		OutNumber = FCString::Strtoi(*TextIDRegex.GetCaptureGroup(2), nullptr, 16);
+		return true;
+	}
+
+	return false;
+	
+}
+
+bool FSUDSScriptImporter::RetrieveAndRemoveGosubID(FStringView& InOutLine, FString& OutTextID)
+{
+
+	FString LineWithout;
+	int Number;
+	if (RetrieveGosubIDFromLine(InOutLine, OutTextID, Number))
+	{
+		GosubIDHighestNumber = Number;
+		return true;
+	}
+
+	return false;
+
+}
+
+bool FSUDSScriptImporter::RetrieveGosubIDFromLine(FStringView& InOutLine, FString& OutID, int& OutNumber)
+{
+	const FString LineStr(InOutLine);
+	const FRegexPattern IDPattern(TEXT("(\\@GS([0-9a-fA-F]+)\\@)"));
+	FRegexMatcher IDRegex(IDPattern, LineStr);
+	if (IDRegex.FindNext())
+	{
+		OutID = IDRegex.GetCaptureGroup(1);
+		// Chop the incoming string to the left of the TextID
+		InOutLine = InOutLine.Left(IDRegex.GetCaptureGroupBeginning(1));
+		// Also trim right
+		InOutLine = InOutLine.TrimEnd();
+		// FDefaultValueHelper::ParseInt requires an "0x" prefix but we're not using that
+		// Plus does extra checking we don't need
+		OutNumber = FCString::Strtoi(*IDRegex.GetCaptureGroup(2), nullptr, 16);
 		return true;
 	}
 
@@ -1314,7 +1423,9 @@ void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree&
 					}
 				}
 			}
-			else
+			// Return nodes never fall through, they're always going back
+			// Gosubs DO come through here though, fallthrough is AFTER the return
+			else if (Node.NodeType != ESUDSParsedNodeType::Return) 
 			{
 				// Find the next node which is at a higher indent level than this
 				// For a select node missing else, treat the indent as 1 inward, since it's really falling through from a nested part of the select
@@ -1552,13 +1663,29 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 				case ESUDSParsedNodeType::Event:
 					{
 						auto EvtNode = NewObject<USUDSScriptNodeEvent>(Asset);
-						// TODO support expressions in events not just literals?
 						EvtNode->Init(InNode.Identifier, InNode.EventArgs, InNode.SourceLineNo);
 						Node = EvtNode;
 						break;
 					}
+				case ESUDSParsedNodeType::Gosub:
+					{
+						// Validate gosub label at this point
+						auto GosubNode = NewObject<USUDSScriptNodeGosub>(Asset);
+						GosubNode->Init(InNode.Identifier, InNode.TextID, InNode.SourceLineNo);
+						Node = GosubNode;
+						break;
+					}
+				case ESUDSParsedNodeType::Return:
+					{
+						auto ReturnNode = NewObject<USUDSScriptNode>(Asset);
+						ReturnNode->InitReturn(InNode.SourceLineNo);
+						Node = ReturnNode;
+						break;
+					}
 				case ESUDSParsedNodeType::Goto:
+					// Gotos do not become nodes, just fixed edges
 				default: ;
+					break;
 				}
 
 				pOutNodes->Add(Node);

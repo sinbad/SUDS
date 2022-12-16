@@ -12,6 +12,7 @@
     - [Speaker Lines](docs/SpeakerLines.md)
     - [Choice Lines](docs/ChoiceLines.md)
     - [Goto Lines](docs/GotoLines.md)
+    - [Gosub & Return Lines](docs/GosubLines.md)
     - [Set Lines](docs/SetLines.md)
     - [Conditional Lines](docs/ConditionalLines.md) 
     - [Event Lines](docs/EventLines.md)

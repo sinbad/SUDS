@@ -45,9 +45,10 @@ Here are all the types of lines you can include in your scripts:
 | Line Type | Summary |
 |-----------|---------|
 | [Speaker lines](SpeakerLines.md)  | Lines of dialogue |
-| [Choice lines](ChoiceLines.md)    |(Player choices that can branch dialogue |
-| [Goto lines](GotoLines.md)        |(Jump dialogue execution to another line |
-| [Set lines](SetLines.md)          | Set variable values) |
+| [Choice lines](ChoiceLines.md)    | Player choices that can branch dialogue |
+| [Goto lines](GotoLines.md)        | Jump dialogue execution to another line |
+| [Gosub & Return lines](GosubLines.md)        | Jump to another line, then return back |
+| [Set lines](SetLines.md)          | Set variable values |
 | [Conditional lines](ConditionalLines.md)  | Include/exclude parts of the dialogue based on state |
 | [Event lines](EventLines.md)              | Raise events to be received by code |
 | [Comment Lines](CommentLines.md) | Ignored by the importer |

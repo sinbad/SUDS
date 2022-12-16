@@ -5,6 +5,7 @@
 #include "SUDSScript.h"
 #include "SUDSScriptImporter.h"
 #include "SUDSScriptNode.h"
+#include "SUDSScriptNodeGosub.h"
 #include "SUDSScriptNodeSet.h"
 #include "SUDSScriptNodeText.h"
 #include "ToolMenuSection.h"
@@ -270,6 +271,12 @@ bool FSUDSScriptActions::WriteBackTextIDsFromNodes(const TArray<USUDSScriptNode*
 				bAnyChanges = WriteBackTextID(Edge.GetText(), Edge.GetSourceLineNo(), Lines, NameForErrors, Logger) || bAnyChanges;
 			}
 		}
+		else if (N->GetNodeType() == ESUDSScriptNodeType::Gosub)
+		{
+			if (const auto* GN = Cast<USUDSScriptNodeGosub>(N))
+			// Need to write back Gosub IDs so that saved return stacks work
+			bAnyChanges = WriteBackGosubID(GN->GetGosubID(), GN->GetSourceLineNo(), Lines, NameForErrors, Logger) || bAnyChanges;
+		}
 	}
 
 	return bAnyChanges;
@@ -295,45 +302,19 @@ bool FSUDSScriptActions::WriteBackTextID(const FText& AssetText, int LineNo, TAr
 	}
 
 	const FString& SourceLine = Lines[Idx];
+	const FString TextID = FTextInspector::GetTextId(AssetText).GetKey().GetChars();
 	FString ExistingTextID;
 	int ExistingNum;
 	FStringView SourceLineView(SourceLine);
-	if (FSUDSScriptImporter::RetrieveTextIDFromLine(SourceLineView, ExistingTextID, ExistingNum))
-	{
-		// Existing TextID - replace if already there
-		const FString TextID = FTextInspector::GetTextId(AssetText).GetKey().GetChars();
-		if (ExistingTextID != TextID)
-		{
-			if (TextIDCheckMatch(AssetText, SourceLine))
-			{
-				FString Prefix(SourceLineView);
-				FString UpdatedLine = FString::Printf(TEXT("%s    %s"), *Prefix, *TextID); 
-				Lines[Idx] = UpdatedLine;
-				return true;
-			}
-			else
-			{
-				Logger.AddMessage(EMessageSeverity::Error,
-				                  FText::FromString(FString::Printf(TEXT(
-					                  "Tried to update TextID on line %d of %s but source file did not contain expected text '%s'"
-				                  ),
-				                                                    LineNo,
-				                                                    *NameForErrors,
-				                                                    *AssetText.ToString())));
-				return false;
-				
-			}
-		}
-		// Same, no need to change
-		return false;
-		
-	}
-	else
+	const bool bFoundExisting = FSUDSScriptImporter::RetrieveTextIDFromLine(SourceLineView, ExistingTextID, ExistingNum);
+
+	// Existing TextID - replace if already there
+	if (!bFoundExisting || ExistingTextID != TextID)
 	{
 		if (TextIDCheckMatch(AssetText, SourceLine))
 		{
-			const FString TextID = FTextInspector::GetTextId(AssetText).GetKey().GetChars();
-			FString UpdatedLine = FString::Printf(TEXT("%s    %s"), *SourceLine, *TextID); 
+			FString Prefix(SourceLineView);
+			FString UpdatedLine = FString::Printf(TEXT("%s    %s"), *Prefix, *TextID);
 			Lines[Idx] = UpdatedLine;
 			return true;
 		}
@@ -341,7 +322,7 @@ bool FSUDSScriptActions::WriteBackTextID(const FText& AssetText, int LineNo, TAr
 		{
 			Logger.AddMessage(EMessageSeverity::Error,
 			                  FText::FromString(FString::Printf(TEXT(
-				                  "Tried to write TextID back to line %d of %s but source file did not contain expected text '%s'"
+				                  "Tried to set TextID on line %d of %s but source file did not contain expected text '%s'"
 			                  ),
 			                                                    LineNo,
 			                                                    *NameForErrors,
@@ -349,6 +330,9 @@ bool FSUDSScriptActions::WriteBackTextID(const FText& AssetText, int LineNo, TAr
 			return false;
 		}
 	}
+	// Same, no need to change
+	return false;
+		
 }
 
 bool FSUDSScriptActions::TextIDCheckMatch(const FText& AssetText, const FString& SourceLine)
@@ -369,4 +353,57 @@ bool FSUDSScriptActions::TextIDCheckMatch(const FText& AssetText, const FString&
 
 	return SourceLine.Contains(AssetStr);
 	
+}
+
+bool FSUDSScriptActions::WriteBackGosubID(const FString& GosubID,
+	int LineNo,
+	TArray<FString>& Lines,
+	const FString& NameForErrors,
+	FSUDSMessageLogger& Logger)
+{
+
+	// Line numbers are 1-based
+	const int Idx = LineNo - 1;
+
+	if (!Lines.IsValidIndex(Idx))
+	{
+		Logger.AddMessage(EMessageSeverity::Error,
+		                  FText::FromString(FString::Printf(
+			                  TEXT("Cannot write back GosubID to '%s', source line number %d is invalid"),
+			                  *NameForErrors,
+			                  LineNo)));
+		return false;
+	}
+
+	const FString& SourceLine = Lines[Idx];
+	FString ExistingID;
+	int ExistingNum;
+	FStringView SourceLineView(SourceLine);
+	const bool bFoundID = FSUDSScriptImporter::RetrieveGosubIDFromLine(SourceLineView, ExistingID, ExistingNum);
+	
+	if (!bFoundID || ExistingID != GosubID)
+	{
+		// Check it's a gosub line
+		if (SourceLine.Contains(TEXT("gosub")) || SourceLine.Contains(TEXT("go sub")))
+		{
+			FString Prefix(SourceLineView);
+			FString UpdatedLine = FString::Printf(TEXT("%s    %s"), *Prefix, *GosubID); 
+			Lines[Idx] = UpdatedLine;
+			return true;
+		}
+		else
+		{
+			Logger.AddMessage(EMessageSeverity::Error,
+			                  FText::FromString(FString::Printf(TEXT(
+				                  "Tried to set GosubID on line %d of %s but source file did not have a gosubu on that line"
+			                  ),
+			                                                    LineNo,
+			                                                    *NameForErrors)));
+			return false;
+			
+		}
+	}
+	// Same, no need to change
+	return false;
+		
 }

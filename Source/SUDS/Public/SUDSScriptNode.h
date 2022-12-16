@@ -17,7 +17,11 @@ enum class ESUDSScriptNodeType : uint8
 	/// Set variable node
 	SetVariable,
 	/// Event node
-	Event
+	Event,
+	/// Gosub node
+	Gosub,
+	/// Return node
+	Return,
 };
 /**
  * A node in the script graph.
@@ -58,6 +62,7 @@ public:
 	void AddEdge(const FSUDSScriptEdge& NewEdge);
 	void InitChoice(int LineNo);
 	void InitSelect(int LineNo);
+	void InitReturn(int LineNo);
 
 	int GetEdgeCount() const { return Edges.Num(); }
 	const FSUDSScriptEdge* GetEdge(int Index) const

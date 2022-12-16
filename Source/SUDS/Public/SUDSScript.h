@@ -6,6 +6,7 @@
 
 class USUDSScriptNode;
 class USUDSScriptNodeText;
+class USUDSScriptNodeGosub;
 /**
  * A single SUDS script asset.
  */
@@ -72,6 +73,9 @@ public:
 	/// Try to find a speaker node by its text ID
 	UFUNCTION(BlueprintCallable)
 	USUDSScriptNodeText* GetNodeByTextID(const FString& TextID) const;
+	/// Try to find a gosub node by its gosub ID
+	UFUNCTION(BlueprintCallable)
+	USUDSScriptNodeGosub* GetNodeByGosubID(const FString& ID) const;
 
 
 	/// Get the list of speakers

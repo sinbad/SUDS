@@ -13,6 +13,13 @@ void USUDSScriptNode::InitChoice(int LineNo)
 void USUDSScriptNode::InitSelect(int LineNo)
 {
 	NodeType = ESUDSScriptNodeType::Select;
+	SourceLineNo = LineNo;
+}
+
+void USUDSScriptNode::InitReturn(int LineNo)
+{
+	NodeType = ESUDSScriptNodeType::Return;
+	SourceLineNo = LineNo;
 }
 
 void USUDSScriptNode::AddEdge(const FSUDSScriptEdge& NewEdge)
