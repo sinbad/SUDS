@@ -663,6 +663,8 @@ void USUDSDialogue::Restart(bool bResetState, FName StartLabel, bool bReRunHeade
 	{
 		ResetState();
 	}
+	// Always reset return stack
+	GosubReturnStack.Empty();
 
 	RaiseStarting(StartLabel);
 
