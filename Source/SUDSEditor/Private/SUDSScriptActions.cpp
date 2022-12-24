@@ -99,7 +99,7 @@ public:
 
 	bool HasErrors() const
 	{
-		for (const TSharedRef<FTokenizedMessage> Msg : ErrorMessages)
+		for (TSharedRef<FTokenizedMessage> Msg : ErrorMessages)
 		{
 			if (Msg->GetSeverity() == EMessageSeverity::CriticalError || Msg->GetSeverity() == EMessageSeverity::Error)
 			{
@@ -112,7 +112,7 @@ public:
 	int NumErrors() const
 	{
 		int Errs = 0;
-		for (const TSharedRef<FTokenizedMessage> Msg : ErrorMessages)
+		for (TSharedRef<FTokenizedMessage> Msg : ErrorMessages)
 		{
 			if (Msg->GetSeverity() == EMessageSeverity::CriticalError || Msg->GetSeverity() == EMessageSeverity::Error)
 			{

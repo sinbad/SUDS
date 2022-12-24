@@ -77,7 +77,7 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 				while (OperatorStack.Num() > 0 &&
 					// higher precedence applied now, and equal precedence if left-associative
 					(static_cast<int>(OperatorStack.Top()) < static_cast<int>(OpType) ||
-					static_cast<int>(OperatorStack.Top()) <= static_cast<int>(OpType)	&& bLeftAssociative))
+					(static_cast<int>(OperatorStack.Top()) <= static_cast<int>(OpType)	&& bLeftAssociative)))
 				{
 					Queue.Add(FSUDSExpressionItem(OperatorStack.Pop()));
 				}
