@@ -496,6 +496,21 @@ void USUDSDialogue::UpdateChoices()
 		{
 			if (auto Edge = CurrentSpeakerNode->GetEdge(0))
 			{
+				auto Target = Edge->GetTargetNode();
+				if (Target.IsValid() && Target->GetNodeType() == ESUDSScriptNodeType::Return)
+				{
+					// Returning from a gosub *might* go back to a choice, we can't know ahead of time, it depends on context
+					if (GosubReturnStack.Num() > 0)
+					{
+						// We try to find the next choice node after the gosub, which temporarily redirected
+						const auto GoSubNode = GosubReturnStack.Top();
+						if (const USUDSScriptNode* ChoiceNode = BaseScript->GetNextChoiceNode(GoSubNode))
+						{
+							RecurseAppendChoices(ChoiceNode, CurrentChoices);
+							return;
+						}
+					}
+				}
 				// Simple no-choice progression (text->text)
 				CurrentChoices.Add(*Edge);
 			}			

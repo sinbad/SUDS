@@ -33,15 +33,16 @@ USUDSScriptNode* USUDSScript::GetNextNode(const USUDSScriptNode* Node) const
 	
 }
 
-const USUDSScriptNode* USUDSScript::GetNextChoiceNode(const USUDSScriptNode* FromTextNode) const
+const USUDSScriptNode* USUDSScript::GetNextChoiceNode(const USUDSScriptNode* FromNode) const
 {
 	// there is *always* an initial choice node under a text node if there are choices
 	// however, it might not be the *only* choice node; if there are conditionals it could be a mixed tree
 	// of choice / select nodes. But there will always be a root choice
 	// However, there might be set/event nodes between them, if that's where they were scripted (execute for any choices)
-	if (FromTextNode && FromTextNode->GetNodeType() == ESUDSScriptNodeType::Text)
+	if (FromNode &&
+		(FromNode->GetNodeType() == ESUDSScriptNodeType::Text || FromNode->GetNodeType() == ESUDSScriptNodeType::Gosub))
 	{
-		auto NextNode = GetNextNode(FromTextNode);
+		auto NextNode = GetNextNode(FromNode);
 		// We skip over nodes which can be executed in between text & choice (set, event)
 		while (NextNode &&
 			(NextNode->GetNodeType() == ESUDSScriptNodeType::SetVariable ||
@@ -69,10 +70,12 @@ void USUDSScript::FinishImport()
 	// between the text and the first choice. Resolve whether they exist now
 	for (auto Node : Nodes)
 	{
-		if (auto ChoiceNode = GetNextChoiceNode(Node))
+		if (auto TextNode = Cast<USUDSScriptNodeText>(Node))
 		{
-			auto TextNode = Cast<USUDSScriptNodeText>(Node);
-			TextNode->NotifyHasChoices();
+			if (auto ChoiceNode = GetNextChoiceNode(Node))
+			{
+				TextNode->NotifyHasChoices();
+			}
 		}
 	}
 	

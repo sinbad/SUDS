@@ -19,6 +19,15 @@ NPC: Hello
 		[gosub subroutine]
 		NPC: And now we're back
 		[goto goodbye]
+	* Gosub choice
+		NPC: This is going to return to the choice
+		[gosub subroutine]
+		* Choice After
+			NPC: It's a choice after a gosub!
+			[goto goodbye]
+		* Choice After 2
+			NPC: Not really much difference eh
+			[goto goodbye]
 
 :subroutine
 Player: Some reused discussion
@@ -53,7 +62,7 @@ bool FTestGotoGosub::RunTest(const FString& Parameters)
 	TestDialogueText(this, "Start node", Dlg, "Player", "Hello there");
 	TestTrue("Continue", Dlg->Continue());
 	TestDialogueText(this, "Next", Dlg, "NPC", "Hello");
-	TestEqual("Choices", Dlg->GetNumberOfChoices(), 2);
+	TestEqual("Choices", Dlg->GetNumberOfChoices(), 3);
 	TestEqual("Choice 0 text", Dlg->GetChoiceText(0).ToString(), "Actually bye");
 	TestTrue("Choose 0", Dlg->Choose(0));
 	TestDialogueText(this, "Next", Dlg, "NPC", "How rude");
@@ -63,7 +72,7 @@ bool FTestGotoGosub::RunTest(const FString& Parameters)
 	TestDialogueText(this, "Start node", Dlg, "Player", "Hello there");
 	TestTrue("Continue", Dlg->Continue());
 	TestDialogueText(this, "Next", Dlg, "NPC", "Hello");
-	TestTrue("Choose 0", Dlg->Choose(1));
+	TestTrue("Choose 1", Dlg->Choose(1));
 	TestDialogueText(this, "Next", Dlg, "NPC", "This is going to re-used dialogue");
 	TestTrue("Continue", Dlg->Continue());
 	TestDialogueText(this, "Next", Dlg, "Player", "Some reused discussion");
@@ -71,6 +80,26 @@ bool FTestGotoGosub::RunTest(const FString& Parameters)
 	TestDialogueText(this, "Next", Dlg, "NPC", "Yep, sure is");
 	TestTrue("Continue", Dlg->Continue());
 	TestDialogueText(this, "Next", Dlg, "NPC", "And now we're back");
+	TestTrue("Continue", Dlg->Continue());
+	TestDialogueText(this, "Next", Dlg, "NPC", "Bye!");
+	TestFalse("Continue", Dlg->Continue());
+
+	Dlg->Restart();
+	TestDialogueText(this, "Start node", Dlg, "Player", "Hello there");
+	TestTrue("Continue", Dlg->Continue());
+	TestDialogueText(this, "Next", Dlg, "NPC", "Hello");
+	TestTrue("Choose 2", Dlg->Choose(2));
+	TestDialogueText(this, "Next", Dlg, "NPC", "This is going to return to the choice");
+	TestTrue("Continue", Dlg->Continue());
+	TestDialogueText(this, "Next", Dlg, "Player", "Some reused discussion");
+	TestTrue("Continue", Dlg->Continue());
+	TestDialogueText(this, "Next", Dlg, "NPC", "Yep, sure is");
+	// Should have a choice at the end of it this time
+	TestEqual("Choices", Dlg->GetNumberOfChoices(), 2);
+	TestEqual("Choice 0 text", Dlg->GetChoiceText(0).ToString(), "Choice After");
+	TestEqual("Choice 1 text", Dlg->GetChoiceText(1).ToString(), "Choice After 2");
+	TestTrue("Choose 1", Dlg->Choose(1));
+	TestDialogueText(this, "Next", Dlg, "NPC", "Not really much difference eh");
 	TestTrue("Continue", Dlg->Continue());
 	TestDialogueText(this, "Next", Dlg, "NPC", "Bye!");
 	TestFalse("Continue", Dlg->Continue());
