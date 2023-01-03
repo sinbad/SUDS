@@ -399,21 +399,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	FText GetVariableText(FName Name)
-	{
-		if (auto Arg = VariableState.Find(Name))
-		{
-			if (Arg->GetType() == ESUDSValueType::Text)
-			{
-				return Arg->GetTextValue();
-			}
-			else
-			{
-				UE_LOG(LogSUDSDialogue, Error, TEXT("Requested variable %s of type text but was not a compatible type"), *Name.ToString());
-			}
-		}
-		return FText();
-	}
+	FText GetVariableText(FName Name);
 
 	/**
 	 * Set a dialogue variable on the passed in parameters collection.
@@ -421,10 +407,7 @@ public:
 	 * @param Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	void SetVariableInt(FName Name, int32 Value)
-	{
-		SetVariable(Name, Value);
-	}
+	void SetVariableInt(FName Name, int32 Value);
 
 	/**
 	 * Get an int dialogue variable
@@ -432,25 +415,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	int GetVariableInt(FName Name)
-	{
-		if (auto Arg = VariableState.Find(Name))
-		{
-			switch (Arg->GetType())
-			{
-			case ESUDSValueType::Int:
-				return Arg->GetIntValue();
-			case ESUDSValueType::Float:
-				UE_LOG(LogSUDSDialogue, Warning, TEXT("Casting variable %s to int, data loss may occur"), *Name.ToString());
-				return Arg->GetFloatValue();
-			default: 
-			case ESUDSValueType::Gender:
-			case ESUDSValueType::Text:
-				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible integer type"), *Name.ToString());
-			}
-		}
-		return 0;
-	}
+	int GetVariableInt(FName Name);
 	
 	/**
 	 * Set a float dialogue variable 
@@ -458,10 +423,7 @@ public:
 	 * @param Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	void SetVariableFloat(FName Name, float Value)
-	{
-		SetVariable(Name, Value);
-	}
+	void SetVariableFloat(FName Name, float Value);
 
 	/**
 	 * Get a float dialogue variable
@@ -469,24 +431,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	float GetVariableFloat(FName Name)
-	{
-		if (auto Arg = VariableState.Find(Name))
-		{
-			switch (Arg->GetType())
-			{
-			case ESUDSValueType::Int:
-				return Arg->GetIntValue();
-			case ESUDSValueType::Float:
-				return Arg->GetFloatValue();
-			default: 
-			case ESUDSValueType::Gender:
-			case ESUDSValueType::Text:
-				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible float type"), *Name.ToString());
-			}
-		}
-		return 0;
-	}
+	float GetVariableFloat(FName Name);
 	
 	/**
 	 * Set a gender dialogue variable 
@@ -494,10 +439,7 @@ public:
 	 * @param Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	void SetVariableGender(FName Name, ETextGender Value)
-	{
-		SetVariable(Name, Value);
-	}
+	void SetVariableGender(FName Name, ETextGender Value);
 
 	/**
 	 * Get a gender dialogue variable
@@ -505,23 +447,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	ETextGender GetVariableGender(FName Name)
-	{
-		if (auto Arg = VariableState.Find(Name))
-		{
-			switch (Arg->GetType())
-			{
-			case ESUDSValueType::Gender:
-				return Arg->GetGenderValue();
-			default: 
-			case ESUDSValueType::Int:
-			case ESUDSValueType::Float:
-			case ESUDSValueType::Text:
-				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible gender type"), *Name.ToString());
-			}
-		}
-		return ETextGender::Neuter;
-	}
+	ETextGender GetVariableGender(FName Name);
 
 	/**
 	 * Set a boolean dialogue variable 
@@ -529,11 +455,7 @@ public:
 	 * @param Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	void SetVariableBoolean(FName Name, bool Value)
-	{
-		// Use explicit FSUDSValue constructor to avoid default int conversion
-		SetVariable(Name, FSUDSValue(Value));
-	}
+	void SetVariableBoolean(FName Name, bool Value);
 
 	/**
 	 * Get a boolean dialogue variable
@@ -541,35 +463,15 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	bool GetVariableBoolean(FName Name)
-	{
-		if (auto Arg = VariableState.Find(Name))
-		{
-			switch (Arg->GetType())
-			{
-			case ESUDSValueType::Boolean:
-				return Arg->GetBooleanValue();
-			case ESUDSValueType::Int:
-				return Arg->GetIntValue() != 0;
-			default: 
-			case ESUDSValueType::Float:
-			case ESUDSValueType::Gender:
-			case ESUDSValueType::Text:
-				UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible boolean type"), *Name.ToString());
-			}
-		}
-		return false;
-	}
+	bool GetVariableBoolean(FName Name);
+
 	/**
 	 * Set a name dialogue variable
 	 * @param Name The name of the variable
 	 * @param Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	void SetVariableName(FName Name, FName Value)
-	{
-		SetVariable(Name, FSUDSValue(Value, false));
-	}
+	void SetVariableName(FName Name, FName Value);
 
 	/**
 	 * Get a name dialogue variable
@@ -577,20 +479,6 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	FName GetVariableName(FName Name)
-	{
-		if (auto Arg = VariableState.Find(Name))
-		{
-			if (Arg->GetType() == ESUDSValueType::Name)
-			{
-				return Arg->GetNameValue();
-			}
-			else
-			{
-				UE_LOG(LogSUDSDialogue, Error, TEXT("Requested variable %s of type text but was not a compatible type"), *Name.ToString());
-			}
-		}
-		return NAME_None;
-	}
+	FName GetVariableName(FName Name);
 
 };

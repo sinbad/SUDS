@@ -8,7 +8,7 @@
 #include "SUDSScriptNodeSet.h"
 #include "SUDSScriptNodeText.h"
 
-DEFINE_LOG_CATEGORY(LogSUDSDialogue)
+DEFINE_LOG_CATEGORY(LogSUDSDialogue);
 
 const FText USUDSDialogue::DummyText = FText::FromString("INVALID");
 const FString USUDSDialogue::DummyString = "INVALID";
@@ -790,4 +790,139 @@ void USUDSDialogue::RaiseProceeding()
 	}
 	// Event listeners get it after
 	OnProceeding.Broadcast(this);
+}
+
+FText USUDSDialogue::GetVariableText(FName Name)
+{
+	if (auto Arg = VariableState.Find(Name))
+	{
+		if (Arg->GetType() == ESUDSValueType::Text)
+		{
+			return Arg->GetTextValue();
+		}
+		else
+		{
+			UE_LOG(LogSUDSDialogue, Error, TEXT("Requested variable %s of type text but was not a compatible type"), *Name.ToString());
+		}
+	}
+	return FText();
+}
+
+void USUDSDialogue::SetVariableInt(FName Name, int32 Value)
+{
+	SetVariable(Name, Value);
+}
+
+int USUDSDialogue::GetVariableInt(FName Name)
+{
+	if (auto Arg = VariableState.Find(Name))
+	{
+		switch (Arg->GetType())
+		{
+		case ESUDSValueType::Int:
+			return Arg->GetIntValue();
+		case ESUDSValueType::Float:
+			UE_LOG(LogSUDSDialogue, Warning, TEXT("Casting variable %s to int, data loss may occur"), *Name.ToString());
+			return Arg->GetFloatValue();
+		default: 
+		case ESUDSValueType::Gender:
+		case ESUDSValueType::Text:
+			UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible integer type"), *Name.ToString());
+		}
+	}
+	return 0;
+}
+
+void USUDSDialogue::SetVariableFloat(FName Name, float Value)
+{
+	SetVariable(Name, Value);
+}
+
+float USUDSDialogue::GetVariableFloat(FName Name)
+{
+	if (auto Arg = VariableState.Find(Name))
+	{
+		switch (Arg->GetType())
+		{
+		case ESUDSValueType::Int:
+			return Arg->GetIntValue();
+		case ESUDSValueType::Float:
+			return Arg->GetFloatValue();
+		default: 
+		case ESUDSValueType::Gender:
+		case ESUDSValueType::Text:
+			UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible float type"), *Name.ToString());
+		}
+	}
+	return 0;
+}
+
+void USUDSDialogue::SetVariableGender(FName Name, ETextGender Value)
+{
+	SetVariable(Name, Value);
+}
+
+ETextGender USUDSDialogue::GetVariableGender(FName Name)
+{
+	if (auto Arg = VariableState.Find(Name))
+	{
+		switch (Arg->GetType())
+		{
+		case ESUDSValueType::Gender:
+			return Arg->GetGenderValue();
+		default: 
+		case ESUDSValueType::Int:
+		case ESUDSValueType::Float:
+		case ESUDSValueType::Text:
+			UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible gender type"), *Name.ToString());
+		}
+	}
+	return ETextGender::Neuter;
+}
+
+void USUDSDialogue::SetVariableBoolean(FName Name, bool Value)
+{
+	// Use explicit FSUDSValue constructor to avoid default int conversion
+	SetVariable(Name, FSUDSValue(Value));
+}
+
+bool USUDSDialogue::GetVariableBoolean(FName Name)
+{
+	if (auto Arg = VariableState.Find(Name))
+	{
+		switch (Arg->GetType())
+		{
+		case ESUDSValueType::Boolean:
+			return Arg->GetBooleanValue();
+		case ESUDSValueType::Int:
+			return Arg->GetIntValue() != 0;
+		default: 
+		case ESUDSValueType::Float:
+		case ESUDSValueType::Gender:
+		case ESUDSValueType::Text:
+			UE_LOG(LogSUDSDialogue, Error, TEXT("Variable %s is not a compatible boolean type"), *Name.ToString());
+		}
+	}
+	return false;
+}
+
+void USUDSDialogue::SetVariableName(FName Name, FName Value)
+{
+	SetVariable(Name, FSUDSValue(Value, false));
+}
+
+FName USUDSDialogue::GetVariableName(FName Name)
+{
+	if (auto Arg = VariableState.Find(Name))
+	{
+		if (Arg->GetType() == ESUDSValueType::Name)
+		{
+			return Arg->GetNameValue();
+		}
+		else
+		{
+			UE_LOG(LogSUDSDialogue, Error, TEXT("Requested variable %s of type text but was not a compatible type"), *Name.ToString());
+		}
+	}
+	return NAME_None;
 }
