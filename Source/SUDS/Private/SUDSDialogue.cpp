@@ -443,7 +443,12 @@ void USUDSDialogue::RecurseAppendChoices(const USUDSScriptNode* Node, TArray<FSU
 	if (!Node)
 		return;
 
-	check(Node->GetNodeType() == ESUDSScriptNodeType::Choice || Node->GetNodeType() == ESUDSScriptNodeType::Select);
+	// We only cascade into choices or selects
+	if(Node->GetNodeType() != ESUDSScriptNodeType::Choice &&
+		Node->GetNodeType() != ESUDSScriptNodeType::Select)
+	{
+		return;
+	}
 	
 	for (auto& Edge : Node->GetEdges())
 	{
