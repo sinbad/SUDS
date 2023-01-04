@@ -19,6 +19,12 @@ protected:
 	/// Generated ID for use when saving state
 	UPROPERTY(BlueprintReadOnly)
 	FString GosubID;
+
+	/// Convenience flag to let you know whether this node has any choices directly after it
+	/// Internally this also lets us know to look for the next choice node after returning
+	UPROPERTY(BlueprintReadOnly)
+	bool bHasChoices = false;
+	
 public:
 
 	void Init(const FString& Label, const FString ID, int LineNo)
@@ -30,6 +36,8 @@ public:
 	}
 	FName GetLabelName() const { return LabelName; }
 	const FString& GetGosubID() const { return GosubID; }
+	bool HasChoices() const { return bHasChoices; }
 	
-	
+	void NotifyHasChoices() { bHasChoices = true; }
+
 };

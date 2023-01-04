@@ -6,6 +6,7 @@
 #include "UObject/Object.h"
 #include "SUDSDialogue.generated.h"
 
+class USUDSScriptNodeGosub;
 class USUDSScriptNodeText;
 struct FSUDSScriptEdge;
 class USUDSScriptNode;
@@ -140,7 +141,7 @@ protected:
 
 	/// Stack of Gosub nodes to return to
 	UPROPERTY()
-	TArray<USUDSScriptNode*> GosubReturnStack;
+	TArray<USUDSScriptNodeGosub*> GosubReturnStack;
 
 	/// Set of all the TextIDs of choices taken already in this dialogue
 	TSet<FString> ChoicesTaken;
@@ -181,6 +182,8 @@ protected:
 
 	FText ResolveParameterisedText(const TArray<FName> Params, const FTextFormat& TextFormat);
 	void GetTextFormatArgs(const TArray<FName>& ArgNames, FFormatNamedArguments& OutArgs) const;
+	bool CurrentNodeHasChoices() const;
+
 public:
 	USUDSDialogue();
 	void Initialise(const USUDSScript* Script);

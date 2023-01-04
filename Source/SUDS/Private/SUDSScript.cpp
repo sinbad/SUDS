@@ -65,16 +65,36 @@ const USUDSScriptNode* USUDSScript::GetNextChoiceNode(const USUDSScriptNode* Fro
 
 void USUDSScript::FinishImport()
 {
-	// As an optimisation, make all text nodes pre-scan their follow-on nodes for choice nodes
+	// As an optimisation, make all text/gosub nodes pre-scan their follow-on nodes for choice nodes
 	// We can actually have intermediate nodes, for example set nodes which run for all choices that are placed
 	// between the text and the first choice. Resolve whether they exist now
 	for (auto Node : Nodes)
 	{
-		if (auto TextNode = Cast<USUDSScriptNodeText>(Node))
+		if (Node->GetNodeType() == ESUDSScriptNodeType::Text ||
+			Node->GetNodeType() == ESUDSScriptNodeType::Gosub)
 		{
 			if (auto ChoiceNode = GetNextChoiceNode(Node))
 			{
-				TextNode->NotifyHasChoices();
+				switch (Node->GetNodeType())
+				{
+				case ESUDSScriptNodeType::Text:
+					{
+						if (auto TextNode = Cast<USUDSScriptNodeText>(Node))
+						{
+							TextNode->NotifyHasChoices();
+						}
+						break;
+					}
+				case ESUDSScriptNodeType::Gosub:
+					{
+						if (auto GosubNode = Cast<USUDSScriptNodeGosub>(Node))
+						{
+							GosubNode->NotifyHasChoices();
+						}
+						break;
+					}
+				default: break;
+				}
 			}
 		}
 	}

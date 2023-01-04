@@ -206,12 +206,12 @@ USUDSScriptNode* USUDSDialogue::RunEventNode(USUDSScriptNode* Node)
 
 USUDSScriptNode* USUDSDialogue::RunGosubNode(USUDSScriptNode* Node)
 {
-	if (const USUDSScriptNodeGosub* GosubNode = Cast<USUDSScriptNodeGosub>(Node))
+	if (USUDSScriptNodeGosub* GosubNode = Cast<USUDSScriptNodeGosub>(Node))
 	{
 		if (auto TargetNode = BaseScript->GetNodeByLabel(GosubNode->GetLabelName()))
 		{
 			// Push this gosub node to the return stack, then jump
-			GosubReturnStack.Push(Node);
+			GosubReturnStack.Push(GosubNode);
 			return TargetNode;
 		}
 		else
@@ -509,10 +509,13 @@ void USUDSDialogue::UpdateChoices()
 					{
 						// We try to find the next choice node after the gosub, which temporarily redirected
 						const auto GoSubNode = GosubReturnStack.Top();
-						if (const USUDSScriptNode* ChoiceNode = BaseScript->GetNextChoiceNode(GoSubNode))
+						if (GoSubNode->HasChoices())
 						{
-							RecurseAppendChoices(ChoiceNode, CurrentChoices);
-							return;
+							if (const USUDSScriptNode* ChoiceNode = BaseScript->GetNextChoiceNode(GoSubNode))
+							{
+								RecurseAppendChoices(ChoiceNode, CurrentChoices);
+								return;
+							}
 						}
 					}
 				}
@@ -581,7 +584,7 @@ bool USUDSDialogue::Choose(int Index)
 	{
 		// ONLY run to choice node if there is one!
 		// This method is called for Continue() too, which has no choice node
-		if (CurrentSpeakerNode->HasChoices())
+		if (CurrentNodeHasChoices())
 		{
 			ChoicesTaken.Add(CurrentChoices[Index].GetTextID());
 			
@@ -604,6 +607,35 @@ bool USUDSDialogue::Choose(int Index)
 		UE_LOG(LogSUDSDialogue, Error, TEXT("Invalid choice index %d on node %s"), Index, *GetText().ToString());
 	}
 	return false;
+}
+
+bool USUDSDialogue::CurrentNodeHasChoices() const
+{
+	if (!CurrentSpeakerNode)
+		return false;
+
+	// early-out precomputed text node choice indicator
+	if (CurrentSpeakerNode->HasChoices())
+		return true;
+
+	// Alternatively, if the next node is a return, the site of the gosub determines whether there are choices
+	if (auto Edge = CurrentSpeakerNode->GetEdge(0))
+	{
+		const auto Target = Edge->GetTargetNode();
+		if (Target.IsValid() && Target->GetNodeType() == ESUDSScriptNodeType::Return)
+		{
+			// Returning from a gosub *might* go back to a choice, we can't know ahead of time, it depends on context
+			if (GosubReturnStack.Num() > 0)
+			{
+				// We try to find the next choice node after the gosub, which temporarily redirected
+				const auto GoSubNode = GosubReturnStack.Top();
+				return GoSubNode->HasChoices();
+			}
+		}
+	}
+
+	return false;
+
 }
 
 bool USUDSDialogue::IsEnded() const
