@@ -1,6 +1,7 @@
 ﻿#include "SUDSScriptImporter.h"
 
 #include "SUDSExpression.h"
+#include "SUDSMessageLogger.h"
 #include "SUDSScript.h"
 #include "SUDSScriptNode.h"
 #include "SUDSScriptNodeEvent.h"
@@ -16,7 +17,7 @@ const FString FSUDSScriptImporter::TreePathSeparator = "/";
 
 DEFINE_LOG_CATEGORY(LogSUDSImporter)
 
-bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, const FString& NameForErrors, bool bSilent)
+bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent)
 {
 	static const TCHAR* LineEndings[] =
 	{				
@@ -63,7 +64,7 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 			{
 				const int32 SubstringLength = SubstringEndIndex - SubstringBeginIndex;
 				FStringView Line = MakeStringView(Start + SubstringBeginIndex, SubstringLength);
-				if (!ParseLine(Line, LineNumber++, NameForErrors, bSilent))
+				if (!ParseLine(Line, LineNumber++, NameForErrors, Logger, bSilent))
 				{
 					// Abort, error
 					bImportedOK = false;
@@ -83,18 +84,18 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 
 		// Add any remaining characters after the last delimiter.
 		const int32 SubstringLength = Length - SubstringBeginIndex;
-		FStringView Line = MakeStringView(Start + SubstringBeginIndex, SubstringLength);
-		bImportedOK = ParseLine(Line, LineNumber++, NameForErrors, bSilent);
+		const FStringView Line = MakeStringView(Start + SubstringBeginIndex, SubstringLength);
+		bImportedOK = ParseLine(Line, LineNumber++, NameForErrors, Logger, bSilent) && bImportedOK;
 	}
 
-	ConnectRemainingNodes(HeaderTree, NameForErrors, bSilent);
-	ConnectRemainingNodes(BodyTree, NameForErrors, bSilent);
+	ConnectRemainingNodes(HeaderTree, NameForErrors, Logger, bSilent);
+	ConnectRemainingNodes(BodyTree, NameForErrors, Logger, bSilent);
 
 	return bImportedOK;
 	
 }
 
-bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const FString& NameForErrors, bool bSilent)
+bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent)
 {
 	// Trim off any whitespace, but record how much of it there is since it can be relevant
 	int IndentLevel;
@@ -123,13 +124,13 @@ bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const F
 		if (bHeaderDone)
 		{
 			if (!bSilent)
-				UE_LOG(LogSUDSImporter, Error, TEXT("Failed to parse %s Line %d: Duplicate header section"), *NameForErrors, LineNo);
+				Logger->Logf(ELogVerbosity::Error, TEXT("Failed to parse %s Line %d: Duplicate header section"), *NameForErrors, LineNo);
 			return false;
 		}
 		else if (bTooLateForHeader)
 		{
 			if (!bSilent)
-				UE_LOG(LogSUDSImporter, Error, TEXT("Failed to parse %s Line %d: Header section must be at start"), *NameForErrors, LineNo);
+				Logger->Logf(ELogVerbosity::Error, TEXT("Failed to parse %s Line %d: Header section must be at start"), *NameForErrors, LineNo);
 			return false;
 		}
 		
@@ -147,15 +148,15 @@ bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const F
 	}
 	else if (bHeaderInProgress)
 	{
-		return ParseHeaderLine(TrimmedLine, IndentLevel, LineNo, NameForErrors, bSilent);
+		return ParseHeaderLine(TrimmedLine, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 	}
 
 	// Process body
-	return ParseBodyLine(TrimmedLine, IndentLevel, LineNo, NameForErrors, bSilent);
+	return ParseBodyLine(TrimmedLine, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 	
 }
 
-bool FSUDSScriptImporter::ParseHeaderLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent)
+bool FSUDSScriptImporter::ParseHeaderLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent)
 {
 	if (!bSilent)
 		UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:00: HEADER: %s"), LineNo, *FString(Line));
@@ -178,7 +179,7 @@ bool FSUDSScriptImporter::ParseHeaderLine(const FStringView& Line, int IndentLev
 	// We ignore every other type of line
 	if (Line.StartsWith(TEXT('[')))
 	{
-		bool bParsed = ParseSetLine(Line, HeaderTree, 0, LineNo, NameForErrors, bSilent);
+		bool bParsed = ParseSetLine(Line, HeaderTree, 0, LineNo, NameForErrors, Logger, bSilent);
 	}
 	
 	return true;
@@ -188,6 +189,7 @@ bool FSUDSScriptImporter::ParseBodyLine(const FStringView& Line,
 	int IndentLevel,
 	int LineNo,
 	const FString& NameForErrors,
+	FSUDSMessageLogger* Logger,
 	bool bSilent)
 {
 	// Once we've had anything other than comments or blanks and non-headers, it's too late for headers
@@ -215,32 +217,32 @@ bool FSUDSScriptImporter::ParseBodyLine(const FStringView& Line,
 
 	if (Line.StartsWith(TEXT('*')))
 	{
-		return ParseChoiceLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
+		return ParseChoiceLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 	}
 	else if (Line.StartsWith(TEXT(':')))
 	{
-		return ParseGotoLabelLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
+		return ParseGotoLabelLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 	}
 	else if (Line.StartsWith(TEXT('[')))
 	{
-		bool bParsed = ParseConditionalLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
+		bool bParsed = ParseConditionalLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 		if (!bParsed)
-			bParsed = ParseGotoLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
+			bParsed = ParseGotoLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 		if (!bParsed)
-			bParsed = ParseSetLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
+			bParsed = ParseSetLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 		if (!bParsed)
-			bParsed = ParseEventLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
+			bParsed = ParseEventLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 		if (!bParsed)
-			bParsed = ParseGosubLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
+			bParsed = ParseGosubLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 		if (!bParsed)
-			bParsed = ParseReturnLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
+			bParsed = ParseReturnLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 
 		if (!bParsed)
 		{
 			if (!bSilent)
 			{
 				UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: CMD  : %s"), LineNo, IndentLevel, *FString(Line));
-				UE_LOG(LogSUDSImporter, Warning, TEXT("%s Line %d: Unrecognised command. Ignoring!"), *NameForErrors, LineNo);
+				Logger->Logf(ELogVerbosity::Warning, TEXT("%s Line %d: Unrecognised command. Ignoring!"), *NameForErrors, LineNo);
 			}
 			// We still return true because we don't want to fail the entire import
 		}
@@ -248,7 +250,7 @@ bool FSUDSScriptImporter::ParseBodyLine(const FStringView& Line,
 	}
 	else
 	{
-		return ParseTextLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, bSilent);
+		return ParseTextLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 	}
 	
 
@@ -353,8 +355,8 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line,
                                           FSUDSScriptImporter::ParsedTree& Tree,
                                           int IndentLevel,
                                           int LineNo,
-                                          const FString&
-                                          NameForErrors,
+                                          const FString& NameForErrors,
+                                          FSUDSMessageLogger* Logger,
                                           bool bSilent)
 {
 	if (Line.StartsWith('*'))
@@ -553,6 +555,7 @@ bool FSUDSScriptImporter::ParseElseLine(const FStringView& Line,
                                         int IndentLevel,
                                         int LineNo,
                                         const FString& NameForErrors,
+                                        FSUDSMessageLogger* Logger,
                                         bool bSilent)
 {
 	if (Tree.ConditionalBlocks.IsValidIndex(Tree.CurrentConditionalBlockIdx))
@@ -581,13 +584,13 @@ bool FSUDSScriptImporter::ParseElseLine(const FStringView& Line,
 		else
 		{
 			if (!bSilent)
-				UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: cannot have more than one 'else'"), *NameForErrors, LineNo);
+				Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: cannot have more than one 'else'"), *NameForErrors, LineNo);
 		}
 	}
 	else
 	{
 		if (!bSilent)
-			UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: 'else' with no matching 'if'"), *NameForErrors, LineNo);
+			Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: 'else' with no matching 'if'"), *NameForErrors, LineNo);
 	}
 		
 	if (!bSilent)
@@ -601,6 +604,7 @@ bool FSUDSScriptImporter::ParseEndIfLine(const FStringView& Line,
                                          int IndentLevel,
                                          int LineNo,
                                          const FString& NameForErrors,
+                                         FSUDSMessageLogger* Logger,
                                          bool bSilent)
 {
 	if (Tree.ConditionalBlocks.IsValidIndex(Tree.CurrentConditionalBlockIdx))
@@ -616,7 +620,7 @@ bool FSUDSScriptImporter::ParseEndIfLine(const FStringView& Line,
 	else
 	{
 		if (!bSilent)
-			UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: 'endif' with no matching 'if'"), *NameForErrors, LineNo);
+			Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: 'endif' with no matching 'if'"), *NameForErrors, LineNo);
 	}
 	if (!bSilent)
 		UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: ENDIF : %s"), LineNo, IndentLevel, *FString(Line));
@@ -630,6 +634,7 @@ bool FSUDSScriptImporter::ParseIfLine(const FStringView& Line,
                                             int IndentLevel,
                                             int LineNo,
                                             const FString& NameForErrors,
+                                            FSUDSMessageLogger* Logger,
                                             bool bSilent)
 {
 
@@ -641,7 +646,14 @@ bool FSUDSScriptImporter::ParseIfLine(const FStringView& Line,
 	auto& SelectNode = Tree.Nodes[NewNodeIdx];
 	const int EdgeIdx = SelectNode.Edges.Add(FSUDSParsedEdge(NewNodeIdx, -1, LineNo));
 	auto E = &SelectNode.Edges[EdgeIdx];
-	E->ConditionExpression.ParseFromString(ConditionStr, FString::Printf(TEXT("Error in %s line %d: "), *NameForErrors, LineNo));
+	{
+		FString ParseError;
+		if (!E->ConditionExpression.ParseFromString(ConditionStr, &ParseError))
+		{
+			if (!bSilent)
+				Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: %s"), *NameForErrors, LineNo, *ParseError);
+		}
+	}
 	Tree.EdgeInProgressNodeIdx = NewNodeIdx;
 	Tree.EdgeInProgressEdgeIdx = EdgeIdx;
 			
@@ -658,6 +670,7 @@ bool FSUDSScriptImporter::ParseElseIfLine(const FStringView& Line,
 	int IndentLevel,
 	int LineNo,
 	const FString& NameForErrors,
+	FSUDSMessageLogger* Logger,
 	bool bSilent)
 {
 	if (!bSilent)
@@ -679,14 +692,21 @@ bool FSUDSScriptImporter::ParseElseIfLine(const FStringView& Line,
 			auto& SelectOrChoiceNode = Tree.Nodes[NodeIdx];
 			const int EdgeIdx = SelectOrChoiceNode.Edges.Add(FSUDSParsedEdge(NodeIdx, -1, LineNo));
 			auto E = &SelectOrChoiceNode.Edges[EdgeIdx];
-			E->ConditionExpression.ParseFromString(ConditionStr, FString::Printf(TEXT("Error in %s line %d: "), *NameForErrors, LineNo));
+			{
+				FString ParseError;
+				if (!E->ConditionExpression.ParseFromString(ConditionStr, &ParseError))
+				{
+					if (!bSilent)
+						Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: %s"), *NameForErrors, LineNo, *ParseError);
+				}
+			}
 			Tree.EdgeInProgressNodeIdx = NodeIdx;
 			Tree.EdgeInProgressEdgeIdx = EdgeIdx;
 		}
 		else
 		{
 			if (!bSilent)
-				UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: 'elseif' occurs after 'else'"), *NameForErrors, LineNo);
+				Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: 'elseif' occurs after 'else'"), *NameForErrors, LineNo);
 						
 		}
 					
@@ -694,7 +714,7 @@ bool FSUDSScriptImporter::ParseElseIfLine(const FStringView& Line,
 	else
 	{
 		if (!bSilent)
-			UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: 'elseif' with no matching 'if'"), *NameForErrors, LineNo);
+			Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: 'elseif' with no matching 'if'"), *NameForErrors, LineNo);
 	}
 	
 	return true;
@@ -704,8 +724,8 @@ bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line,
                                                FSUDSScriptImporter::ParsedTree& Tree,
                                                int IndentLevel,
                                                int LineNo,
-                                               const FString&
-                                               NameForErrors,
+                                               const FString& NameForErrors,
+                                               FSUDSMessageLogger* Logger, 
                                                bool bSilent)
 {
 
@@ -714,12 +734,12 @@ bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line,
 	
 	if (Line.Equals(TEXT("[else]")))
 	{
-		return ParseElseLine(Line, Tree, IndentLevel, LineNo, NameForErrors, bSilent);
+		return ParseElseLine(Line, Tree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 		
 	}
 	else if (Line.Equals(TEXT("[endif]")))
 	{
-		return ParseEndIfLine(Line, Tree, IndentLevel, LineNo, NameForErrors, bSilent);
+		return ParseEndIfLine(Line, Tree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 	}
 	else
 	{
@@ -729,7 +749,7 @@ bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line,
 		if (IfRegex.FindNext())
 		{
 			const FString ConditionStr = IfRegex.GetCaptureGroup(1);
-			return ParseIfLine(Line, Tree, ConditionStr, IndentLevel, LineNo, NameForErrors, bSilent);
+			return ParseIfLine(Line, Tree, ConditionStr, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 		}
 		else
 		{
@@ -738,7 +758,7 @@ bool FSUDSScriptImporter::ParseConditionalLine(const FStringView& Line,
 			if (ElseIfRegex.FindNext())
 			{
 				const FString ConditionStr = ElseIfRegex.GetCaptureGroup(1);
-				return ParseElseIfLine(Line, Tree, ConditionStr, IndentLevel, LineNo, NameForErrors, bSilent);
+				return ParseElseIfLine(Line, Tree, ConditionStr, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 
 			}
 		}
@@ -751,8 +771,8 @@ bool FSUDSScriptImporter::ParseGotoLabelLine(const FStringView& Line,
                                              FSUDSScriptImporter::ParsedTree& Tree,
                                              int IndentLevel,
                                              int LineNo,
-                                             const FString&
-                                             NameForErrors,
+                                             const FString& NameForErrors,
+                                             FSUDSMessageLogger* Logger, 
                                              bool bSilent)
 {
 	// We've already established that line starts with ':'
@@ -769,7 +789,7 @@ bool FSUDSScriptImporter::ParseGotoLabelLine(const FStringView& Line,
 		if (Label == EndGotoLabel)
 		{
 			if (!bSilent)
-				UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: Label 'end' is reserved and cannot be used in the script, ignoring"), *NameForErrors, LineNo);
+				Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: Label 'end' is reserved and cannot be used in the script, ignoring"), *NameForErrors, LineNo);
 		}
 		else
 		{
@@ -781,7 +801,7 @@ bool FSUDSScriptImporter::ParseGotoLabelLine(const FStringView& Line,
 	else
 	{
 		if (!bSilent)
-			UE_LOG(LogSUDSImporter, Warning, TEXT("Error in %s line %d: Badly formed goto label"), *NameForErrors, LineNo);
+			Logger->Logf(ELogVerbosity::Warning, TEXT("Error in %s line %d: Badly formed goto label"), *NameForErrors, LineNo);
 	}
 	// Always return true to carry on, may not be used
 	return true;
@@ -791,8 +811,8 @@ bool FSUDSScriptImporter::ParseGotoLine(const FStringView& Line,
                                         FSUDSScriptImporter::ParsedTree& Tree,
                                         int IndentLevel,
                                         int LineNo,
-                                        const FString&
-                                        NameForErrors,
+                                        const FString& NameForErrors,
+                                        FSUDSMessageLogger* Logger, 
                                         bool bSilent)
 {
 	// Unfortunately FRegexMatcher doesn't support FStringView
@@ -826,6 +846,7 @@ bool FSUDSScriptImporter::ParseGosubLine(const FStringView& InLine,
 	int IndentLevel,
 	int LineNo,
 	const FString& NameForErrors,
+	FSUDSMessageLogger* Logger,
 	bool bSilent)
 {
 	// Attempt to find existing ID
@@ -851,7 +872,7 @@ bool FSUDSScriptImporter::ParseGosubLine(const FStringView& InLine,
 		if (Label == EndGotoLabel)
 		{
 			if (!bSilent)
-				UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: You cannot 'gosub end', will never return. Did you mean goto?"), *NameForErrors, LineNo);
+				Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: You cannot 'gosub end', will never return. Did you mean goto?"), *NameForErrors, LineNo);
 			
 		}
 		else
@@ -873,6 +894,7 @@ bool FSUDSScriptImporter::ParseReturnLine(const FStringView& Line,
 	int IndentLevel,
 	int LineNo,
 	const FString& NameForErrors,
+	FSUDSMessageLogger* Logger,
 	bool bSilent)
 {
 	// Unfortunately FRegexMatcher doesn't support FStringView
@@ -893,8 +915,8 @@ bool FSUDSScriptImporter::ParseSetLine(const FStringView& InLine,
                                        FSUDSScriptImporter::ParsedTree& Tree,
                                        int IndentLevel,
                                        int LineNo,
-                                       const FString&
-                                       NameForErrors,
+                                       const FString& NameForErrors,
+                                       FSUDSMessageLogger* Logger,
                                        bool bSilent)
 {
 	// Attempt to find existing text ID, for string literals
@@ -920,27 +942,31 @@ bool FSUDSScriptImporter::ParseSetLine(const FStringView& InLine,
 		FString ExprStr = SetRegex.GetCaptureGroup(2).TrimStartAndEnd(); // trim because capture accepts spaces in quotes
 
 		FSUDSExpression Expr;
-		if (Expr.ParseFromString(ExprStr, FString::Printf(TEXT("Error in %s line %d: "), *NameForErrors, LineNo)))
 		{
-			if (Expr.IsTextLiteral())
+			FString ParseError;
+			if (Expr.ParseFromString(ExprStr, &ParseError))
 			{
-				// Text must be localised
-				if (TextID.IsEmpty())
+				if (Expr.IsTextLiteral())
 				{
-					TextID = GenerateTextID(InLine);
+					// Text must be localised
+					if (TextID.IsEmpty())
+					{
+						TextID = GenerateTextID(InLine);
+					}
+					AppendNode(Tree, FSUDSParsedNode(Name, Expr, TextID, IndentLevel, LineNo));
 				}
-				AppendNode(Tree, FSUDSParsedNode(Name, Expr, TextID, IndentLevel, LineNo));
+				else
+				{
+					AppendNode(Tree, FSUDSParsedNode(Name, Expr, IndentLevel, LineNo));
+				}
+				return true;
 			}
 			else
 			{
-				AppendNode(Tree, FSUDSParsedNode(Name, Expr, IndentLevel, LineNo));
+				if (!bSilent)
+					Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: %s"), *NameForErrors, LineNo, *ParseError);
 			}
-			return true;
 		}
-		
-		if (!bSilent)
-			UE_LOG(LogSUDSImporter, Error, TEXT("Error in %s line %d: malformed set line"), *NameForErrors, LineNo);
-
 	}
 	return false;
 }
@@ -950,8 +976,8 @@ bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line,
                                          FSUDSScriptImporter::ParsedTree& Tree,
                                          int IndentLevel,
                                          int LineNo,
-                                         const FString&
-                                         NameForErrors,
+                                         const FString& NameForErrors,
+                                         FSUDSMessageLogger* Logger,
                                          bool bSilent)
 {
 	const FString LineStr(Line);
@@ -981,7 +1007,8 @@ bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line,
 					continue;
 				
 				FSUDSExpression Expr;
-				if (Expr.ParseFromString(ArgStr, FString::Printf(TEXT("Error in %s line %d: "), *NameForErrors, LineNo)))
+				FString ParseError;
+				if (Expr.ParseFromString(ArgStr, &ParseError))
 				{
 					// note: no localisation of event literals, they're just strings
 					// we assume the receiver of the event will set localised text to variables if they want
@@ -989,7 +1016,8 @@ bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line,
 				}
 				else
 				{
-					UE_LOG(LogSUDSImporter, Warning, TEXT("Error in %s line %d: Literal argument '%s' invalid"), *NameForErrors, LineNo, *ArgStr);
+					if (!bSilent)
+						Logger->Logf(ELogVerbosity::Warning, TEXT("Error in %s line %d: Literal argument %d ('%s') invalid: %s"), *NameForErrors, LineNo, Node.EventArgs.Num() + 1, *ArgStr, *ParseError);
 				}
 			}
 		}
@@ -1005,8 +1033,8 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine,
                                         FSUDSScriptImporter::ParsedTree& Tree,
                                         int IndentLevel,
                                         int LineNo,
-                                        const FString&
-                                        NameForErrors,
+                                        const FString& NameForErrors,
+                                        FSUDSMessageLogger* Logger,
                                         bool bSilent)
 {
 	auto& Ctx = Tree.IndentLevelStack.Top();
@@ -1056,7 +1084,7 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine,
 		else
 		{
 			if (!bSilent)
-				UE_LOG(LogSUDSImporter, Warning, TEXT("Error in %s line %d: Text newline continuation is not immediately after a speaker line. Ignoring."), *NameForErrors, LineNo);
+				Logger->Logf(ELogVerbosity::Warning, TEXT("Error in %s line %d: Text newline continuation is not immediately after a speaker line. Ignoring."), *NameForErrors, LineNo);
 			// We still return true to allow continue	
 		}
 	}
@@ -1381,7 +1409,7 @@ FStringView FSUDSScriptImporter::TrimLine(const FStringView& Line, int& OutInden
 	
 }
 
-void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree& Tree, const FString& NameForErrors, bool bSilent)
+void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree& Tree, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent)
 {
 	// Now we go through all nodes, resolving gotos, and finding links that don't go anywhere & making
 	// them fall through to the next appropriate outdented node (or the end)
@@ -1419,7 +1447,7 @@ void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree&
 					if (GotoNodeIdx == -1)
 					{
 						if (!bSilent)
-							UE_LOG(LogSUDSImporter, Warning, TEXT("Error in %s line %d: Goto label '%s' was not found, references to it will goto End"), *NameForErrors, Node.SourceLineNo, *Node.Identifier)
+							Logger->Logf(ELogVerbosity::Warning, TEXT("Error in %s line %d: Goto label '%s' was not found, references to it will goto End"), *NameForErrors, Node.SourceLineNo, *Node.Identifier);
 					}
 				}
 			}

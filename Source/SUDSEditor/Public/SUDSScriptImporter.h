@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "SUDSExpression.h"
 
+struct FSUDSMessageLogger;
 class USUDSScript;
 DECLARE_LOG_CATEGORY_EXTERN(LogSUDSImporter, Verbose, All);
 
@@ -155,7 +156,7 @@ public:
 class SUDSEDITOR_API FSUDSScriptImporter
 {
 public:
-	bool ImportFromBuffer(const TCHAR* Buffer, int32 Len, const FString& NameForErrors, bool bSilent);
+	bool ImportFromBuffer(const TCHAR* Buffer, int32 Len, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent);
 	void PopulateAsset(USUDSScript* Asset, UStringTable* StringTable);
 	static FMD5Hash CalculateHash(const TCHAR* Buffer, int32 Len);
 	static const FString EndGotoLabel;
@@ -285,39 +286,98 @@ protected:
 	/// For generating gosub IDs
 	int GosubIDHighestNumber = 0;
 	/// Parse a single line
-	bool ParseLine(const FStringView& Line, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseHeaderLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseBodyLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool ParseLine(const FStringView& Line, int LineNo, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent);
+	bool ParseHeaderLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent);
+	bool ParseBodyLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent);
 	bool IsLastNodeOfType(const ParsedTree& Tree, ESUDSParsedNodeType Type);
-	bool ParseChoiceLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool ParseChoiceLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, FSUDSMessageLogger*
+	                     Logger,
+	                     bool bSilent);
 	FSUDSParsedEdge* GetEdgeInProgress(ParsedTree& Tree);
 	void EnsureChoiceNodeExistsAboveSelect(ParsedTree& Tree, int IndentLevel, int LineNo);
 	static bool IsConditionalLine(const FStringView& Line);
-	bool ParseConditionalLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	bool ParseConditionalLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent);
 	bool ParseIfLine(const FStringView& Line,
-	                       ParsedTree& Tree,
-	                       const FString& ConditionStr,
-	                       int IndentLevel,
-	                       int LineNo,
-	                       const FString& NameForErrors,
-	                       bool bSilent);
+	                 ParsedTree& Tree,
+	                 const FString& ConditionStr,
+	                 int IndentLevel,
+	                 int LineNo,
+	                 const FString& NameForErrors,
+	                 FSUDSMessageLogger* Logger,
+	                 bool bSilent);
 	bool ParseElseIfLine(const FStringView& Line,
-						   ParsedTree& Tree,
-						   const FString& ConditionStr,
-						   int IndentLevel,
-						   int LineNo,
-						   const FString& NameForErrors,
-						   bool bSilent);
-	
-	bool ParseElseLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseEndIfLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseGotoLabelLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseGotoLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseGosubLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseReturnLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseSetLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseEventLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
-	bool ParseTextLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, bool bSilent);
+	                     ParsedTree& Tree,
+	                     const FString& ConditionStr,
+	                     int IndentLevel,
+	                     int LineNo,
+	                     const FString& NameForErrors,
+	                     FSUDSMessageLogger* Logger,
+	                     bool bSilent);
+
+	bool ParseElseLine(const FStringView& Line,
+	                   ParsedTree& Tree,
+	                   int IndentLevel,
+	                   int LineNo,
+	                   const FString& NameForErrors,
+	                   FSUDSMessageLogger* Logger,
+	                   bool bSilent);
+	bool ParseEndIfLine(const FStringView& Line,
+	                    ParsedTree& Tree,
+	                    int IndentLevel,
+	                    int LineNo,
+	                    const FString& NameForErrors,
+	                    FSUDSMessageLogger*
+	                    Logger,
+	                    bool bSilent);
+	bool ParseGotoLabelLine(const FStringView& Line,
+	                        ParsedTree& Tree,
+	                        int IndentLevel,
+	                        int LineNo,
+	                        const FString& NameForErrors,
+	                        FSUDSMessageLogger* Logger,
+	                        bool bSilent);
+	bool ParseGotoLine(const FStringView& Line,
+	                   ParsedTree& Tree,
+	                   int IndentLevel,
+	                   int LineNo,
+	                   const FString& NameForErrors,
+	                   FSUDSMessageLogger* Logger,
+	                   bool bSilent);
+	bool ParseGosubLine(const FStringView& Line,
+	                    ParsedTree& Tree,
+	                    int IndentLevel,
+	                    int LineNo,
+	                    const FString& NameForErrors,
+	                    FSUDSMessageLogger* Logger,
+	                    bool bSilent);
+	bool ParseReturnLine(const FStringView& Line,
+	                     ParsedTree& Tree,
+	                     int IndentLevel,
+	                     int LineNo,
+	                     const FString& NameForErrors,
+	                     FSUDSMessageLogger* Logger,
+	                     bool bSilent);
+	bool ParseSetLine(const FStringView& Line,
+	                  ParsedTree& Tree,
+	                  int IndentLevel,
+	                  int LineNo,
+	                  const FString& NameForErrors,
+	                  FSUDSMessageLogger* Logger,
+	                  bool bSilent);
+	bool ParseEventLine(const FStringView& Line,
+	                    ParsedTree& Tree,
+	                    int IndentLevel,
+	                    int LineNo,
+	                    const FString& NameForErrors,
+	                    FSUDSMessageLogger* Logger,
+	                    bool bSilent);
+	bool ParseTextLine(const FStringView& Line,
+	                   ParsedTree& Tree,
+	                   int IndentLevel,
+	                   int LineNo,
+	                   const FString& NameForErrors,
+	                   FSUDSMessageLogger* Logger,
+	                   bool bSilent);
 	bool IsCommentLine(const FStringView& TrimmedLine);
 	FStringView TrimLine(const FStringView& Line, int& OutIndentLevel) const;
 	int FindChoiceAfterTextNode(const FSUDSScriptImporter::ParsedTree& Tree, int TextNodeIdx);
@@ -330,7 +390,7 @@ protected:
 	void SetFallthroughForNewNode(FSUDSScriptImporter::ParsedTree& Tree, FSUDSParsedNode& NewNode);
 	int AppendNode(ParsedTree& Tree, const FSUDSParsedNode& InNode);
 	bool SelectNodeIsMissingElsePath(const FSUDSScriptImporter::ParsedTree& Tree, const FSUDSParsedNode& Node);
-	void ConnectRemainingNodes(ParsedTree& Tree, const FString& NameForErrors, bool bSilent);
+	void ConnectRemainingNodes(ParsedTree& Tree, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent);
 	int FindFallthroughNodeIndex(ParsedTree& Tree, int StartNodeIndex, int IndentLessThan, const FString& FromChoicePath, const FString& FromConditionalPath);
 	void RetrieveAndRemoveOrGenerateTextID(FStringView& InOutLine, FString& OutTextID);
 	bool RetrieveAndRemoveTextID(FStringView& InOutLine, FString& OutTextID);

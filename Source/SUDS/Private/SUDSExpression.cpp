@@ -2,7 +2,7 @@
 
 #include "Misc/DefaultValueHelper.h"
 
-bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& ErrorContext)
+bool FSUDSExpression::ParseFromString(const FString& Expression, FString* OutParseError)
 {
 	// Assume invalid until we've parsed something
 	bIsValid = false;
@@ -46,7 +46,8 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 			{
 				if (OperatorStack.IsEmpty())
 				{
-					UE_LOG(LogSUDS, Error, TEXT("Error in %s: mismatched parentheses"), *ErrorContext);
+					if (OutParseError)
+						*OutParseError = TEXT("Mismatched parentheses");
 					bErrors = true;
 					break;
 				}
@@ -57,7 +58,8 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 				}
 				if (OperatorStack.IsEmpty())
 				{
-					UE_LOG(LogSUDS, Error, TEXT("Error in %s: mismatched parentheses"), *ErrorContext);
+					if (OutParseError)
+						*OutParseError = TEXT("Mismatched parentheses");
 					bErrors = true;
 					break;
 				}
@@ -96,7 +98,8 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 			}
 			else
 			{
-				UE_LOG(LogSUDS, Error, TEXT("Error in %s: unrecognised token %s"), *ErrorContext, *Str);
+				if (OutParseError)
+					*OutParseError = FString::Printf(TEXT("Unrecognised token %s"), *Str);
 				bErrors = true;
 			}
 		}
@@ -108,7 +111,8 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 			OperatorStack.Top() == ESUDSExpressionItemType::RParens)
 		{
 			bErrors = true;
-			UE_LOG(LogSUDS, Error, TEXT("Error in %s: mismatched parentheses"), *ErrorContext);
+			if (OutParseError)
+				*OutParseError = TEXT("Mismatched parentheses");
 			break;
 		}
 
@@ -119,7 +123,8 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 		(Expression.Len() > 0 && Queue.IsEmpty())) // Empty expressions validate correctly, but if there was text incoming that resolved to nothing, this is an error
 	{
 		bErrors = true;
-		UE_LOG(LogSUDS, Error, TEXT("Error in %s: bad expression '%s'"), *ErrorContext, *Expression);
+		if (OutParseError)
+			*OutParseError = FString::Printf(TEXT("Bad expression '%s'"), *Expression);
 	}
 
 	bIsValid = bParsedSomething && !bErrors;

@@ -1,5 +1,6 @@
 ﻿#include "SUDSDialogue.h"
 #include "SUDSLibrary.h"
+#include "SUDSMessageLogger.h"
 #include "SUDSScript.h"
 #include "SUDSScriptImporter.h"
 #include "TestUtils.h"
@@ -51,8 +52,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestGotoGosub,
 
 bool FTestGotoGosub::RunTest(const FString& Parameters)
 {
+	FSUDSMessageLogger Logger(false);
 	FSUDSScriptImporter Importer;
-	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(GotoGosubInput), GotoGosubInput.Len(), "GotoGosubInput", true));
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(GotoGosubInput), GotoGosubInput.Len(), "GotoGosubInput", &Logger, true));
 
 	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
 	const ScopedStringTableHolder StringTableHolder;
@@ -172,8 +174,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestNestedGosub,
 
 bool FTestNestedGosub::RunTest(const FString& Parameters)
 {
+	FSUDSMessageLogger Logger(false);
 	FSUDSScriptImporter Importer;
-	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(NestedGosubInput), NestedGosubInput.Len(), "NestedGosubInput", true));
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(NestedGosubInput), NestedGosubInput.Len(), "NestedGosubInput", &Logger, true));
 
 	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
 	const ScopedStringTableHolder StringTableHolder;

@@ -1,4 +1,5 @@
-﻿#include "SUDSScript.h"
+﻿#include "SUDSMessageLogger.h"
+#include "SUDSScript.h"
 #include "Misc/AutomationTest.h"
 #include "SUDSScriptImporter.h"
 #include "SUDSScriptNode.h"
@@ -143,8 +144,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestSimpleParsing,
 
 bool FTestSimpleParsing::RunTest(const FString& Parameters)
 {
+	FSUDSMessageLogger Logger(false);
 	FSUDSScriptImporter Importer;
-	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SimpleParsingInput), SimpleParsingInput.Len(), "SimpleParsingInput", true));
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SimpleParsingInput), SimpleParsingInput.Len(), "SimpleParsingInput", &Logger, true));
 
 	// Test the content of the parsing
 	auto RootNode = Importer.GetNode(0);
@@ -388,8 +390,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestGotoParsing,
 
 bool FTestGotoParsing::RunTest(const FString& Parameters)
 {
+	FSUDSMessageLogger Logger(false);
 	FSUDSScriptImporter Importer;
-	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(GotoParsingInput), GotoParsingInput.Len(), "GotoParsingInput", true));
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(GotoParsingInput), GotoParsingInput.Len(), "GotoParsingInput", &Logger, true));
 
 	// Test the content of the parsing
 	auto RootNode = Importer.GetNode(0);
@@ -655,8 +658,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestSetVariableParsing,
 
 bool FTestSetVariableParsing::RunTest(const FString& Parameters)
 {
+	FSUDSMessageLogger Logger(false);
 	FSUDSScriptImporter Importer;
-	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SetVariableParsingInput), SetVariableParsingInput.Len(), "SetVariableParsingInput", true));
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SetVariableParsingInput), SetVariableParsingInput.Len(), "SetVariableParsingInput", &Logger, true));
 	// Test the content of the parsing
 
 	// Header nodes first
@@ -708,8 +712,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestConversionToRuntime,
 
 bool FTestConversionToRuntime::RunTest(const FString& Parameters)
 {
+	FSUDSMessageLogger Logger(false);
 	FSUDSScriptImporter Importer;
-	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(GotoParsingInput), GotoParsingInput.Len(), "GotoParsingInput", true));
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(GotoParsingInput), GotoParsingInput.Len(), "GotoParsingInput", &Logger, true));
 
 	auto Asset = NewObject<USUDSScript>(GetTransientPackage(), "Test");
 	const ScopedStringTableHolder StringTableHolder;
@@ -873,8 +878,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestPartiallyLocalised,
 
 bool FTestPartiallyLocalised::RunTest(const FString& Parameters)
 {
+	FSUDSMessageLogger Logger(false);
 	FSUDSScriptImporter Importer;
-	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(PartiallyLocalisedInput), PartiallyLocalisedInput.Len(), "PartiallyLocalisedInput", true));
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(PartiallyLocalisedInput), PartiallyLocalisedInput.Len(), "PartiallyLocalisedInput", &Logger, true));
 
 	// Test the content of the parsing
 	auto NextNode = Importer.GetNode(0);

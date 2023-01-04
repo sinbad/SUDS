@@ -1,12 +1,11 @@
 ﻿#include "SUDSDialogue.h"
 #include "SUDSLibrary.h"
+#include "SUDSMessageLogger.h"
 #include "SUDSScript.h"
 #include "SUDSScriptImporter.h"
 #include "TestEventSub.h"
 #include "TestParticipant.h"
 #include "TestUtils.h"
-#include "Internationalization/StringTable.h"
-#include "Internationalization/StringTableRegistry.h"
 
 PRAGMA_DISABLE_OPTIMIZATION
 
@@ -31,8 +30,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestEvents,
 
 bool FTestEvents::RunTest(const FString& Parameters)
 {
+	FSUDSMessageLogger Logger(false);
 	FSUDSScriptImporter Importer;
-	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(EventParsingInput), EventParsingInput.Len(), "EventParsingInput", true));
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(EventParsingInput), EventParsingInput.Len(), "EventParsingInput", &Logger, true));
 
 	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
 	const ScopedStringTableHolder StringTableHolder;

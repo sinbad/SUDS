@@ -2,12 +2,12 @@
 
 #include <string>
 
+#include "SUDSMessageLogger.h"
 #include "SUDSScript.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Internationalization/StringTable.h"
-#include "Internationalization/StringTableCore.h"
-#include "Internationalization/StringTableRegistry.h"
+#include "Misc/FeedbackContext.h"
 
 USUDSScriptFactory::USUDSScriptFactory()
 {
@@ -29,6 +29,8 @@ UObject* USUDSScriptFactory::FactoryCreateText(UClass* InClass,
 	FFeedbackContext* Warn)
 {
 	Flags |= RF_Transactional;
+	FSUDSMessageLogger Logger;
+
 	USUDSScript* Result = nullptr;
 
 	GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPreImport(this, InClass, InParent, InName, Type);
@@ -43,7 +45,7 @@ UObject* USUDSScriptFactory::FactoryCreateText(UClass* InClass,
 	const FString NameForErrors(InName.ToString());
 
 	// Now parse this using utility
-	if(Importer.ImportFromBuffer(Buffer, BufferEnd - Buffer, NameForErrors, false))
+	if(Importer.ImportFromBuffer(Buffer, BufferEnd - Buffer, NameForErrors, &Logger, false))
 	{
 		
 		// Populate with data

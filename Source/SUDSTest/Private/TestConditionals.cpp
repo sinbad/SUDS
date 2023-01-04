@@ -1,4 +1,5 @@
 ﻿#include "SUDSLibrary.h"
+#include "SUDSMessageLogger.h"
 #include "SUDSScript.h"
 #include "SUDSScriptImporter.h"
 #include "TestUtils.h"
@@ -156,8 +157,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestBasicConditionals,
 
 bool FTestBasicConditionals::RunTest(const FString& Parameters)
 {
+    FSUDSMessageLogger Logger(false);
     FSUDSScriptImporter Importer;
-    TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(BasicConditionalInput), BasicConditionalInput.Len(), "BasicConditionalInput", true));
+    TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(BasicConditionalInput), BasicConditionalInput.Len(), "BasicConditionalInput", &Logger, true));
 
     // Test the content of the parsing
     auto NextNode = Importer.GetNode(0);
@@ -228,7 +230,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestSiblingConditionals,
 bool FTestSiblingConditionals::RunTest(const FString& Parameters)
 {
     FSUDSScriptImporter Importer;
-    TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SiblingConditionalChoiceInput), SiblingConditionalChoiceInput.Len(), "SiblingConditionalChoiceInput", true));
+    FSUDSMessageLogger Logger(false);
+    TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SiblingConditionalChoiceInput), SiblingConditionalChoiceInput.Len(), "SiblingConditionalChoiceInput", &Logger, true));
 
     // Test the content of the parsing
     auto NextNode = Importer.GetNode(0);
@@ -279,7 +282,8 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestRunningBasicConditionals,
 bool FTestRunningBasicConditionals::RunTest(const FString& Parameters)
 {
     FSUDSScriptImporter Importer;
-    TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(BasicConditionalInput), BasicConditionalInput.Len(), "BasicConditionalInput", true));
+    FSUDSMessageLogger Logger(false);
+    TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(BasicConditionalInput), BasicConditionalInput.Len(), "BasicConditionalInput", &Logger, true));
 
     auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
     const ScopedStringTableHolder StringTableHolder;
@@ -352,8 +356,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestConditionalChoices,
 
 bool FTestConditionalChoices::RunTest(const FString& Parameters)
 {
+    FSUDSMessageLogger Logger(false);
     FSUDSScriptImporter Importer;
-    TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(ConditionalChoiceInput), ConditionalChoiceInput.Len(), "ConditionalChoiceInput", true));
+    TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(ConditionalChoiceInput), ConditionalChoiceInput.Len(), "ConditionalChoiceInput", &Logger, true));
 
     // Test the content of the parsing
     auto NextNode = Importer.GetNode(0);
@@ -498,8 +503,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestMixedChoiceAndBranch,
 
 bool FTestMixedChoiceAndBranch::RunTest(const FString& Parameters)
 {
+    FSUDSMessageLogger Logger(false);
     FSUDSScriptImporter Importer;
-    TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(MixedChoiceAndBranchInput), MixedChoiceAndBranchInput.Len(), "MixedChoiceAndBranchInput", true));
+    TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(MixedChoiceAndBranchInput), MixedChoiceAndBranchInput.Len(), "MixedChoiceAndBranchInput", &Logger, true));
 
     auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
     const ScopedStringTableHolder StringTableHolder;

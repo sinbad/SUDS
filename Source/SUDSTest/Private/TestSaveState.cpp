@@ -1,5 +1,6 @@
 ﻿#include "SUDSDialogue.h"
 #include "SUDSLibrary.h"
+#include "SUDSMessageLogger.h"
 #include "SUDSScript.h"
 #include "SUDSScriptImporter.h"
 #include "TestUtils.h"
@@ -86,8 +87,9 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestSaveState,
 
 bool FTestSaveState::RunTest(const FString& Parameters)
 {
+	FSUDSMessageLogger Logger(false);
 	FSUDSScriptImporter Importer;
-	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SaveStateInput), SaveStateInput.Len(), "SaveStateInput", true));
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SaveStateInput), SaveStateInput.Len(), "SaveStateInput", &Logger, true));
 
 	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
 	const ScopedStringTableHolder StringTableHolder;

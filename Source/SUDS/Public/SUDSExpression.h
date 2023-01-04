@@ -117,10 +117,10 @@ public:
 	/**
 	 * Attempt to parse an expression from a string
 	 * @param Expression The string to parse
-	 * @param ErrorContext If there are any errors, what should the log prefix them with
+	 * @param OutParseError If there are any errors, pointer to a string to complete with the details
 	 * @return Whether the parsing was successful
 	 */
-	bool ParseFromString(const FString& Expression, const FString& ErrorContext);
+	bool ParseFromString(const FString& Expression, FString* OutParseError);
 
 	/// Evaluate the expression and return the result, using a given variable state 
 	FSUDSValue Evaluate(const TMap<FName, FSUDSValue>& Variables) const;

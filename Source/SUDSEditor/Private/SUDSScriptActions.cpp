@@ -1,7 +1,6 @@
 ﻿#include "SUDSScriptActions.h"
 
-#include "IMessageLogListing.h"
-#include "MessageLogModule.h"
+#include "SUDSMessageLogger.h"
 #include "SUDSScript.h"
 #include "SUDSScriptImporter.h"
 #include "SUDSScriptNode.h"
@@ -72,65 +71,6 @@ void FSUDSScriptActions::GetActions(const TArray<UObject*>& InObjects, FToolMenu
 		)
 	);
 }
-
-
-struct FSUDSMessageLogger
-{
-protected:
-	TArray<TSharedRef<FTokenizedMessage>> ErrorMessages;
-
-public:
-	FSUDSMessageLogger() {}
-	~FSUDSMessageLogger()
-	{
-		//Always clear the old message after an import or re-import
-		const TCHAR* LogTitle = TEXT("SUDS");
-		FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
-		TSharedPtr<class IMessageLogListing> LogListing = MessageLogModule.GetLogListing(LogTitle);
-		LogListing->SetLabel(FText::FromString("SUDS"));
-		LogListing->ClearMessages();
-
-		if(ErrorMessages.Num() > 0)
-		{
-			LogListing->AddMessages(ErrorMessages);
-			MessageLogModule.OpenMessageLog(LogTitle);
-		}
-	}
-
-	bool HasErrors() const
-	{
-		for (const TSharedRef<FTokenizedMessage>& Msg : ErrorMessages)
-		{
-			if (Msg->GetSeverity() == EMessageSeverity::CriticalError || Msg->GetSeverity() == EMessageSeverity::Error)
-			{
-				return true;
-			}
-		}
-		return false;		
-	}
-
-	int NumErrors() const
-	{
-		int Errs = 0;
-		for (const TSharedRef<FTokenizedMessage>& Msg : ErrorMessages)
-		{
-			if (Msg->GetSeverity() == EMessageSeverity::CriticalError || Msg->GetSeverity() == EMessageSeverity::Error)
-			{
-				++Errs;
-			}
-		}
-		return Errs;
-	}
-	
-	
-	void AddMessage(EMessageSeverity::Type Severity, const FText& Text)
-	{
-		ErrorMessages.Add(FTokenizedMessage::Create(Severity, Text));
-	}
-
-
-};
-
 
 void FSUDSScriptActions::WriteBackTextIDs(TArray<TWeakObjectPtr<USUDSScript>> Scripts)
 {
