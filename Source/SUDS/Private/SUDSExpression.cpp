@@ -115,10 +115,11 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, const FString& 
 		Queue.Add(FSUDSExpressionItem(OperatorStack.Pop()));
 	}
 
-	if (!Validate())
+	if (!Validate() ||
+		(Expression.Len() > 0 && Queue.IsEmpty())) // Empty expressions validate correctly, but if there was text incoming that resolved to nothing, this is an error
 	{
 		bErrors = true;
-		UE_LOG(LogSUDS, Error, TEXT("Error in %s: bad expression"), *ErrorContext);
+		UE_LOG(LogSUDS, Error, TEXT("Error in %s: bad expression '%s'"), *ErrorContext, *Expression);
 	}
 
 	bIsValid = bParsedSomething && !bErrors;
