@@ -82,11 +82,11 @@ const FString FallthroughEdgeCaseInput = R"RAWSUD(
 NPC: First line
   * Option 1
 	NPC: Fallthrough via goto
-    # This will work
 	[goto secondchoice]
   * Option 2
 	NPC: Fallthrough implicitly
-    # This will NOT work
+  * Option 3
+	NPC: Fallthrough implicitly again
 
 :secondchoice
   * Fallthrough 1
@@ -381,7 +381,7 @@ bool FTestFallthroughEdgeCase::RunTest(const FString& Parameters)
 	Dlg->Start();
 
 	TestDialogueText(this, "Initial text", Dlg, "NPC", "First line");
-	TestEqual("Initial num choices", Dlg->GetNumberOfChoices(), 2);
+	TestEqual("Initial num choices", Dlg->GetNumberOfChoices(), 3);
 	TestTrue("Choice 1", Dlg->Choose(0));
 	TestDialogueText(this, "Second text", Dlg, "NPC", "Fallthrough via goto");
 	if (TestEqual("Second num choices", Dlg->GetNumberOfChoices(), 2))
@@ -390,13 +390,25 @@ bool FTestFallthroughEdgeCase::RunTest(const FString& Parameters)
 		TestEqual("Choice text", Dlg->GetChoiceText(1).ToString(), "Fallthrough 2");
 	}
 
-	// Now prove that implicit fallthrough doesn't work
+	// Now prove that implicit fallthrough works in middle option
 	Dlg->Restart();
 	TestTrue("Choice 2", Dlg->Choose(1));
 	TestDialogueText(this, "Second text", Dlg, "NPC", "Fallthrough implicitly");
-	TestEqual("Second num choices v2", Dlg->GetNumberOfChoices(), 1);
-	TestFalse("Fallthrough fails & goes to end", Dlg->Continue());
-	TestTrue("Should be at end", Dlg->IsEnded());
+	if (TestEqual("Second num choices", Dlg->GetNumberOfChoices(), 2))
+	{
+		TestEqual("Choice text", Dlg->GetChoiceText(0).ToString(), "Fallthrough 1");
+		TestEqual("Choice text", Dlg->GetChoiceText(1).ToString(), "Fallthrough 2");
+	}
+
+	// Now prove that implicit fallthrough works in last option
+	Dlg->Restart();
+	TestTrue("Choice 2", Dlg->Choose(2));
+	TestDialogueText(this, "Second text", Dlg, "NPC", "Fallthrough implicitly again");
+	if (TestEqual("Second num choices", Dlg->GetNumberOfChoices(), 2))
+	{
+		TestEqual("Choice text", Dlg->GetChoiceText(0).ToString(), "Fallthrough 1");
+		TestEqual("Choice text", Dlg->GetChoiceText(1).ToString(), "Fallthrough 2");
+	}
 	
 	return true;
 }

@@ -1224,15 +1224,11 @@ FString FSUDSScriptImporter::GetCurrentTreeConditionalPath(const FSUDSScriptImpo
 
 void FSUDSScriptImporter::SetFallthroughForNewNode(FSUDSScriptImporter::ParsedTree& Tree, FSUDSParsedNode& NewNode)
 {
-	// Never fall through to choice nodes
-	// This does limit your ability to use a dangling text line and have it fall through to a common choice,
-	// but you CAN do it with an explicit goto instead. It's just too ambiguous otherwise when you combine nested
-	// conditions and choices
+	// Choice nodes are allowed to be falled through to now
 	if (NewNode.NodeType == ESUDSParsedNodeType::Choice)
 	{
-		NewNode.AllowFallthrough = false;
 
-		// Also disable fallthrough for any parent select nodes all the way up the chain
+		// But, disable fallthrough for any parent select nodes all the way up the chain
 		int PrevIdx = NewNode.ParentNodeIdx;
 		while (Tree.Nodes.IsValidIndex(PrevIdx) && Tree.Nodes[PrevIdx].NodeType == ESUDSParsedNodeType::Select)
 		{
@@ -1458,7 +1454,7 @@ void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree&
 				// Find the next node which is at a higher indent level than this
 				// For a select node missing else, treat the indent as 1 inward, since it's really falling through from a nested part of the select
 				const int IndentLessThan = bIsSelectNodeMissingElse ? Node.OriginalIndent + 1 : Node.OriginalIndent;
-				const auto FallthroughIdx = FindFallthroughNodeIndex(Tree, i+1, IndentLessThan, Node.ChoicePath, Node.ConditionalPath);
+				const auto FallthroughIdx = FindFallthroughNodeIndex(Tree, i+1, Node.ChoicePath, Node.ConditionalPath);
 				if (Tree.Nodes.IsValidIndex(FallthroughIdx))
 				{
 					Node.Edges.Add(FSUDSParsedEdge(i, FallthroughIdx, Node.SourceLineNo));
@@ -1476,7 +1472,7 @@ void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree&
 				if (!Tree.Nodes.IsValidIndex(Edge.TargetNodeIdx))
 				{
 					// Usually this is a choice line without anything under it, or a condition with nothing in it
-					const auto FallthroughIdx = FindFallthroughNodeIndex(Tree, i+1, Node.OriginalIndent, Node.ChoicePath, Node.ConditionalPath);
+					const auto FallthroughIdx = FindFallthroughNodeIndex(Tree, i+1, Node.ChoicePath, Node.ConditionalPath);
 					if (Tree.Nodes.IsValidIndex(FallthroughIdx))
 					{
 						Edge.TargetNodeIdx = FallthroughIdx;
@@ -1494,7 +1490,6 @@ void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree&
 
 int FSUDSScriptImporter::FindFallthroughNodeIndex(FSUDSScriptImporter::ParsedTree& Tree,
                                                   int StartNodeIndex,
-                                                  int IndentLessThan,
                                                   const FString& FromChoicePath,
                                                   const FString& FromConditionalPath)
 {
@@ -1535,8 +1530,11 @@ int FSUDSScriptImporter::FindFallthroughNodeIndex(FSUDSScriptImporter::ParsedTre
 	for (int i = StartNodeIndex; i < Tree.Nodes.Num(); ++i)
 	{
 		auto N = Tree.Nodes[i];
-		if (N.OriginalIndent < IndentLessThan &&
-			N.AllowFallthrough &&
+		// We used to require that N.OriginalIndent < IndentLessThan here
+		// However, this is actually not needed, since indentation only controls association with choice paths, otherwise
+		// it's irrelevant. And we already check that things only fall through if they're on the same choice/conditional
+		// path (or a superset of it). 
+		if (N.AllowFallthrough &&
 			FromChoicePath.StartsWith(N.ChoicePath) &&
 			FromConditionalPath.StartsWith(N.ConditionalPath))
 		{

@@ -391,7 +391,7 @@ protected:
 	int AppendNode(ParsedTree& Tree, const FSUDSParsedNode& InNode);
 	bool SelectNodeIsMissingElsePath(const FSUDSScriptImporter::ParsedTree& Tree, const FSUDSParsedNode& Node);
 	void ConnectRemainingNodes(ParsedTree& Tree, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent);
-	int FindFallthroughNodeIndex(ParsedTree& Tree, int StartNodeIndex, int IndentLessThan, const FString& FromChoicePath, const FString& FromConditionalPath);
+	int FindFallthroughNodeIndex(ParsedTree& Tree, int StartNodeIndex, const FString& FromChoicePath, const FString& FromConditionalPath);
 	void RetrieveAndRemoveOrGenerateTextID(FStringView& InOutLine, FString& OutTextID);
 	bool RetrieveAndRemoveTextID(FStringView& InOutLine, FString& OutTextID);
 	bool RetrieveAndRemoveGosubID(FStringView& InOutLine, FString& OutTextID);
