@@ -25,7 +25,7 @@ bool FSUDSMessageLogger::HasErrors() const
 {
 	for (const TSharedRef<FTokenizedMessage>& Msg : ErrorMessages)
 	{
-		if (Msg->GetSeverity() == EMessageSeverity::CriticalError || Msg->GetSeverity() == EMessageSeverity::Error)
+		if (Msg->GetSeverity() == EMessageSeverity::Error)
 		{
 			return true;
 		}
@@ -38,7 +38,7 @@ int FSUDSMessageLogger::NumErrors() const
 	int Errs = 0;
 	for (const TSharedRef<FTokenizedMessage>& Msg : ErrorMessages)
 	{
-		if (Msg->GetSeverity() == EMessageSeverity::CriticalError || Msg->GetSeverity() == EMessageSeverity::Error)
+		if (Msg->GetSeverity() == EMessageSeverity::Error)
 		{
 			++Errs;
 		}

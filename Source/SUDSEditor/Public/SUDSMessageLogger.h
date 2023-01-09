@@ -23,8 +23,6 @@ public:
 		switch(Verbosity)
 		{
 		case ELogVerbosity::Fatal:
-			Sev = EMessageSeverity::CriticalError;
-			break;
 		case ELogVerbosity::Error:
 			Sev = EMessageSeverity::Error;
 			break;
