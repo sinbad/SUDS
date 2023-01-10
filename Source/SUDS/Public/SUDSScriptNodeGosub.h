@@ -20,8 +20,10 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	FString GosubID;
 
-	/// Convenience flag to let you know whether this node has any choices directly after it
+	/// Convenience flag to let you know whether this node MAY HAVE any choices directly after it
 	/// Internally this also lets us know to look for the next choice node after returning
+	/// It's possible that where there are conditionals ahead, there are only choices on some of the paths.
+	/// This flag is to let us know to look for choices, but if conditionals apply we may not find any using actual dialogue state.
 	UPROPERTY(BlueprintReadOnly)
 	bool bHasChoices = false;
 	
@@ -36,8 +38,10 @@ public:
 	}
 	FName GetLabelName() const { return LabelName; }
 	const FString& GetGosubID() const { return GosubID; }
-	bool HasChoices() const { return bHasChoices; }
+	/// Whether on one select path or another a choice was found
+	/// Doesn't help if within a Gosub as call site may be anywhere
+	bool MayHaveChoices() const { return bHasChoices; }
 	
-	void NotifyHasChoices() { bHasChoices = true; }
+	void NotifyMayHaveChoices() { bHasChoices = true; }
 
 };

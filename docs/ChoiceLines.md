@@ -192,58 +192,6 @@ You can fallthrough to lines other than speaker lines, including [Set lines](Set
 
 When there's nothing left to fall through to, the dialogue ends.
 
-### Fallthrough to choices
-
-You cannot fallthrough directly to other choices. This is ***not valid*** for example: 
-
-```yaml
-NPC: Some text
-  * Option 1
-    NPC: Let's say I want to fall through from here to the choice below
-
-
-  * Intended fallthrough choice
-  ...
-```
-
-This is because it's ambiguous - that choice is actually a different
-branch of the same choice list, not something you can fall through from.
-You can fix this by introducing another line between them; either another
-speaker line:
-
-```yaml
-NPC: Some text
-  * Option 1
-    NPC: Let's say I want to fall through from here to the choice below
-
-NPC: New speaker line which is a valid fallthrough target
-  * Intended fallthrough choice
-  ...
-```
-
-Or, if you didn't want to add an extra line you can make it an explicit [goto](GotoLines.md)
-instead of a fallthrough:
-
-```yaml
-NPC: Some text
-  * Option 1
-    NPC: Let's say I want to fall through from here to the choice below
-    [goto secondchoice]
-
-:secondchoice
-  * Intended fallthrough choice
-  ...
-```
-
-The addition of the label and goto splits the choice list up and removes the
-ambiguity, while still allowing you to go directly from the speaker line inside
-the "Option 1" choice to the later choice list, without an intervening speaker line.
-You do still need both the goto and the label.
-
-Also, sometimes it can just make your script clearer if you use explicit
-[gotos](GotoLines.md) instead of relying on fallthrough behaviour.
-
-
 ### Conditionals and fallthroughs
 
 Lines in one [Conditional Block](ConditionalLines.md) can only fall through to 

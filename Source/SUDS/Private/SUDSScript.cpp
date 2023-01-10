@@ -5,6 +5,8 @@
 #include "SUDSScriptNodeText.h"
 #include "EditorFramework/AssetImportData.h"
 
+PRAGMA_DISABLE_OPTIMIZATION
+
 void USUDSScript::StartImport(TArray<USUDSScriptNode*>** ppNodes,
                               TArray<USUDSScriptNode*>** ppHeaderNodes,
                               TMap<FName, int>** ppLabelList,
@@ -33,35 +35,85 @@ USUDSScriptNode* USUDSScript::GetNextNode(const USUDSScriptNode* Node) const
 	
 }
 
-const USUDSScriptNode* USUDSScript::GetNextChoiceNode(const USUDSScriptNode* FromNode) const
+
+#define kChoiceFound 1
+#define kChoiceNotFoundBeforeText -1
+#define kChoiceNotFoundBeforeEnd 0 
+
+
+bool USUDSScript::DoesAnyPathAfterLeadToChoice(USUDSScriptNode* FromNode)
 {
-	// there is *always* an initial choice node under a text node if there are choices
-	// however, it might not be the *only* choice node; if there are conditionals it could be a mixed tree
-	// of choice / select nodes. But there will always be a root choice
-	// However, there might be set/event nodes between them, if that's where they were scripted (execute for any choices)
-	if (FromNode &&
-		(FromNode->GetNodeType() == ESUDSScriptNodeType::Text || FromNode->GetNodeType() == ESUDSScriptNodeType::Gosub))
-	{
-		auto NextNode = GetNextNode(FromNode);
-		// We skip over nodes which can be executed in between text & choice (set, event)
-		while (NextNode &&
-			(NextNode->GetNodeType() == ESUDSScriptNodeType::SetVariable ||
-			NextNode->GetNodeType() == ESUDSScriptNodeType::Event))
-		{
-			NextNode = GetNextNode(NextNode);
-		}
+	// Look for any possible choice following a node (text or gosub)
+	// If it's possible to find a choice in one of the paths ahead, before another text node, the return true
+	// Given that there might be conditionals, not all paths might lead to a choice, but we only care if one of them does
+	// We recurse into conditional paths where they exist until we know.
+	// For a gosub this is looking for the next after a return, not inside the sub
+	USUDSScriptNode* CurrNode = GetNextNode(FromNode);
 
-		if (NextNode && NextNode->GetNodeType() == ESUDSScriptNodeType::Choice)
-		{
-			return NextNode;
-		}
-
-	}
-
-	return nullptr;
-	
+	return RecurseLookForChoice(CurrNode) == kChoiceFound;
 }
 
+
+int USUDSScript::RecurseLookForChoice(USUDSScriptNode* CurrNode)
+{
+	// Return int so that we can differentiate:
+	// 1  = we found a choice
+	// 0  = we didn't find a choice, but also didn't hit another text node (reached end, or gosub return)
+	// -1 = we hit a text node
+	while (CurrNode)
+	{
+		switch (CurrNode->GetNodeType())
+		{
+		case ESUDSScriptNodeType::Text:
+			// if we hit a text node, there was no choice
+			return kChoiceNotFoundBeforeText;
+		case ESUDSScriptNodeType::Choice:
+			// we found a choice
+			return kChoiceFound;
+		case ESUDSScriptNodeType::Select:
+			{
+				// Explore all possible routes
+				int WorstResult = kChoiceNotFoundBeforeEnd;
+				for (auto& Edge : CurrNode->GetEdges())
+				{
+					auto TargetNode = Edge.GetTargetNode();
+					if (TargetNode.IsValid())
+					{
+						const int ConditionalPath = RecurseLookForChoice(TargetNode.Get());
+						if (ConditionalPath == kChoiceFound)
+							return kChoiceFound;
+						WorstResult = FMath::Min(ConditionalPath, WorstResult);
+					}
+				}
+				return WorstResult;
+			}
+		case ESUDSScriptNodeType::Event:
+		case ESUDSScriptNodeType::SetVariable:
+			CurrNode = GetNextNode(CurrNode); 
+			break;
+		case ESUDSScriptNodeType::Gosub:
+			// When we hit a gosub here we go into it, not after it
+			if (auto GosubNode = Cast<USUDSScriptNodeGosub>(CurrNode))
+			{
+				int SubResult = RecurseLookForChoice(GetNodeByLabel(GosubNode->GetLabelName()));
+				if (SubResult != 0)
+				{
+					// Found definitive result (choice or text) inside sub
+					return SubResult;
+				}
+			}
+			// Otherwise, we didn't conclude within the sub, continue following it
+			CurrNode = GetNextNode(CurrNode);
+			break;
+		default: ;
+		case ESUDSScriptNodeType::Return:
+			// this is when we're exploring a sub for the choice
+			return kChoiceNotFoundBeforeEnd; 
+		};
+	}
+
+	return kChoiceNotFoundBeforeEnd;
+}
 
 void USUDSScript::FinishImport()
 {
@@ -73,7 +125,7 @@ void USUDSScript::FinishImport()
 		if (Node->GetNodeType() == ESUDSScriptNodeType::Text ||
 			Node->GetNodeType() == ESUDSScriptNodeType::Gosub)
 		{
-			if (auto ChoiceNode = GetNextChoiceNode(Node))
+			if (DoesAnyPathAfterLeadToChoice(Node))
 			{
 				switch (Node->GetNodeType())
 				{
@@ -81,7 +133,7 @@ void USUDSScript::FinishImport()
 					{
 						if (auto TextNode = Cast<USUDSScriptNodeText>(Node))
 						{
-							TextNode->NotifyHasChoices();
+							TextNode->NotifyMayHaveChoices();
 						}
 						break;
 					}
@@ -89,7 +141,7 @@ void USUDSScript::FinishImport()
 					{
 						if (auto GosubNode = Cast<USUDSScriptNodeGosub>(Node))
 						{
-							GosubNode->NotifyHasChoices();
+							GosubNode->NotifyMayHaveChoices();
 						}
 						break;
 					}
@@ -195,3 +247,5 @@ void USUDSScript::Serialize(FArchive& Ar)
 	}
 }
 #endif
+
+PRAGMA_ENABLE_OPTIMIZATION

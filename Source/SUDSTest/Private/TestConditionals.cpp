@@ -677,4 +677,60 @@ bool FTestChoiceAfterConditionals::RunTest(const FString& Parameters)
     return true;
 }
 
+const FString ChoiceAfterNestedConditionals = R"RAWSUD(
+NPC: Hello
+[if {AltPath}]
+    Player: This is the alternate path before choice
+[else]
+    Player: This is the main path
+    [if {AltPath2}]
+        Player: An alt-alt path
+    [endif]
+[endif]
+:choices
+    * Choice 1
+        NPC: Choice 1 after conditional
+    * Choice 2
+        NPC: Choice 2 after conditional
+
+NPC: Bye
+)RAWSUD";
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestChoiceAfterNestedConditionals,
+                                 "SUDSTest.TestChoiceAfterNestedConditionals",
+                                 EAutomationTestFlags::EditorContext |
+                                 EAutomationTestFlags::ClientContext |
+                                 EAutomationTestFlags::ProductFilter)
+
+
+bool FTestChoiceAfterNestedConditionals::RunTest(const FString& Parameters)
+{
+    FSUDSMessageLogger Logger(false);
+    FSUDSScriptImporter Importer;
+    TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(ChoiceAfterNestedConditionals), ChoiceAfterNestedConditionals.Len(), "ChoiceAfterNestedConditionals", &Logger, true));
+
+    auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
+    const ScopedStringTableHolder StringTableHolder;
+    Importer.PopulateAsset(Script, StringTableHolder.StringTable);
+
+    // Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
+    auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
+
+    // For the first run, do not set any state
+    Dlg->Start();
+
+    TestDialogueText(this, "Text node", Dlg, "NPC", "Hello");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text node", Dlg, "Player", "This is the main path");
+    TestEqual("Number of choices", Dlg->GetNumberOfChoices(), 2);
+    TestEqual("Choice text", Dlg->GetChoiceText(0).ToString(), "Choice 1");
+    TestEqual("Choice text", Dlg->GetChoiceText(1).ToString(), "Choice 2");
+    TestTrue("Choose", Dlg->Choose(0));
+    TestDialogueText(this, "Text node", Dlg, "NPC", "Choice 1 after conditional");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text node", Dlg, "NPC", "Bye");
+    return true;
+}
+
+
 PRAGMA_ENABLE_OPTIMIZATION

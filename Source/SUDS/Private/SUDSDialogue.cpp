@@ -103,7 +103,7 @@ void USUDSDialogue::RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* NextNode, bool
 	// We run through nodes which don't require a speaker line prompt
 	// E.g. set nodes, select nodes which are all automatically resolved
 	// Starting with this node
-	while (NextNode && !ShouldStopAtNodeType(NextNode->GetNodeType()))
+	while (NextNode && !IsChoiceOrTextNode(NextNode->GetNodeType()))
 	{
 		NextNode = RunNode(NextNode);
 	}
@@ -405,32 +405,109 @@ FText USUDSDialogue::GetSpeakerDisplayName() const
 	return CurrentSpeakerDisplayName;
 }
 
-USUDSScriptNode* USUDSDialogue::GetNextNode(const USUDSScriptNode* Node) const
+USUDSScriptNode* USUDSDialogue::GetNextNode(USUDSScriptNode* Node)
 {
-	return BaseScript->GetNextNode(Node);
+	// In the case of select, we need to evaluate to get the next node
+	if (Node->GetNodeType() == ESUDSScriptNodeType::Select)
+	{
+		return RunSelectNode(Node);	
+	}
+	else
+	{
+		return BaseScript->GetNextNode(Node);
+	}
 }
 
-bool USUDSDialogue::ShouldStopAtNodeType(ESUDSScriptNodeType Type)
+bool USUDSDialogue::IsChoiceOrTextNode(ESUDSScriptNodeType Type)
 {
 	return Type == ESUDSScriptNodeType::Text || Type == ESUDSScriptNodeType::Choice;
 }
 
-const USUDSScriptNode* USUDSDialogue::RunUntilNextChoiceNode(const USUDSScriptNodeText* FromTextNode)
+const USUDSScriptNode* USUDSDialogue::WalkToNextChoiceNode(USUDSScriptNode* FromNode, bool bExecute)
 {
-	if (FromTextNode && FromTextNode->GetEdgeCount() == 1)
+	if (FromNode && FromNode->GetEdgeCount() == 1)
 	{
-		auto NextNode = GetNextNode(FromTextNode);
-		// We skip over set nodes
-		while (NextNode && !ShouldStopAtNodeType(NextNode->GetNodeType()))
+		const auto NextNode = GetNextNode(FromNode);
+		const auto ResultNode = RecurseWalkToNextChoiceOrTextNode(NextNode, bExecute, 0);
+		if (ResultNode && ResultNode->GetNodeType() == ESUDSScriptNodeType::Choice)
+		{
+			return ResultNode;
+		}
+	}
+	return nullptr;
+}
+
+const USUDSScriptNode* USUDSDialogue::RecurseWalkToNextChoiceOrTextNode(USUDSScriptNode* Node, bool bExecute, int GosubReturnSearchDepth)
+{
+	auto NextNode = Node;
+	while (NextNode && !IsChoiceOrTextNode(NextNode->GetNodeType()))
+	{
+		// Special case gosub/return in non-execute mode, since only RunNode will explore them
+		if (!bExecute)
+		{
+			if (NextNode->GetNodeType() == ESUDSScriptNodeType::Gosub)
+			{
+				// We need to special case Gosubs, since to find the choice we have to go into them and potentially out again
+				if (const USUDSScriptNodeGosub* GosubNode = Cast<USUDSScriptNodeGosub>(NextNode))
+				{
+					if (auto SubNode = BaseScript->GetNodeByLabel(GosubNode->GetLabelName()))
+					{
+						if (auto Result = RecurseWalkToNextChoiceOrTextNode(SubNode, bExecute, GosubReturnSearchDepth + 1))
+						{
+							// We hit a choice or text inside the sub
+							return Result;
+						}
+						// We exited the sub without finding anything, so continue after
+						// Fall through to GetNextNode below
+					}
+				}
+						
+			}
+			else if (NextNode->GetNodeType() == ESUDSScriptNodeType::Return)
+			{
+				// A return can occur in 2 scenarios:
+				// 1. We recursed here, above, in which case we can just return to come back out
+				// 2. The current dialogue state is inside a gosub, in which case we have to use the gosub stack
+
+				if (GosubReturnSearchDepth > 0)
+				{
+					// This was exploratory recursion in this function, so just return as not finding
+					return nullptr;
+				}
+				else
+				{
+					// If we're at depth 0 then we must be returning from a current dialogue state inside a gosub
+					// The GosubReturnSearchDepth goes negative if we return multiple times from this site (nested gosub)
+					if (GosubReturnStack.Num() > -GosubReturnSearchDepth)
+					{
+						// We try to find the next choice node after the gosub, which temporarily redirected
+						const auto GoSubNode = GosubReturnStack.Last(-GosubReturnSearchDepth);
+						return RecurseWalkToNextChoiceOrTextNode(GetNextNode(GoSubNode), bExecute, GosubReturnSearchDepth - 1);
+					}
+				}
+			}
+		}
+		
+		if (bExecute)
 		{
 			NextNode = RunNode(NextNode);
 		}
-
-		return NextNode;
+		else
+		{
+			NextNode = GetNextNode(NextNode);
+		}
 	}
 
-	return nullptr;
-	
+	return NextNode;
+}
+
+const USUDSScriptNode* USUDSDialogue::RunUntilNextChoiceNode(USUDSScriptNode* FromNode)
+{
+	return WalkToNextChoiceNode(FromNode, true);
+}
+const USUDSScriptNode* USUDSDialogue::FindNextChoiceNode(USUDSScriptNode* FromNode)
+{
+	return WalkToNextChoiceNode(FromNode, false);
 }
 
 const TArray<FSUDSScriptEdge>& USUDSDialogue::GetChoices() const
@@ -487,39 +564,27 @@ void USUDSDialogue::UpdateChoices()
 	CurrentChoices.Reset();
 	if (CurrentSpeakerNode)
 	{
-		if (CurrentSpeakerNode->HasChoices())
+		// If we've either found choices through static checking (on one or other select paths), we look for them now
+		// We also check if we're inside a gosub, since the call site changes whether there may be choices or not
+		if (CurrentSpeakerNode->MayHaveChoices() ||
+			GosubReturnStack.Num() > 0)
 		{
-			// Root choice node might not be directly underneath. For example, we may go through set nodes first
-			if (const USUDSScriptNode* ChoiceNode = BaseScript->GetNextChoiceNode(CurrentSpeakerNode))
+			// We MIGHT have a choice; conditionals can result in HasChoices() being true but the current state not actually
+			// taking us to a choice path
+			if (const USUDSScriptNode* ChoiceNode = FindNextChoiceNode(CurrentSpeakerNode))
 			{
 				// Once we've found the root choice, there can be potentially a tree of mixed choice/select nodes
 				// for supporting conditional choices
 				RecurseAppendChoices(ChoiceNode, CurrentChoices);
 			}
 		}
-		else
+
+		if (CurrentChoices.Num() == 0)
 		{
 			if (auto Edge = CurrentSpeakerNode->GetEdge(0))
 			{
-				auto Target = Edge->GetTargetNode();
-				if (Target.IsValid() && Target->GetNodeType() == ESUDSScriptNodeType::Return)
-				{
-					// Returning from a gosub *might* go back to a choice, we can't know ahead of time, it depends on context
-					if (GosubReturnStack.Num() > 0)
-					{
-						// We try to find the next choice node after the gosub, which temporarily redirected
-						const auto GoSubNode = GosubReturnStack.Top();
-						if (GoSubNode->HasChoices())
-						{
-							if (const USUDSScriptNode* ChoiceNode = BaseScript->GetNextChoiceNode(GoSubNode))
-							{
-								RecurseAppendChoices(ChoiceNode, CurrentChoices);
-								return;
-							}
-						}
-					}
-				}
-				// Simple no-choice progression (text->text)
+				// Simple no-choice progression
+				// May occur if HasChoices was true but in current state no choice was found
 				CurrentChoices.Add(*Edge);
 			}			
 		}
@@ -615,7 +680,7 @@ bool USUDSDialogue::CurrentNodeHasChoices() const
 		return false;
 
 	// early-out precomputed text node choice indicator
-	if (CurrentSpeakerNode->HasChoices())
+	if (CurrentSpeakerNode->MayHaveChoices())
 		return true;
 
 	// Alternatively, if the next node is a return, the site of the gosub determines whether there are choices
@@ -629,7 +694,7 @@ bool USUDSDialogue::CurrentNodeHasChoices() const
 			{
 				// We try to find the next choice node after the gosub, which temporarily redirected
 				const auto GoSubNode = GosubReturnStack.Top();
-				return GoSubNode->HasChoices();
+				return GoSubNode->MayHaveChoices();
 			}
 		}
 	}

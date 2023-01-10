@@ -20,11 +20,13 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	FText Text;
 
-	/// Convenience flag to let you know whether this text node has any choices attached
+	/// Convenience flag to let you know whether this text node MAY HAVE choices attached
 	/// If false, there's only one way to proceed from here and no text associated with that
-	/// If true, either there are > 1 choice options, or a single choice with associated text (this can be when
+	/// If true, either there can be > 1 choice options, or a single choice with associated text (this can be when
 	/// you have no choice but want text rather than just a continue button)
 	/// Internally this also lets us know to look for the next choice node
+	/// It's possible that where there are conditionals ahead, there are only choices on some of the paths.
+	/// This flag is to let us know to look for choices, but if conditionals apply we may not find any using actual dialogue state.
 	UPROPERTY(BlueprintReadOnly)
 	bool bHasChoices = false;
 	
@@ -38,13 +40,15 @@ public:
 	const FString& GetSpeakerID() const { return SpeakerID; }
 	const FText& GetText() const { return Text; }
 	FString GetTextID() const;
-	bool HasChoices() const { return bHasChoices; }
+	/// Whether on one select path or another a choice was found
+	/// Doesn't help if within a Gosub as call site may be anywhere
+	bool MayHaveChoices() const { return bHasChoices; }
 
 	void Init(const FString& SpeakerID, const FText& Text, int LineNo);
 	const FTextFormat& GetTextFormat() const;
 	const TArray<FName>& GetParameterNames() const;	
 	bool HasParameters() const;
 
-	void NotifyHasChoices() { bHasChoices = true; }
+	void NotifyMayHaveChoices() { bHasChoices = true; }
 
 };

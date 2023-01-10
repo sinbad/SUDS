@@ -35,6 +35,9 @@ protected:
 	/// Array of all speaker IDs found in this script
 	UPROPERTY(BlueprintReadOnly, VisibleDefaultsOnly)
 	TArray<FString> Speakers;
+
+	bool DoesAnyPathAfterLeadToChoice(USUDSScriptNode* FromNode);
+	int RecurseLookForChoice(USUDSScriptNode* CurrNode);
 	
 public:
 	void StartImport(TArray<USUDSScriptNode*>** Nodes,
@@ -61,10 +64,6 @@ public:
 	/// Get the next node after a given node, ONLY if there's only one way to go
 	UFUNCTION(BlueprintCallable)
 	USUDSScriptNode* GetNextNode(const USUDSScriptNode* Node) const;
-
-	/// Get the next choice node after a given text or gosub node. Skips over set/event nodes
-	UFUNCTION(BlueprintCallable)
-	const USUDSScriptNode* GetNextChoiceNode(const USUDSScriptNode* FromNode) const;
 
 	/// Get the first node of the script following a label, or null if the label wasn't found
 	UFUNCTION(BlueprintCallable)

@@ -157,7 +157,10 @@ protected:
 	static const FString DummyString;
 
 	void RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* FromNode, bool bRaiseAtEnd);
-	const USUDSScriptNode* RunUntilNextChoiceNode(const USUDSScriptNodeText* FromTextNode);
+	const USUDSScriptNode* WalkToNextChoiceNode(USUDSScriptNode* FromNode, bool bExecute);
+	const USUDSScriptNode* RecurseWalkToNextChoiceOrTextNode(USUDSScriptNode* Node, bool bExecute, int GosubReturnSearchDepth);
+	const USUDSScriptNode* RunUntilNextChoiceNode(USUDSScriptNode* FromTextNode);
+	const USUDSScriptNode* FindNextChoiceNode(USUDSScriptNode* FromNode);
 	void SetCurrentSpeakerNode(USUDSScriptNodeText* Node, bool bQuietly);
 	void SortParticipants();
 	void RaiseStarting(FName StartLabel);
@@ -169,8 +172,8 @@ protected:
 	void RaiseVariableRequested(const FName& VarName);
 	void RaiseExpressionVariablesRequested(const FSUDSExpression& Expression);
 
-	USUDSScriptNode* GetNextNode(const USUDSScriptNode* Node) const;
-	bool ShouldStopAtNodeType(ESUDSScriptNodeType Type);
+	USUDSScriptNode* GetNextNode(USUDSScriptNode* Node);
+	bool IsChoiceOrTextNode(ESUDSScriptNodeType Type);
 	USUDSScriptNode* RunNode(USUDSScriptNode* Node);
 	USUDSScriptNode* RunSelectNode(USUDSScriptNode* Node);
 	USUDSScriptNode* RunSetVariableNode(USUDSScriptNode* Node);
