@@ -69,31 +69,6 @@ putting conditions around choices that you don't end up changing the meaning of
 the choice branches accidentally. Ideally keep the choices at the same indent they
 would normally be to make it easier to line things up.
 
-## Limitations
-
-The main limitation with conditionals is that you cannot have a conditional
-under a speaker line which changes whether or not there are *any* choices
-following it. For example:
-
-```yaml
-# THIS IS NOT VALID
-NPC: Hello
-[if {x} == 0]
-    * This path has choices
-        NPC: Choice 1 taken!
-    * Another choice
-        NPC: Choice 1 taken!
-[else]
-NPC: This path had no choice
-[endif]
-```
-
-In other words, it has to be pre-determined whether *any* choices follow a speaker line
-or not. This is just a limitation with how choices are detected. This limitation
-applies via [gotos](GotoLines.md) as well.
-
-To fix this, you would either need to put a single choice in the `[else]` block, 
-or put the `NPC: Hello` line *inside* both blocks instead.
 
 ---
 
