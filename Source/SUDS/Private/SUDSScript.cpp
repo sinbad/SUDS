@@ -5,7 +5,7 @@
 #include "SUDSScriptNodeText.h"
 #include "EditorFramework/AssetImportData.h"
 
-PRAGMA_DISABLE_OPTIMIZATION
+//PRAGMA_DISABLE_OPTIMIZATION
 
 void USUDSScript::StartImport(TArray<USUDSScriptNode*>** ppNodes,
                               TArray<USUDSScriptNode*>** ppHeaderNodes,
@@ -248,4 +248,4 @@ void USUDSScript::Serialize(FArchive& Ar)
 }
 #endif
 
-PRAGMA_ENABLE_OPTIMIZATION
+//PRAGMA_ENABLE_OPTIMIZATION
