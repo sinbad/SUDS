@@ -37,3 +37,14 @@ get the auto-import prompt for this.
 
 > This sucks, and if anyone knows a way to fix this problem without turning off
 > the "Detect Changes on Startup" option, I'd love to hear it!
+
+### How do I resolve merge conflicts with SUDS files?
+
+Because SUDS assets are entirely imported from the text `.sud` file, if you have
+merge conflicts you only have to resolve them in the `.sud` file itself, then
+reimport the asset using that resolved version.
+
+
+### See Also:
+* [Script Reference](ScriptReference.md)
+* [Full Documentation Index](../Index.md)
