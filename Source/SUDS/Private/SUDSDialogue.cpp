@@ -573,7 +573,11 @@ void USUDSDialogue::UpdateChoices()
 			// taking us to a choice path
 			if (const USUDSScriptNode* ChoiceNode = FindNextChoiceNode(CurrentSpeakerNode))
 			{
-				// Once we've found the root choice, there can be potentially a tree of mixed choice/select nodes
+				// Run any e.g. set nodes between text and choice
+				// These can be set nodes directly under the text and before the first choice, which get run for all choices
+				RunUntilNextChoiceNode(CurrentSpeakerNode);
+
+				// Once we've found & run up to the root choice, there can be potentially a tree of mixed choice/select nodes
 				// for supporting conditional choices
 				RecurseAppendChoices(ChoiceNode, CurrentChoices);
 			}
@@ -655,9 +659,6 @@ bool USUDSDialogue::Choose(int Index)
 			
 			RaiseChoiceMade(Index);
 			RaiseProceeding();
-			// Run any e.g. set nodes between text and choice
-			// These can be set nodes directly under the text and before the first choice, which get run for all choices
-			RunUntilNextChoiceNode(CurrentSpeakerNode);
 		}
 		else
 		{

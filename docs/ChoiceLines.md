@@ -200,8 +200,8 @@ any conditional).
 
 ## Lines *between* Speaker and Choice Lines
 
-Here's a small wrinkle to look out for. It's perfectly valid to put additional
-non-speaker lines between speaker lines and the choices, for example:
+It's perfectly valid to put additional non-speaker lines between speaker lines 
+and the choices, for example:
 
 ```yaml
 Player: Hello
@@ -212,15 +212,18 @@ Player: Hello
     NPC: You picked 2
 ```
 
-However, it's important to understand the timing of those lines. They will
-be executed on *proceeding* from the `Player: Hello` line, by picking either of
-those choices.
+When there's no choices, lines following a speaker line won't be executed until
+the player proceed onwards from that speaker line. But, when there are choices, because the choices
+are evaluated as *part of the speaker line* (since they have to be displayed with it),
+any lines in between like this will be evaluated immediately.
 
-This means that if you did something which was dependent on those lines for the 
-choices themselves, such as a [Conditional](ConditionalLines.md), it wouldn't work:
+So you could, for example, do something which was dependent on those lines in the 
+choices themselves, such as a [Conditional](ConditionalLines.md):
 
 ```yaml
 Player: Hello
+# The following set will be executed as part of the speaker line, 
+# because dialogue goes through it to find the choices
 [set SomeVar 3]
   * Choice 1
     NPC: You picked 1
@@ -228,37 +231,19 @@ Player: Hello
     NPC: You picked 2
   [if {SomeVar} > 0]
   * Choice 3
-    NPC: This choice won't happen
+    NPC: This choice WILL be available
   [endif]
 ```
 
-Although it might look like `SomeVar` is set to `3` beforehand, and so `Choice 3` 
-should appear, the sequence isn't like that. Choices are *attached to the speaker line*,
-and made available immediately that speaker line is active. The line `[set SomeVar 3]`
-isn't executed until *one of the choices is selected* and so won't be considered 
-when deciding which choices should be available on the `Player: Hello` speaker line.
+This is subtly different timing compared to if that `set` line was
+between 2 speaker lines, but since choices are an *extension* of the speaker line
+it makes sense that anything in between is evaluated as the dialogue collates 
+the choices for use while playing the speaker line.
 
-The way to think about it is that the choice lines are part of the `Player: Hello`
-line. We don't *execute* any lines after the `Player: Hello` line until we move on
-from it. Set / event lines between it and the choice line are just common to all
-choices, and are not run before choices are made.
-
-So, if you actually wanted to do this you should move the set line before the speaker line:
-
-```yaml
-[set SomeVar 3]
-Player: Hello
-  * Choice 1
-    NPC: You picked 1
-  * Choice 2
-    NPC: You picked 2
-  [if {SomeVar} > 0]
-  * Choice 3
-    NPC: This choice will work now
-  [endif]
-```
-
-
+If you find it confusing, just don't put set/event etc lines in between speaker
+lines and choices. But it can be very useful, for example for cases when you
+use [goto](GotoLines.md) or [gosub](GosubLines.md) to go back to common choices
+and you want to set something just before that.
 
 ---
 

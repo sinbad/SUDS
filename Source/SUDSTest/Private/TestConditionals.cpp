@@ -732,5 +732,52 @@ bool FTestChoiceAfterNestedConditionals::RunTest(const FString& Parameters)
     return true;
 }
 
+const FString VarsSetBetweenTextAndChoiceChoice = R"RAWSUD(
+# prove that the set node is run before the choices are evaluated even though it's after the text node
+NPC: Hello
+[set AltPath true]
+[if {AltPath}]
+    * Alt Choice
+        Player: This is the alternate path choice
+[else]
+    * Main Choice
+        Player: Main path choice
+[endif]
+    * Common Choice
+        Player: Common choice here
+NPC: Bye
+)RAWSUD";
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FVarsSetBetweenTextAndChoiceChoice,
+                                 "SUDSTest.VarsSetBetweenTextAndChoiceChoice",
+                                 EAutomationTestFlags::EditorContext |
+                                 EAutomationTestFlags::ClientContext |
+                                 EAutomationTestFlags::ProductFilter)
+
+
+bool FVarsSetBetweenTextAndChoiceChoice::RunTest(const FString& Parameters)
+{
+    FSUDSMessageLogger Logger(false);
+    FSUDSScriptImporter Importer;
+    TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(VarsSetBetweenTextAndChoiceChoice), VarsSetBetweenTextAndChoiceChoice.Len(), "VarsSetBetweenTextAndChoiceChoice", &Logger, true));
+
+    auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
+    const ScopedStringTableHolder StringTableHolder;
+    Importer.PopulateAsset(Script, StringTableHolder.StringTable);
+
+    // Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
+    auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
+
+    // For the first run, do not set any state
+    Dlg->Start();
+
+    TestDialogueText(this, "Text node", Dlg, "NPC", "Hello");
+    TestEqual("Number of choices", Dlg->GetNumberOfChoices(), 2);
+    TestEqual("Choice text", Dlg->GetChoiceText(0).ToString(), "Alt Choice");
+    TestEqual("Choice text", Dlg->GetChoiceText(1).ToString(), "Common Choice");
+
+    return true;
+}
+
 
 PRAGMA_ENABLE_OPTIMIZATION
