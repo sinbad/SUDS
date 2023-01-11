@@ -85,3 +85,4 @@ happens when you reach the bottom of an indented section (under a choice).
 * [Localisation](Localisation.md)
 * [Running Dialogue](RunningDialogue.md)
 * [Full Documentation Index](../Index.md)
+* [Frequently Asked Questions](docs/FAQ.md)

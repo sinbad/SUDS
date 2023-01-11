@@ -21,3 +21,4 @@
 1. [Text Markup](docs/TextMarkup.md)
 1. [Localisation](docs/Localisation.md)
 1. [Visual Studio Code Extension](docs/vscode.md)
+1. [Frequently Asked Questions](docs/FAQ.md)

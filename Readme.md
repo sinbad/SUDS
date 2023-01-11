@@ -42,6 +42,6 @@ SUDS has many features, including:
 > * [Running Dialogue in UE](docs/RunningDialogue.md)
 > * [Script reference](docs/ScriptReference.md)
 > * [Full Documentation Index](Index.md)
-
+> * [Frequently Asked Questions](docs/FAQ.md)
 
 
