@@ -4,6 +4,9 @@
 
 ### When using Source Control, I get prompted to re-import other people's changes to .sud files
 
+> This sucks! I've actually [submitted a Pull Request](https://github.com/EpicGames/UnrealEngine/pull/10006)
+> to fix this issue, so that hopefully in future this won't be a problem.
+
 If you're using source control, one person will be writing the `.sud` file and
 probably importing it into a `.uasset` as well, and adding both to source control.
 
@@ -34,9 +37,6 @@ Changing this setting will fix the problem, but has the side effect of making UE
 only prompt you to re-import assets that you update *while the editor is running*.
 If you're in the habit of changing source files then started UE, you'll no longer
 get the auto-import prompt for this.
-
-> This sucks, and if anyone knows a way to fix this problem without turning off
-> the "Detect Changes on Startup" option, I'd love to hear it!
 
 ### How do I resolve merge conflicts with SUDS files?
 
