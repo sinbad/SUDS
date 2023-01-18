@@ -7,7 +7,13 @@ When you [set a variable](#setting-variables) value, either in script or in code
 is added to this variable memory, which persists all the time the dialogue exists, 
 and can be [saved](SavingState.md).
 
-All variables are ***global***, and names are ***case insensitive***.
+* All variables are ***global***
+* Variable names are ***case insensitive***.
+* Variable names can contain:
+	* Letters (a-z, A-Z)
+	* Numbers (0-9)
+	* Underscores (_)
+	* Periods (.)
 
 Variables are ***flexibly typed***, which means you can assign any of the 
 [supported types](#supported-types) to them.

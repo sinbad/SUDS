@@ -24,7 +24,7 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, FString* OutPar
 	// - Predefined constants (Masculine, feminine, true, false etc)
 	// - Quoted strings "string"
 	// - Quoted names `name`
-	const FRegexPattern Pattern(TEXT("(\\{\\w+\\}|-?\\d+(?:\\.\\d*)?|[-+*\\/\\(\\)]|and|&&|\\|\\||or|not|\\<\\>|!=|!|\\<=?|\\>=?|==?|[mM]asculine|[fF]eminine|[nN]euter|[tT]rue|[fF]alse|\\\"([^\\\"]*)\\\"|`([^`]*)`)"));
+	const FRegexPattern Pattern(TEXT("(\\{[\\w\\.]+\\}|-?\\d+(?:\\.\\d*)?|[-+*\\/\\(\\)]|and|&&|\\|\\||or|not|\\<\\>|!=|!|\\<=?|\\>=?|==?|[mM]asculine|[fF]eminine|[nN]euter|[tT]rue|[fF]alse|\\\"([^\\\"]*)\\\"|`([^`]*)`)"));
 	FRegexMatcher Regex(Pattern, Expression);
 	// Stacks that we use to construct
 	TArray<ESUDSExpressionItemType> OperatorStack;
