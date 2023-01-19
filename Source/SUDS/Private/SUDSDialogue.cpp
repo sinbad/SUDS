@@ -562,6 +562,7 @@ void USUDSDialogue::RecurseAppendChoices(const USUDSScriptNode* Node, TArray<FSU
 void USUDSDialogue::UpdateChoices()
 {
 	CurrentChoices.Reset();
+	CurrentRootChoiceNode = nullptr;
 	if (CurrentSpeakerNode)
 	{
 		// If we've either found choices through static checking (on one or other select paths), we look for them now
@@ -571,7 +572,8 @@ void USUDSDialogue::UpdateChoices()
 		{
 			// We MIGHT have a choice; conditionals can result in HasChoices() being true but the current state not actually
 			// taking us to a choice path
-			if (const USUDSScriptNode* ChoiceNode = FindNextChoiceNode(CurrentSpeakerNode))
+			CurrentRootChoiceNode = FindNextChoiceNode(CurrentSpeakerNode);
+			if (CurrentRootChoiceNode)
 			{
 				// Run any e.g. set nodes between text and choice
 				// These can be set nodes directly under the text and before the first choice, which get run for all choices
@@ -579,7 +581,7 @@ void USUDSDialogue::UpdateChoices()
 
 				// Once we've found & run up to the root choice, there can be potentially a tree of mixed choice/select nodes
 				// for supporting conditional choices
-				RecurseAppendChoices(ChoiceNode, CurrentChoices);
+				RecurseAppendChoices(CurrentRootChoiceNode, CurrentChoices);
 			}
 		}
 
@@ -677,31 +679,7 @@ bool USUDSDialogue::Choose(int Index)
 
 bool USUDSDialogue::CurrentNodeHasChoices() const
 {
-	if (!CurrentSpeakerNode)
-		return false;
-
-	// early-out precomputed text node choice indicator
-	if (CurrentSpeakerNode->MayHaveChoices())
-		return true;
-
-	// Alternatively, if the next node is a return, the site of the gosub determines whether there are choices
-	if (auto Edge = CurrentSpeakerNode->GetEdge(0))
-	{
-		const auto Target = Edge->GetTargetNode();
-		if (Target.IsValid() && Target->GetNodeType() == ESUDSScriptNodeType::Return)
-		{
-			// Returning from a gosub *might* go back to a choice, we can't know ahead of time, it depends on context
-			if (GosubReturnStack.Num() > 0)
-			{
-				// We try to find the next choice node after the gosub, which temporarily redirected
-				const auto GoSubNode = GosubReturnStack.Top();
-				return GoSubNode->MayHaveChoices();
-			}
-		}
-	}
-
-	return false;
-
+	return CurrentRootChoiceNode != nullptr;
 }
 
 bool USUDSDialogue::IsEnded() const

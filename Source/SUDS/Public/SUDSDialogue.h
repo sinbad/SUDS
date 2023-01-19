@@ -127,6 +127,9 @@ protected:
 	const USUDSScript* BaseScript;
 	UPROPERTY()
 	USUDSScriptNodeText* CurrentSpeakerNode;
+	UPROPERTY()
+	const USUDSScriptNode* CurrentRootChoiceNode;
+
 	/// External objects which want to closely participate in the dialogue (not just listen to events)
 	UPROPERTY()
 	TArray<UObject*> Participants;
