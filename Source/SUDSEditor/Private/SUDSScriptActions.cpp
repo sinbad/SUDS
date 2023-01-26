@@ -1,5 +1,6 @@
 ﻿#include "SUDSScriptActions.h"
 
+#include "SUDSEditorToolkit.h"
 #include "SUDSMessageLogger.h"
 #include "SUDSScript.h"
 #include "SUDSScriptImporter.h"
@@ -52,6 +53,12 @@ void FSUDSScriptActions::GetResolvedSourceFilePaths(const TArray<UObject*>& Type
 bool FSUDSScriptActions::HasActions(const TArray<UObject*>& InObjects) const
 {
 	return true;
+}
+
+void FSUDSScriptActions::OpenAssetEditor(const TArray<UObject*>& InObjects,
+	TSharedPtr<IToolkitHost> EditWithinLevelEditor)
+{
+	MakeShared<FSUDSEditorToolkit>()->InitEditor(InObjects);
 }
 
 void FSUDSScriptActions::GetActions(const TArray<UObject*>& InObjects, FToolMenuSection& Section)
