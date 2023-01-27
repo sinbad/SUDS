@@ -255,7 +255,7 @@ bool FTestEvents::RunTest(const FString& Parameters)
 		
 	}
 	
-	
+	Script->MarkAsGarbage();
 	return true;
 }
 

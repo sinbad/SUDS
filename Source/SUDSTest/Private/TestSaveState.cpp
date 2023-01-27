@@ -138,6 +138,8 @@ bool FTestSaveState::RunTest(const FString& Parameters)
     TestFalse("Choice not taken", Dlg2->HasChoiceIndexBeenTakenPreviously(1));
     TestTrue("Choice not taken", Dlg2->HasChoiceIndexBeenTakenPreviously(2));
     TestFalse("Choice not taken", Dlg2->HasChoiceIndexBeenTakenPreviously(3));
+
+    Script->MarkAsGarbage();
 	return true;
 }
 

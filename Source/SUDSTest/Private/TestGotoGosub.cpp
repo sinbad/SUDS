@@ -127,6 +127,7 @@ bool FTestGotoGosub::RunTest(const FString& Parameters)
 	TestDialogueText(this, "Next", Dlg, "NPC", "How rude");
 	TestFalse("End", Dlg->Continue());
 
+	Script->MarkAsGarbage();
 	return true;
 }
 
@@ -208,6 +209,7 @@ bool FTestNestedGosub::RunTest(const FString& Parameters)
 	TestDialogueText(this, "Bye", Dlg, "NPC", "Bye!");
 	TestFalse("Continue", Dlg->Continue());
 
+	Script->MarkAsGarbage();
 	return true;
 }
 

@@ -67,7 +67,7 @@ bool FTestParameters::RunTest(const FString& Parameters)
 	Dlg->Choose(1);
 	TestDialogueText(this, "Line 6", Dlg, "NPC", "No, 3 is fine");
 	
-	
+	Script->MarkAsGarbage();
 	return true;
 }
 
@@ -121,7 +121,8 @@ bool FTestParametersPriority::RunTest(const FString& Parameters)
 
 	// Check that there's a variable from Participant2 which no-one else set
 	TestEqual("Participant3 should have set something", Dlg->GetVariableInt("SomethingUniqueTo3"), 120);
-	
+
+	Script->MarkAsGarbage();
 	return true;	
 }
 
