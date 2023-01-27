@@ -1,5 +1,7 @@
 ﻿#include "SUDSEditorToolkit.h"
 
+#include "SUDSDialogue.h"
+#include "SUDSLibrary.h"
 #include "SUDSScript.h"
 
 void FSUDSEditorToolkit::InitEditor(const TArray<UObject*>& InObjects)
@@ -50,6 +52,8 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 
 	InTabManager->RegisterTabSpawner("SUDSDialogueTab", FOnSpawnTab::CreateLambda([=](const FSpawnTabArgs&)
 	{
+		DialogueText = SNew(STextBlock);
+		
 		// Probably need a scroll parent for this
 		return SNew(SDockTab)
 		[
@@ -57,8 +61,7 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 			+SVerticalBox::Slot()
 			.FillHeight(1)
 			[
-				SNew(STextBlock)
-				.Text(INVTEXT("This is where\nThe output\nWill be"))
+				DialogueText.ToSharedRef()
 			]
 			+SVerticalBox::Slot()
 			.AutoHeight()
@@ -184,7 +187,73 @@ FString FSUDSEditorToolkit::GetWorldCentricTabPrefix() const
 	return "SUDS Script ";
 }
 
+void FSUDSEditorToolkit::OnClose()
+{
+	FAssetEditorToolkit::OnClose();
+
+	if (Dialogue)
+	{
+		Dialogue->MarkAsGarbage();
+		Dialogue = nullptr;
+	}
+}
+
 void FSUDSEditorToolkit::StartDialogue()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Start Dialogue Clicked!"));
+	DialogueText->SetText(INVTEXT(""));
+	if (!Dialogue)
+	{
+		Dialogue = USUDSLibrary::CreateDialogue(nullptr, Script);
+		Dialogue->SetFlags(RF_Transient);
+		Dialogue->ClearFlags(RF_Transactional);
+		
+		Dialogue->InternalOnChoice.BindSP(this, &FSUDSEditorToolkit::OnDialogueChoice);
+		Dialogue->InternalOnEvent.BindSP(this, &FSUDSEditorToolkit::OnDialogueEvent);
+		Dialogue->InternalOnFinished.BindSP(this, &FSUDSEditorToolkit::OnDialogueFinished);
+		Dialogue->InternalOnProceeding.BindSP(this, &FSUDSEditorToolkit::OnDialogueProceeding);
+		Dialogue->InternalOnStarting.BindSP(this, &FSUDSEditorToolkit::OnDialogueStarting);
+		Dialogue->InternalOnSpeakerLine.BindSP(this, &FSUDSEditorToolkit::OnDialogueSpeakerLine);
+		Dialogue->InternalOnVariableChanged.BindSP(this, &FSUDSEditorToolkit::OnDialogueVariableChanged);
+		Dialogue->InternalOnVariableRequested.BindSP(this, &FSUDSEditorToolkit::OnDialogueVariableRequested);
+
+
+	}
+	Dialogue->Restart(true);
+}
+
+void FSUDSEditorToolkit::OnDialogueChoice(USUDSDialogue* D, int ChoiceIndex)
+{
+}
+
+void FSUDSEditorToolkit::OnDialogueEvent(USUDSDialogue* D, FName EventName, const TArray<FSUDSValue>& Args)
+{
+}
+
+void FSUDSEditorToolkit::OnDialogueFinished(USUDSDialogue* D)
+{
+}
+
+void FSUDSEditorToolkit::OnDialogueProceeding(USUDSDialogue* D)
+{
+}
+
+void FSUDSEditorToolkit::OnDialogueStarting(USUDSDialogue* D, FName LabelName)
+{
+}
+
+void FSUDSEditorToolkit::OnDialogueSpeakerLine(USUDSDialogue* D)
+{
+	DialogueText->SetText(FText::FormatOrdered(INVTEXT("{0}: {1}"), D->GetSpeakerDisplayName(), D->GetText()));
+
+}
+
+void FSUDSEditorToolkit::OnDialogueVariableChanged(USUDSDialogue* D,
+	FName VariableName,
+	const FSUDSValue& ToValue,
+	bool bFromScript)
+{
+}
+
+void FSUDSEditorToolkit::OnDialogueVariableRequested(USUDSDialogue* D, FName VariableName)
+{
 }

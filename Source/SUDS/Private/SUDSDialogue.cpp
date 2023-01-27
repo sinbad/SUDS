@@ -200,6 +200,7 @@ USUDSScriptNode* USUDSDialogue::RunEventNode(USUDSScriptNode* Node)
 			}
 		}
 		OnEvent.Broadcast(this, EvtNode->GetEventName(), ArgsResolved);
+		InternalOnEvent.ExecuteIfBound(this, EvtNode->GetEventName(), ArgsResolved);
 	}
 	return GetNextNode(Node);
 }
@@ -279,6 +280,7 @@ void USUDSDialogue::RaiseVariableChange(const FName& VarName, const FSUDSValue& 
 		}
 	}
 	OnVariableChanged.Broadcast(this, VarName, Value, bFromScript);
+	InternalOnVariableChanged.ExecuteIfBound(this, VarName, Value, bFromScript);
 
 }
 
@@ -286,6 +288,7 @@ void USUDSDialogue::RaiseVariableRequested(const FName& VarName)
 {
 	// Because variables set by participants should "win", raise event first
 	OnVariableRequested.Broadcast(this, VarName);
+	InternalOnVariableRequested.ExecuteIfBound(this, VarName);
 	for (const auto P : Participants)
 	{
 		if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
@@ -833,6 +836,7 @@ void USUDSDialogue::RaiseStarting(FName StartLabel)
 		}
 	}
 	OnStarting.Broadcast(this, StartLabel);
+	InternalOnStarting.ExecuteIfBound(this, StartLabel);
 }
 
 void USUDSDialogue::RaiseFinished()
@@ -845,6 +849,7 @@ void USUDSDialogue::RaiseFinished()
 		}
 	}
 	OnFinished.Broadcast(this);
+	InternalOnFinished.ExecuteIfBound(this);
 
 }
 
@@ -860,6 +865,7 @@ void USUDSDialogue::RaiseNewSpeakerLine()
 	
 	// Event listeners get it after
 	OnSpeakerLine.Broadcast(this);
+	InternalOnSpeakerLine.ExecuteIfBound(this);
 }
 
 void USUDSDialogue::RaiseChoiceMade(int Index)
@@ -873,6 +879,7 @@ void USUDSDialogue::RaiseChoiceMade(int Index)
 	}
 	// Event listeners get it after
 	OnChoice.Broadcast(this, Index);
+	InternalOnChoice.ExecuteIfBound(this, Index);
 }
 
 void USUDSDialogue::RaiseProceeding()
@@ -886,6 +893,7 @@ void USUDSDialogue::RaiseProceeding()
 	}
 	// Event listeners get it after
 	OnProceeding.Broadcast(this);
+	InternalOnProceeding.ExecuteIfBound(this);
 }
 
 FText USUDSDialogue::GetVariableText(FName Name)

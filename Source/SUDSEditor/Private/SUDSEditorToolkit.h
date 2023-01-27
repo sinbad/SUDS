@@ -3,6 +3,8 @@
 #include "CoreMinimal.h"
 #include "UObject/Object.h"
 
+struct FSUDSValue;
+class USUDSDialogue;
 class USUDSScript;
 
 #define LOCTEXT_NAMESPACE "SUDS"
@@ -47,11 +49,25 @@ public:
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	virtual FString GetWorldCentricTabPrefix() const override;
 
+protected:
+	virtual void OnClose() override;
+
 private:
 	USUDSScript* Script = nullptr;
+	TSharedPtr< STextBlock > DialogueText;
+	USUDSDialogue* Dialogue = nullptr;
 
 	void ExtendToolbar(FToolBarBuilder& ToolbarBuilder, TWeakPtr<SDockTab> Tab);
 	void StartDialogue();
+
+	void OnDialogueChoice(USUDSDialogue* Dialogue, int ChoiceIndex);
+	void OnDialogueEvent(USUDSDialogue* Dialogue, FName EventName, const TArray<FSUDSValue>& Args);
+	void OnDialogueFinished(USUDSDialogue* Dialogue);
+	void OnDialogueProceeding(USUDSDialogue* Dialogue);
+	void OnDialogueStarting(USUDSDialogue* Dialogue, FName LabelName);
+	void OnDialogueSpeakerLine(USUDSDialogue* Dialogue);
+	void OnDialogueVariableChanged(USUDSDialogue* Dialogue, FName VariableName, const FSUDSValue& ToValue, bool bFromScript);
+	void OnDialogueVariableRequested(USUDSDialogue* Dialogue, FName VariableName);
 
 };
 
