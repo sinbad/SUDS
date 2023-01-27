@@ -36,6 +36,14 @@ public:
 	TSharedPtr<FUICommandInfo> StartDialogue;
 };
 
+class FSUDSEditorDialogueRow
+{
+public:
+	FText SpeakerName;
+	FText Line;
+	FSUDSEditorDialogueRow(const FText& InSpeaker, const FText& InLine) : SpeakerName(InSpeaker), Line(InLine) {}
+};
+
 class FSUDSEditorToolkit : public FAssetEditorToolkit
 {
 public:
@@ -54,8 +62,10 @@ protected:
 
 private:
 	USUDSScript* Script = nullptr;
-	TSharedPtr< STextBlock > DialogueText;
 	USUDSDialogue* Dialogue = nullptr;
+	// FSUDSEditorDialogueRow needs to held by a TSharedPtr for SListView
+	TSharedPtr<SListView<TSharedPtr<FSUDSEditorDialogueRow>>> DialogueListView;
+	TArray<TSharedPtr<FSUDSEditorDialogueRow>> DialogueRows;
 
 	void ExtendToolbar(FToolBarBuilder& ToolbarBuilder, TWeakPtr<SDockTab> Tab);
 	void StartDialogue();
@@ -68,6 +78,10 @@ private:
 	void OnDialogueSpeakerLine(USUDSDialogue* Dialogue);
 	void OnDialogueVariableChanged(USUDSDialogue* Dialogue, FName VariableName, const FSUDSValue& ToValue, bool bFromScript);
 	void OnDialogueVariableRequested(USUDSDialogue* Dialogue, FName VariableName);
+
+	TSharedRef<ITableRow> OnGenerateRowForDialogue(
+		TSharedPtr<FSUDSEditorDialogueRow> FsudsEditorDialogueRow,
+		const TSharedRef<STableViewBase>& TableViewBase);
 
 };
 

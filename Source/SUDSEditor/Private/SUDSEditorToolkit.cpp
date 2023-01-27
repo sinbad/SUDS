@@ -52,16 +52,19 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 
 	InTabManager->RegisterTabSpawner("SUDSDialogueTab", FOnSpawnTab::CreateLambda([=](const FSpawnTabArgs&)
 	{
-		DialogueText = SNew(STextBlock);
 		
-		// Probably need a scroll parent for this
+		DialogueListView = SNew(SListView<TSharedPtr<FSUDSEditorDialogueRow>>)
+				.ItemHeight(24)
+				.ListItemsSource(&DialogueRows)
+				.OnGenerateRow(this, &FSUDSEditorToolkit::OnGenerateRowForDialogue);
+		
 		return SNew(SDockTab)
 		[
 			SNew(SVerticalBox)
 			+SVerticalBox::Slot()
 			.FillHeight(1)
 			[
-				DialogueText.ToSharedRef()
+				DialogueListView.ToSharedRef()
 			]
 			+SVerticalBox::Slot()
 			.AutoHeight()
@@ -200,7 +203,8 @@ void FSUDSEditorToolkit::OnClose()
 
 void FSUDSEditorToolkit::StartDialogue()
 {
-	DialogueText->SetText(INVTEXT(""));
+	DialogueRows.Empty();
+	DialogueListView->RequestListRefresh();
 	if (!Dialogue)
 	{
 		Dialogue = USUDSLibrary::CreateDialogue(nullptr, Script);
@@ -243,8 +247,8 @@ void FSUDSEditorToolkit::OnDialogueStarting(USUDSDialogue* D, FName LabelName)
 
 void FSUDSEditorToolkit::OnDialogueSpeakerLine(USUDSDialogue* D)
 {
-	DialogueText->SetText(FText::FormatOrdered(INVTEXT("{0}: {1}"), D->GetSpeakerDisplayName(), D->GetText()));
-
+	DialogueRows.Add(MakeShareable(new FSUDSEditorDialogueRow(D->GetSpeakerDisplayName(), D->GetText())));
+	DialogueListView->RequestListRefresh();
 }
 
 void FSUDSEditorToolkit::OnDialogueVariableChanged(USUDSDialogue* D,
@@ -256,4 +260,31 @@ void FSUDSEditorToolkit::OnDialogueVariableChanged(USUDSDialogue* D,
 
 void FSUDSEditorToolkit::OnDialogueVariableRequested(USUDSDialogue* D, FName VariableName)
 {
+}
+
+TSharedRef<ITableRow> FSUDSEditorToolkit::OnGenerateRowForDialogue(
+	TSharedPtr<FSUDSEditorDialogueRow> Row,
+	const TSharedRef<STableViewBase>& OwnerTable)
+{
+	return SNew(STableRow<TSharedPtr<FSUDSEditorDialogueRow> >, OwnerTable)
+		[
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0)
+			[
+				SNew(STextBlock)
+				.Text(Row->SpeakerName)
+			]
+
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0)
+			[
+				SNew(STextBlock)
+				.Text(Row->Line)
+			]
+		];
+		
 }
