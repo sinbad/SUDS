@@ -5,6 +5,35 @@
 
 class USUDSScript;
 
+#define LOCTEXT_NAMESPACE "SUDS"
+
+class FSUDSToolbarCommands
+	: public TCommands<FSUDSToolbarCommands>
+{
+public:
+
+	FSUDSToolbarCommands()
+		: TCommands<FSUDSToolbarCommands>(
+			"SUDS",
+			LOCTEXT("SUDS", "Steves Unreal Dialogue System"),
+			NAME_None, FEditorStyle::GetStyleSetName()
+		)
+	{ }
+
+public:
+
+	// TCommands interface
+
+	virtual void RegisterCommands() override
+	{
+		UI_COMMAND(StartDialogue, "Start Dialogue", "Start/restart dialogue", EUserInterfaceActionType::Button, FInputChord());
+	}
+
+public:
+
+	TSharedPtr<FUICommandInfo> StartDialogue;
+};
+
 class FSUDSEditorToolkit : public FAssetEditorToolkit
 {
 public:
@@ -20,4 +49,10 @@ public:
 
 private:
 	USUDSScript* Script = nullptr;
+
+	void ExtendToolbar(FToolBarBuilder& ToolbarBuilder, TWeakPtr<SDockTab> Tab);
+	void StartDialogue();
+
 };
+
+#undef LOCTEXT_NAMESPACE

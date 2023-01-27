@@ -37,7 +37,8 @@ void FSUDSEditorToolkit::InitEditor(const TArray<UObject*>& InObjects)
 					->AddTab("SUDSLogTab", ETabState::OpenedTab)
 				)
 			);
-		FAssetEditorToolkit::InitAssetEditor(EToolkitMode::Standalone, {}, "SUDSEditor", Layout, true, true, InObjects);		
+		FAssetEditorToolkit::InitAssetEditor(EToolkitMode::Standalone, {}, "SUDSEditor", Layout, true, true, InObjects);
+
 	}
 }
 
@@ -115,7 +116,41 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 	}))
 	.SetDisplayName(INVTEXT("Trace Log"))
 	.SetGroup(WorkspaceMenuCategory.ToSharedRef());	
+
+
+	// Set up the toolbar
+	FSUDSToolbarCommands::Register();
 	
+	const TWeakPtr<FAssetEditorToolkit> WeakToolkit = this->AsShared();
+
+	TSharedRef<FExtender> ToolbarExtender = MakeShareable(new FExtender);
+
+	ToolbarExtender->AddToolBarExtension(
+		"Asset",
+		EExtensionHook::After,
+		GetToolkitCommands(),
+		FToolBarExtensionDelegate::CreateRaw(this, &FSUDSEditorToolkit::ExtendToolbar, TWeakPtr<SDockTab>(TabManager->GetOwnerTab())));
+	AddToolbarExtender(ToolbarExtender);
+
+	GetToolkitCommands()->MapAction(FSUDSToolbarCommands::Get().StartDialogue,
+		FExecuteAction::CreateSP(this, &FSUDSEditorToolkit::StartDialogue),
+		FCanExecuteAction());
+
+	//RegenerateMenusAndToolbars();
+		
+	
+}
+
+void FSUDSEditorToolkit::ExtendToolbar(FToolBarBuilder& ToolbarBuilder, TWeakPtr<SDockTab> Tab)
+{
+	if (!Tab.IsValid())
+	{
+		return;
+	}
+
+	ToolbarBuilder.AddToolBarButton(FSUDSToolbarCommands::Get().StartDialogue,
+		NAME_None, TAttribute<FText>(), TAttribute<FText>(),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), TEXT("BlueprintMerge.NextDiff")));
 }
 
 
@@ -147,4 +182,9 @@ FLinearColor FSUDSEditorToolkit::GetWorldCentricTabColorScale() const
 FString FSUDSEditorToolkit::GetWorldCentricTabPrefix() const
 {
 	return "SUDS Script ";
+}
+
+void FSUDSEditorToolkit::StartDialogue()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Start Dialogue Clicked!"));
 }
