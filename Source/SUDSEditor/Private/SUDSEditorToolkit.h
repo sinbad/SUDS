@@ -37,12 +37,27 @@ public:
 	TSharedPtr<FUICommandInfo> StartDialogue;
 };
 
-class FSUDSEditorDialogueRow
+
+class FSUDSEditorOutputRow
 {
 public:
-	FText SpeakerName;
+	FText Prefix;
 	FText Line;
-	FSUDSEditorDialogueRow(const FText& InSpeaker, const FText& InLine) : SpeakerName(InSpeaker), Line(InLine) {}
+	FSlateColor PrefixColour;
+	FSlateColor LineColour;
+
+	FSUDSEditorOutputRow(const FText& InPrefix,
+	                     const FText& InLine,
+	                     const FSlateColor& InPrefixColour = FSlateColor::UseForeground(),
+	                     const FSlateColor& InLineColour = FSlateColor::UseForeground()) :
+		Prefix(InPrefix),
+		Line(InLine),
+		PrefixColour(InPrefixColour),
+		LineColour(InLineColour)
+	{
+	}
+
+	
 };
 
 class FSUDSEditorVariableRow
@@ -107,15 +122,23 @@ private:
 	USUDSDialogue* Dialogue = nullptr;
 	float VarColumnWidth = 75;
 	// FSUDSEditorDialogueRow needs to held by a TSharedPtr for SListView
-	TSharedPtr<SListView<TSharedPtr<FSUDSEditorDialogueRow>>> DialogueListView;
-	TArray<TSharedPtr<FSUDSEditorDialogueRow>> DialogueRows;
+	TSharedPtr<SListView<TSharedPtr<FSUDSEditorOutputRow>>> OutputListView;
+	TArray<TSharedPtr<FSUDSEditorOutputRow>> OutputRows;
 	TSharedPtr<SVerticalBox> ChoicesBox;
 	TSharedPtr<SListView<TSharedPtr<FSUDSEditorVariableRow>>> VariablesListView;
 	TArray<TSharedPtr<FSUDSEditorVariableRow>> VariableRows;
 
+	const FSlateColor SpeakerColour = FLinearColor(1.0f, 1.0f, 0.6f, 1.0f);
+	const FSlateColor ChoiceColour = FLinearColor(0.4f, 1.0f, 0.4f, 1.0f);
+	const FSlateColor EventColour = FLinearColor(0.2f, 0.6f, 1.0f, 1.0f);
+	const FSlateColor StartColour = FLinearColor(1.0f, 0.5f, 0.0f, 1.0f);
+	const FSlateColor FinishColour = FLinearColor(1.0f, 0.3f, 0.3f, 1.0f);
+
 	void ExtendToolbar(FToolBarBuilder& ToolbarBuilder, TWeakPtr<SDockTab> Tab);
 	void UpdateVariables();
 	void StartDialogue();
+	void UpdateOutput();
+	void UpdateChoiceButtons();
 
 	void OnDialogueChoice(USUDSDialogue* Dialogue, int ChoiceIndex);
 	void OnDialogueEvent(USUDSDialogue* Dialogue, FName EventName, const TArray<FSUDSValue>& Args);
@@ -127,7 +150,7 @@ private:
 	void OnDialogueVariableRequested(USUDSDialogue* Dialogue, FName VariableName);
 	
 	TSharedRef<ITableRow> OnGenerateRowForDialogue(
-		TSharedPtr<FSUDSEditorDialogueRow> FsudsEditorDialogueRow,
+		TSharedPtr<FSUDSEditorOutputRow> FsudsEditorDialogueRow,
 		const TSharedRef<STableViewBase>& TableViewBase);
 	TSharedRef<ITableRow> OnGenerateRowForVariable(TSharedPtr<FSUDSEditorVariableRow> Row,
 	                                               const TSharedRef<STableViewBase>& Table);

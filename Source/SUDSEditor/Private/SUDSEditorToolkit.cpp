@@ -52,9 +52,9 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 
 	InTabManager->RegisterTabSpawner("SUDSDialogueTab", FOnSpawnTab::CreateLambda([=](const FSpawnTabArgs&)
 	{
-		DialogueListView = SNew(SListView<TSharedPtr<FSUDSEditorDialogueRow>>)
+		OutputListView = SNew(SListView<TSharedPtr<FSUDSEditorOutputRow>>)
 				.ItemHeight(24)
-				.ListItemsSource(&DialogueRows)
+				.ListItemsSource(&OutputRows)
 				.OnGenerateRow(this, &FSUDSEditorToolkit::OnGenerateRowForDialogue);
 
 		ChoicesBox = SNew(SVerticalBox);
@@ -99,7 +99,7 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 			+SVerticalBox::Slot()
 			.FillHeight(1)
 			[
-				DialogueListView.ToSharedRef()
+				OutputListView.ToSharedRef()
 			]
 			+SVerticalBox::Slot()
 			.AutoHeight()
@@ -216,8 +216,8 @@ void FSUDSEditorToolkit::OnClose()
 
 void FSUDSEditorToolkit::StartDialogue()
 {
-	DialogueRows.Empty();
-	DialogueListView->RequestListRefresh();
+	OutputRows.Empty();
+	OutputListView->RequestListRefresh();
 	VariableRows.Empty();
 	if (!Dialogue)
 	{
@@ -242,31 +242,15 @@ void FSUDSEditorToolkit::StartDialogue()
 	
 }
 
-void FSUDSEditorToolkit::OnDialogueChoice(USUDSDialogue* D, int ChoiceIndex)
+void FSUDSEditorToolkit::UpdateOutput()
 {
+	OutputListView->RequestListRefresh();
+	OutputListView->ScrollToBottom();
 }
 
-void FSUDSEditorToolkit::OnDialogueEvent(USUDSDialogue* D, FName EventName, const TArray<FSUDSValue>& Args)
+void FSUDSEditorToolkit::UpdateChoiceButtons()
 {
-}
-
-void FSUDSEditorToolkit::OnDialogueFinished(USUDSDialogue* D)
-{
-}
-
-void FSUDSEditorToolkit::OnDialogueProceeding(USUDSDialogue* D)
-{
-}
-
-void FSUDSEditorToolkit::OnDialogueStarting(USUDSDialogue* D, FName LabelName)
-{
-}
-
-void FSUDSEditorToolkit::OnDialogueSpeakerLine(USUDSDialogue* D)
-{
-	DialogueRows.Add(MakeShareable(new FSUDSEditorDialogueRow(D->GetSpeakerDisplayName(), D->GetText())));
-	DialogueListView->RequestListRefresh();
-
+	USUDSDialogue* D = Dialogue;
 	ChoicesBox->ClearChildren();
 	if (D->IsSimpleContinue())
 	{
@@ -302,6 +286,82 @@ void FSUDSEditorToolkit::OnDialogueSpeakerLine(USUDSDialogue* D)
 		}
 		
 	}
+	
+}
+
+void FSUDSEditorToolkit::OnDialogueChoice(USUDSDialogue* D, int ChoiceIndex)
+{
+	if (!D->IsSimpleContinue())
+	{
+		OutputRows.Add(MakeShareable(new FSUDSEditorOutputRow(
+			INVTEXT("Choice"),
+			FText::Format(INVTEXT("[{1}] {0}"), D->GetChoiceText(ChoiceIndex), ChoiceIndex),
+			ChoiceColour,
+			ChoiceColour)));
+
+		UpdateOutput();
+
+	}
+}
+
+void FSUDSEditorToolkit::OnDialogueEvent(USUDSDialogue* D, FName EventName, const TArray<FSUDSValue>& Args)
+{
+	FStringBuilderBase B;
+	if (Args.Num() > 0)
+	{
+		for (auto& Arg : Args)
+		{
+			if (B.Len() > 0)
+			{
+				B.Appendf(TEXT(", %s"), *Arg.ToString());
+			}
+			else
+			{
+				B.Append("( ");
+				B.Append(Arg.ToString());
+			}
+		}
+		B.Append(" )");
+	}
+	FText ArgText = FText::FromString(B.ToString());
+	OutputRows.Add(MakeShareable(
+		new FSUDSEditorOutputRow(INVTEXT("Event"),
+								 FText::FormatOrdered(INVTEXT("{0} {1}"), FText::FromName(EventName), ArgText),
+								 EventColour,
+								 EventColour)));
+	
+}
+
+void FSUDSEditorToolkit::OnDialogueFinished(USUDSDialogue* D)
+{
+	OutputRows.Add(MakeShareable(
+		new FSUDSEditorOutputRow(INVTEXT("End"),
+		                         INVTEXT("Dialogue Finished"),
+		                         FinishColour,
+		                         FinishColour)));
+}
+
+void FSUDSEditorToolkit::OnDialogueProceeding(USUDSDialogue* D)
+{
+}
+
+void FSUDSEditorToolkit::OnDialogueStarting(USUDSDialogue* D, FName LabelName)
+{
+	FString LabelStr = LabelName.IsNone() ? FString("beginning") : LabelName.ToString();
+	OutputRows.Add(MakeShareable(
+		new FSUDSEditorOutputRow(INVTEXT("Start"),
+		                         FText::Format(INVTEXT("Starting from {0}"), FText::FromString(LabelStr)),
+		                         StartColour,
+		                         StartColour)));
+}
+
+void FSUDSEditorToolkit::OnDialogueSpeakerLine(USUDSDialogue* D)
+{
+	OutputRows.Add(MakeShareable(
+		new FSUDSEditorOutputRow(D->GetSpeakerDisplayName(), D->GetText(), SpeakerColour)));
+	UpdateOutput();
+	UpdateChoiceButtons();
+
 }
 
 void FSUDSEditorToolkit::UpdateVariables()
@@ -330,10 +390,10 @@ void FSUDSEditorToolkit::OnDialogueVariableRequested(USUDSDialogue* D, FName Var
 }
 
 TSharedRef<ITableRow> FSUDSEditorToolkit::OnGenerateRowForDialogue(
-	TSharedPtr<FSUDSEditorDialogueRow> Row,
+	TSharedPtr<FSUDSEditorOutputRow> Row,
 	const TSharedRef<STableViewBase>& OwnerTable)
 {
-	return SNew(STableRow<TSharedPtr<FSUDSEditorDialogueRow> >, OwnerTable)
+	return SNew(STableRow<TSharedPtr<FSUDSEditorOutputRow> >, OwnerTable)
 		[
 			SNew(SHorizontalBox)
 
@@ -342,8 +402,8 @@ TSharedRef<ITableRow> FSUDSEditorToolkit::OnGenerateRowForDialogue(
 			.Padding(10, 5, 10, 5)
 			[
 				SNew(STextBlock)
-				.Text(Row->SpeakerName)
-				.ColorAndOpacity(FSlateColor(FLinearColor::Yellow))
+				.Text(Row->Prefix)
+				.ColorAndOpacity(Row->PrefixColour)
 			]
 
 			+ SHorizontalBox::Slot()
@@ -352,6 +412,7 @@ TSharedRef<ITableRow> FSUDSEditorToolkit::OnGenerateRowForDialogue(
 			[
 				SNew(STextBlock)
 				.Text(Row->Line)
+				.ColorAndOpacity(Row->LineColour)
 			]
 		];
 		
@@ -396,11 +457,16 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 	{
 		// TODO: editable widgets
 		TSharedPtr<SWidget> ValueWidget;
+
+		ValueWidget = SNew(STextBlock)
+			.Text(FText::FromString(VariableValue.ToString()));
+
+		/*
 		switch (VariableValue.GetType())
 		{
 		case ESUDSValueType::Int:
 			ValueWidget = SNew(STextBlock)
-			.Text(FText::Format(INVTEXT("{0}"), VariableValue.GetIntValue()));
+			.Text(FText::FromString(VariableValue.ToString())
 			break;
 		case ESUDSValueType::Float:
 			ValueWidget = SNew(STextBlock)
@@ -429,6 +495,7 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 			break;
 			
 		};
+		*/
 		return SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
