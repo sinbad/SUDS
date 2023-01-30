@@ -66,7 +66,7 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 				.HeaderRow(
 					SNew(SHeaderRow)
 					+ SHeaderRow::Column("NameHeader")
-					.FillWidth(0.40f)
+					.FillWidth(0.4f)
 					[
 						SNew(SHorizontalBox)
 						+SHorizontalBox::Slot()
@@ -78,7 +78,7 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 						]
 					]
 					+ SHeaderRow::Column("ValueHeader")
-					.FillWidth(0.40f)
+					.FillWidth(0.6f)
 					[
 						SNew(SHorizontalBox)
 						+SHorizontalBox::Slot()
@@ -238,10 +238,7 @@ void FSUDSEditorToolkit::StartDialogue()
 	}
 	Dialogue->Restart(true);
 
-	// TODO: query variables
-	VariableRows.Add(MakeShareable(new FSUDSEditorVariableRow(FName("Test1"), FSUDSValue(true))));
-	VariableRows.Add(MakeShareable(new FSUDSEditorVariableRow(FName("TestVar2"), FSUDSValue(23))));
-	VariablesListView->RequestListRefresh();
+	UpdateVariables();
 	
 }
 
@@ -307,11 +304,25 @@ void FSUDSEditorToolkit::OnDialogueSpeakerLine(USUDSDialogue* D)
 	}
 }
 
+void FSUDSEditorToolkit::UpdateVariables()
+{
+	VariableRows.Empty();
+	for (auto& Pair : Dialogue->GetVariables())
+	{
+		VariableRows.Add(MakeShareable(new FSUDSEditorVariableRow(Pair.Key, Pair.Value)));
+	}
+	
+	VariablesListView->RequestListRefresh();
+	
+}
+
+
 void FSUDSEditorToolkit::OnDialogueVariableChanged(USUDSDialogue* D,
 	FName VariableName,
 	const FSUDSValue& ToValue,
 	bool bFromScript)
 {
+	UpdateVariables();
 }
 
 void FSUDSEditorToolkit::OnDialogueVariableRequested(USUDSDialogue* D, FName VariableName)
@@ -373,7 +384,6 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 		return SNew(SHorizontalBox)
 
 		+ SHorizontalBox::Slot()
-		.MaxWidth(InitialWidth) // Just the initial width. SMultiColumnTableRow updates it based on header width
 		.FillWidth(1.0)
 		.Padding(10, 5, 10, 5)
 		[

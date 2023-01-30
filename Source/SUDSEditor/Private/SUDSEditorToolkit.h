@@ -114,6 +114,7 @@ private:
 	TArray<TSharedPtr<FSUDSEditorVariableRow>> VariableRows;
 
 	void ExtendToolbar(FToolBarBuilder& ToolbarBuilder, TWeakPtr<SDockTab> Tab);
+	void UpdateVariables();
 	void StartDialogue();
 
 	void OnDialogueChoice(USUDSDialogue* Dialogue, int ChoiceIndex);
