@@ -606,6 +606,11 @@ int USUDSDialogue::GetNumberOfChoices() const
 	return CurrentChoices.Num();
 }
 
+bool USUDSDialogue::IsSimpleContinue() const
+{
+	return CurrentChoices.Num() == 1 && CurrentChoices[0].GetText().IsEmpty();
+}
+
 FText USUDSDialogue::GetChoiceText(int Index)
 {
 

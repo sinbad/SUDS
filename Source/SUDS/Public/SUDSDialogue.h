@@ -260,11 +260,20 @@ public:
 	/**
 	 * Get the number of choices available from this node.
 	 * Note, this will return 1 in the case of just linear text progression. The difference between just linked text
-	 * lines and a choice with only 1 option is whether the choice text is blank or not.
+	 * lines and a choice with only 1 option is whether the choice text is blank or not. 
+	 * See also IsSimpleContinue()
 	 * @return The number of choices available
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	int GetNumberOfChoices() const;
+
+	/**
+	 * Return whether to progress from here is a simple continue (no choices, no text), meaning you probably want
+	 * to display a simpler prompt to the player.
+	 * This will return false even if there's only one choice, if that choice has text associated with it.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool IsSimpleContinue() const;
 
 	/**
 	 * Get the text associated with a choice.
