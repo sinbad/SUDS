@@ -57,6 +57,9 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 				.ItemHeight(24)
 				.ListItemsSource(&DialogueRows)
 				.OnGenerateRow(this, &FSUDSEditorToolkit::OnGenerateRowForDialogue);
+
+		ChoicesBox = SNew(SVerticalBox);
+
 		
 		return SNew(SDockTab)
 		[
@@ -71,28 +74,7 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 			.HAlign(HAlign_Left)
 			.Padding(30, 15, 30, 15)
 			[
-				SNew(SVerticalBox)
-				+SVerticalBox::Slot()
-				.Padding(0, 0 ,0 , 5)
-				[
-					SNew(SButton)
-					.HAlign(HAlign_Left)
-					.Text(INVTEXT("Choice1"))
-				]
-				+SVerticalBox::Slot()
-				.Padding(0, 0 ,0 , 5)
-				[
-					SNew(SButton)
-					.HAlign(HAlign_Left)
-					.Text(INVTEXT("Choice2"))
-				]
-				+SVerticalBox::Slot()
-				.Padding(0, 0 ,0 , 5)
-				[
-					SNew(SButton)
-					.HAlign(HAlign_Left)
-					.Text(INVTEXT("Choice3"))
-				]
+				ChoicesBox.ToSharedRef()
 			]
 		];
 	}))
@@ -249,6 +231,42 @@ void FSUDSEditorToolkit::OnDialogueSpeakerLine(USUDSDialogue* D)
 {
 	DialogueRows.Add(MakeShareable(new FSUDSEditorDialogueRow(D->GetSpeakerDisplayName(), D->GetText())));
 	DialogueListView->RequestListRefresh();
+
+	ChoicesBox->ClearChildren();
+	if (D->IsSimpleContinue())
+	{
+		ChoicesBox->AddSlot()
+		.Padding(0, 0 ,0 , 5)
+		[
+			SNew(SButton)
+			.HAlign(HAlign_Left)
+			.Text(INVTEXT("..."))
+			.OnClicked_Lambda([D]()
+			{
+				D->Continue();
+				return FReply::Handled();
+			})
+	];
+	}
+	else
+	{
+		for (int i = 0; i < D->GetNumberOfChoices(); ++i)
+		{
+			ChoicesBox->AddSlot()
+			.Padding(0, 0 ,0 , 5)
+			[
+				SNew(SButton)
+				.HAlign(HAlign_Left)
+				.Text(D->GetChoiceText(i))
+				.OnClicked_Lambda([D, i]()
+				{
+					D->Choose(i);
+					return FReply::Handled();
+				})
+			];
+		}
+		
+	}
 }
 
 void FSUDSEditorToolkit::OnDialogueVariableChanged(USUDSDialogue* D,

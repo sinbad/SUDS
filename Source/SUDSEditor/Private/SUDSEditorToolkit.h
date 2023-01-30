@@ -66,6 +66,7 @@ private:
 	// FSUDSEditorDialogueRow needs to held by a TSharedPtr for SListView
 	TSharedPtr<SListView<TSharedPtr<FSUDSEditorDialogueRow>>> DialogueListView;
 	TArray<TSharedPtr<FSUDSEditorDialogueRow>> DialogueRows;
+	TSharedPtr<SVerticalBox> ChoicesBox;
 
 	void ExtendToolbar(FToolBarBuilder& ToolbarBuilder, TWeakPtr<SDockTab> Tab);
 	void StartDialogue();
@@ -78,7 +79,7 @@ private:
 	void OnDialogueSpeakerLine(USUDSDialogue* Dialogue);
 	void OnDialogueVariableChanged(USUDSDialogue* Dialogue, FName VariableName, const FSUDSValue& ToValue, bool bFromScript);
 	void OnDialogueVariableRequested(USUDSDialogue* Dialogue, FName VariableName);
-
+	
 	TSharedRef<ITableRow> OnGenerateRowForDialogue(
 		TSharedPtr<FSUDSEditorDialogueRow> FsudsEditorDialogueRow,
 		const TSharedRef<STableViewBase>& TableViewBase);
