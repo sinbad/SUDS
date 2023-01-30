@@ -46,3 +46,27 @@ void operator<<(FStructuredArchive::FSlot Slot, FSUDSValue& Value)
 	}
 
 }
+
+FString FSUDSValue::ToString() const
+{
+	switch (Type)
+	{
+	case ESUDSValueType::Text:
+		return GetTextValue().ToString();
+	case ESUDSValueType::Int:
+		return FString::FromInt(GetIntValue());
+	case ESUDSValueType::Float:
+		return FString::SanitizeFloat(GetFloatValue());
+	case ESUDSValueType::Boolean:
+		return GetBooleanValue() ? "True" : "False";
+	case ESUDSValueType::Gender:
+		return StaticEnum<ETextGender>()->GetValueAsString(GetGenderValue());
+	case ESUDSValueType::Name:
+		return GetNameValue().ToString();
+	case ESUDSValueType::Variable:
+		return GetVariableNameValue().ToString();
+	default:
+	case ESUDSValueType::Empty:
+		return "Empty";
+	}
+}

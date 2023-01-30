@@ -22,7 +22,7 @@ enum class ESUDSValueType : uint8
 /// For getting / setting these values from blueprints, see blueprint library functions SetSUDSValue<Type>() / GetSUDSValue<Type>()
 /// For convenience these are wrapped in USUDSDialogue but in e.g. event callbacks they're not
 USTRUCT(BlueprintType)
-struct FSUDSValue
+struct SUDS_API FSUDSValue
 {
 	GENERATED_BODY()
 protected:
@@ -368,7 +368,8 @@ public:
 		Slot << *this;
 		return true;
 	}
-
+	
+	FString ToString() const;
 };
 template<>
 struct TStructOpsTypeTraits<FSUDSValue> : public TStructOpsTypeTraitsBase2<FSUDSValue>
