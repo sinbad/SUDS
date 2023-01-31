@@ -2,8 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "SUDSValue.h"
+#include "Framework/Text/BaseTextLayoutMarshaller.h"
 #include "UObject/Object.h"
 
+class SMultiLineEditableTextBox;
 struct FSUDSValue;
 class USUDSDialogue;
 class USUDSScript;
@@ -144,6 +146,37 @@ protected:
 	FSUDSValue VariableValue;
 };
 
+struct FSUDSTraceLogMessage
+{
+	TSharedRef<FString> Message;
+	FName Category;
+	FSlateColor Colour;
+
+	FSUDSTraceLogMessage(FName InCategory, const FString& InMessage, const FSlateColor& InColour)
+		: Message(MakeShared<FString>(InMessage))
+		, Category(InCategory)
+		, Colour(InColour)
+	{
+	}
+};
+
+
+class FSUDSTraceLogMarshaller : public FBaseTextLayoutMarshaller
+{
+public:
+
+	FSUDSTraceLogMarshaller();
+
+	// ITextLayoutMarshaller
+	virtual void SetText(const FString& SourceString, FTextLayout& TargetTextLayout) override;
+	virtual void GetText(FString& TargetString, const FTextLayout& SourceTextLayout) override;
+
+	void AppendMessage(FName InCategory, const FString& Message, const FSlateColor& Colour);
+	void ClearMessages();
+protected:
+	TArray< TSharedPtr<FSUDSTraceLogMessage> > Messages;	
+};
+
 class FSUDSEditorToolkit : public FAssetEditorToolkit
 {
 public:
@@ -171,6 +204,8 @@ private:
 	TSharedPtr<SVerticalBox> ChoicesBox;
 	TSharedPtr<SListView<TSharedPtr<FSUDSEditorVariableRow>>> VariablesListView;
 	TArray<TSharedPtr<FSUDSEditorVariableRow>> VariableRows;
+	TSharedPtr<FSUDSTraceLogMarshaller> TraceLogMarshaller;
+	TSharedPtr<SMultiLineEditableTextBox> TraceLogTextBox;
 
 	const FSlateColor SpeakerColour = FLinearColor(1.0f, 1.0f, 0.6f, 1.0f);
 	const FSlateColor ChoiceColour = FLinearColor(0.4f, 1.0f, 0.4f, 1.0f);

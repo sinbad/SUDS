@@ -3,7 +3,9 @@
 #include "SUDSDialogue.h"
 #include "SUDSLibrary.h"
 #include "SUDSScript.h"
+#include "Framework/Text/SlateTextRun.h"
 #include "Styling/StyleColors.h"
+#include "Widgets/Input/SMultiLineEditableTextBox.h"
 
 void FSUDSEditorToolkit::InitEditor(const TArray<UObject*>& InObjects)
 {
@@ -158,10 +160,16 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 
 	InTabManager->RegisterTabSpawner("SUDSLogTab", FOnSpawnTab::CreateLambda([=](const FSpawnTabArgs&)
 	{
+		TraceLogMarshaller = MakeShareable(new FSUDSTraceLogMarshaller());
+		TraceLogTextBox = SNew(SMultiLineEditableTextBox)
+			.Style(FEditorStyle::Get(), "Log.TextBox")
+			.TextStyle(FEditorStyle::Get(), "Log.Normal")
+			.Marshaller(TraceLogMarshaller)
+			.IsReadOnly(true)
+			.AlwaysShowScrollbars(true);
 		return SNew(SDockTab)
 		[
-			SNew(STextBlock)
-			.Text(INVTEXT("Trace log here"))
+			TraceLogTextBox.ToSharedRef()
 		];
 	}))
 	.SetDisplayName(INVTEXT("Trace Log"))
@@ -250,6 +258,7 @@ void FSUDSEditorToolkit::StartDialogue()
 	OutputRows.Empty();
 	OutputListView->RequestListRefresh();
 	VariableRows.Empty();
+	TraceLogMarshaller->ClearMessages();
 	if (!Dialogue)
 	{
 		Dialogue = USUDSLibrary::CreateDialogue(nullptr, Script);
@@ -401,6 +410,9 @@ void FSUDSEditorToolkit::AddOutputRow(const FText& Prefix,
 	OutputRows.Add(MakeShareable(
 		new FSUDSEditorOutputRow(Prefix, Line, PrefixColour, LineColour, BgColour)));
 	UpdateOutput();
+
+	// TEST
+	TraceLogMarshaller->AppendMessage(FName(Prefix.ToString()), Line.ToString(), PrefixColour);
 }
 
 void FSUDSEditorToolkit::UpdateVariables()
@@ -582,4 +594,46 @@ TSharedRef<SWidget> SSUDSEditorOutputItem::GenerateWidgetForColumn(const FName& 
 	}
 
 	
+}
+
+FSUDSTraceLogMarshaller::FSUDSTraceLogMarshaller()
+{
+}
+
+void FSUDSTraceLogMarshaller::SetText(const FString& SourceString, FTextLayout& TargetTextLayout)
+{
+	
+	static const FName LogNormalStyle(TEXT("Log.Normal"));
+	const FTextBlockStyle& OrigStyle = FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>(LogNormalStyle);
+
+	for (auto Msg : Messages)
+	{
+		// Get base style & copy
+		FTextBlockStyle Style = OrigStyle;
+		Style.ColorAndOpacity = Msg->Colour;
+		
+		TArray<TSharedRef<IRun>> Runs;
+		Runs.Add(FSlateTextRun::Create(FRunInfo(), Msg->Message,  Style));
+		
+		TargetTextLayout.AddLine(FTextLayout::FNewLineData(Msg->Message, Runs));
+	}
+	
+}
+
+void FSUDSTraceLogMarshaller::GetText(FString& TargetString, const FTextLayout& SourceTextLayout)
+{
+	SourceTextLayout.GetAsText(TargetString);
+}
+
+void FSUDSTraceLogMarshaller::AppendMessage(FName InCategory, const FString& Message, const FSlateColor& Colour)
+{
+	const FString ConcatLine = FString::Printf(TEXT("%s: %s"), *InCategory.ToString(), *Message);
+	Messages.Add(MakeShareable(new FSUDSTraceLogMessage(InCategory, ConcatLine, Colour)));
+	MakeDirty();
+}
+
+void FSUDSTraceLogMarshaller::ClearMessages()
+{
+	Messages.Empty();
+	MakeDirty();
 }
