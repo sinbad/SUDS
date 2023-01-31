@@ -177,6 +177,32 @@ protected:
 	TArray< TSharedPtr<FSUDSTraceLogMessage> > Messages;	
 };
 
+// Trace log widget, really just so we can tick and automatically scroll to the end
+class SSUDSTraceLog	: public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SSUDSTraceLog)
+	{}
+	SLATE_END_ARGS()
+
+	SSUDSTraceLog() : bIsUserScrolled(false) {}
+
+	void Construct(const FArguments& InArgs);
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+
+	void AppendMessage(FName InCategory, const FString& Message, const FSlateColor& Colour);
+	void ClearMessages();
+	void ScrollToEnd();
+	
+protected:
+	bool bIsUserScrolled;
+	TSharedPtr<FSUDSTraceLogMarshaller> TraceLogMarshaller;
+	TSharedPtr<SMultiLineEditableTextBox> TraceLogTextBox;
+
+	void OnUserScrolled(float X);
+
+};
+
 class FSUDSEditorToolkit : public FAssetEditorToolkit
 {
 public:
@@ -204,8 +230,7 @@ private:
 	TSharedPtr<SVerticalBox> ChoicesBox;
 	TSharedPtr<SListView<TSharedPtr<FSUDSEditorVariableRow>>> VariablesListView;
 	TArray<TSharedPtr<FSUDSEditorVariableRow>> VariableRows;
-	TSharedPtr<FSUDSTraceLogMarshaller> TraceLogMarshaller;
-	TSharedPtr<SMultiLineEditableTextBox> TraceLogTextBox;
+	TSharedPtr<SSUDSTraceLog> TraceLog;
 
 	const FSlateColor SpeakerColour = FLinearColor(1.0f, 1.0f, 0.6f, 1.0f);
 	const FSlateColor ChoiceColour = FLinearColor(0.4f, 1.0f, 0.4f, 1.0f);

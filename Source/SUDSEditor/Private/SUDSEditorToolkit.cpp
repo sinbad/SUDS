@@ -169,17 +169,12 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 
 	InTabManager->RegisterTabSpawner("SUDSLogTab", FOnSpawnTab::CreateLambda([=](const FSpawnTabArgs&)
 	{
-		TraceLogMarshaller = MakeShareable(new FSUDSTraceLogMarshaller());
-		TraceLogTextBox = SNew(SMultiLineEditableTextBox)
-			.Style(FEditorStyle::Get(), "Log.TextBox")
-			.TextStyle(FEditorStyle::Get(), "Log.Normal")
-			.Marshaller(TraceLogMarshaller)
-			.IsReadOnly(true)
-			.AlwaysShowScrollbars(true);
+		TraceLog = SNew(SSUDSTraceLog);
 		return SNew(SDockTab)
 		[
-			TraceLogTextBox.ToSharedRef()
+			TraceLog.ToSharedRef()
 		];
+
 	}))
 	.SetDisplayName(INVTEXT("Trace Log"))
 	.SetGroup(WorkspaceMenuCategory.ToSharedRef());	
@@ -267,7 +262,7 @@ void FSUDSEditorToolkit::StartDialogue()
 	OutputRows.Empty();
 	OutputListView->RequestListRefresh();
 	VariableRows.Empty();
-	TraceLogMarshaller->ClearMessages();
+	TraceLog->ClearMessages();
 	if (!Dialogue)
 	{
 		Dialogue = USUDSLibrary::CreateDialogue(nullptr, Script);
@@ -422,7 +417,7 @@ void FSUDSEditorToolkit::AddTraceLogRow(const FName& Category, const FString& Me
 {
 	FSlateColor Colour = GetColourForCategory(Category);
 	
-	TraceLogMarshaller->AppendMessage(Category, Message, Colour);
+	TraceLog->AppendMessage(Category, Message, Colour);
 }
 
 FSlateColor FSUDSEditorToolkit::GetColourForCategory(const FName& Category)
@@ -713,4 +708,67 @@ void FSUDSTraceLogMarshaller::ClearMessages()
 {
 	Messages.Empty();
 	MakeDirty();
+}
+
+void SSUDSTraceLog::Construct(const FArguments& InArgs)
+{
+	TraceLogMarshaller = MakeShareable(new FSUDSTraceLogMarshaller());
+	TraceLogTextBox = SNew(SMultiLineEditableTextBox)
+		.Style(FEditorStyle::Get(), "Log.TextBox")
+		.TextStyle(FEditorStyle::Get(), "Log.Normal")
+		.Marshaller(TraceLogMarshaller)
+		.IsReadOnly(true)
+		.OnVScrollBarUserScrolled(this, &SSUDSTraceLog::OnUserScrolled)
+		.AlwaysShowScrollbars(true);
+
+	ChildSlot
+	.Padding(3)
+	[
+		SNew(SVerticalBox)
+
+		// could add a filter here like output log
+		
+		// log area
+		+SVerticalBox::Slot()
+		.FillHeight(1)
+		[
+			TraceLogTextBox.ToSharedRef()
+		]
+
+	];
+	
+	
+}
+
+void SSUDSTraceLog::OnUserScrolled(float X)
+{
+	// revert to auto scroll when near the bottom
+	bIsUserScrolled = X < (1.0 - SMALL_NUMBER);
+}
+
+void SSUDSTraceLog::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
+
+	// We seem to have to do this in Tick(), trying to do it after appending never works
+	if (!bIsUserScrolled)
+	{
+		ScrollToEnd();
+	}
+}
+
+void SSUDSTraceLog::AppendMessage(FName InCategory, const FString& Message, const FSlateColor& Colour)
+{
+	TraceLogMarshaller->AppendMessage(InCategory, Message, Colour);
+}
+
+void SSUDSTraceLog::ClearMessages()
+{
+	TraceLogMarshaller->ClearMessages();
+}
+
+void SSUDSTraceLog::ScrollToEnd()
+{
+	TraceLogTextBox->ScrollTo(ETextLocation::EndOfDocument);
+	bIsUserScrolled = false;
 }
