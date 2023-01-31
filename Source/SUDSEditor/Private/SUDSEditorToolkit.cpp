@@ -55,6 +55,7 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 	{
 		OutputListView = SNew(SListView<TSharedPtr<FSUDSEditorOutputRow>>)
 				.ItemHeight(24)
+				.SelectionMode(ESelectionMode::None)
 				.ListItemsSource(&OutputRows)
 				.OnGenerateRow(this, &FSUDSEditorToolkit::OnGenerateRowForOutput)
 				.HeaderRow(
@@ -90,6 +91,7 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 
 		VariablesListView = SNew(SListView<TSharedPtr<FSUDSEditorVariableRow>>)
 				.ItemHeight(24)
+				.SelectionMode(ESelectionMode::None)
 				.ListItemsSource(&VariableRows)
 				.OnGenerateRow(this, &FSUDSEditorToolkit::OnGenerateRowForVariable)
 				.HeaderRow(
