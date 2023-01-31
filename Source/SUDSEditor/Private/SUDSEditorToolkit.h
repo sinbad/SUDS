@@ -175,6 +175,7 @@ private:
 	const FSlateColor SpeakerColour = FLinearColor(1.0f, 1.0f, 0.6f, 1.0f);
 	const FSlateColor ChoiceColour = FLinearColor(0.4f, 1.0f, 0.4f, 1.0f);
 	const FSlateColor EventColour = FLinearColor(0.2f, 0.6f, 1.0f, 1.0f);
+	const FSlateColor VarSetColour = FLinearColor(0.8f, 0.6f, 0.9f, 1.0f);
 	const FSlateColor StartColour = FLinearColor(1.0f, 0.5f, 0.0f, 1.0f);
 	const FSlateColor FinishColour = FLinearColor(1.0f, 0.3f, 0.3f, 1.0f);
 	const FSlateColor RowBgColour1 = FLinearColor(0.15f, 0.15f, 0.15f, 1.0f);

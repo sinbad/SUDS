@@ -419,6 +419,15 @@ void FSUDSEditorToolkit::OnDialogueVariableChanged(USUDSDialogue* D,
 	const FSUDSValue& ToValue,
 	bool bFromScript)
 {
+	if (bFromScript)
+	{
+		AddOutputRow(INVTEXT("Var Set"),
+		             FText::Format(INVTEXT("{0} = {1}"),
+		                           FText::FromName(VariableName),
+		                           FText::FromString(ToValue.ToString())),
+		             VarSetColour,
+		             VarSetColour);
+	}
 	UpdateVariables();
 }
 
