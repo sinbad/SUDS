@@ -658,6 +658,7 @@ TSharedRef<SWidget> SSUDSEditorOutputItem::GenerateWidgetForColumn(const FName& 
 		[
 			SNew(STextBlock)
 			.Text(Line)
+			.AutoWrapText(true)
 			.ColorAndOpacity(LineColour)
 		];
 	}
@@ -718,6 +719,7 @@ void SSUDSTraceLog::Construct(const FArguments& InArgs)
 		.TextStyle(FEditorStyle::Get(), "Log.Normal")
 		.Marshaller(TraceLogMarshaller)
 		.IsReadOnly(true)
+		.AutoWrapText(true)
 		.OnVScrollBarUserScrolled(this, &SSUDSTraceLog::OnUserScrolled)
 		.AlwaysShowScrollbars(true);
 
