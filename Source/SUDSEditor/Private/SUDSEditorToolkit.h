@@ -223,6 +223,9 @@ private:
 	void UpdateOutput();
 	void UpdateChoiceButtons();
 	void AddOutputRow(const FText& Prefix, const FText& Line, const FSlateColor& PrefixColour, const FSlateColor& LineColour);
+	void AddTraceLogRow(const FName& Category, const FString& Message);
+
+	void AddDialogueStep(const FName& Category, const FText& Description, const FText& Prefix);
 
 	void OnDialogueChoice(USUDSDialogue* Dialogue, int ChoiceIndex);
 	void OnDialogueEvent(USUDSDialogue* Dialogue, FName EventName, const TArray<FSUDSValue>& Args);
@@ -238,6 +241,7 @@ private:
 		const TSharedRef<STableViewBase>& TableViewBase);
 	TSharedRef<ITableRow> OnGenerateRowForVariable(TSharedPtr<FSUDSEditorVariableRow> Row,
 	                                               const TSharedRef<STableViewBase>& Table);
+	FSlateColor GetColourForCategory(const FName& Category);
 
 };
 
