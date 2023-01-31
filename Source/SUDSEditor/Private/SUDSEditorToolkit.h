@@ -45,20 +45,64 @@ public:
 	FText Line;
 	FSlateColor PrefixColour;
 	FSlateColor LineColour;
+	FSlateColor BgColour;
 
 	FSUDSEditorOutputRow(const FText& InPrefix,
 	                     const FText& InLine,
 	                     const FSlateColor& InPrefixColour = FSlateColor::UseForeground(),
-	                     const FSlateColor& InLineColour = FSlateColor::UseForeground()) :
+	                     const FSlateColor& InLineColour = FSlateColor::UseForeground(),
+	                     const FSlateColor& InBgColour = FSlateColor(FLinearColor(0.1f, 0.1f ,0.1f ,1))) :
 		Prefix(InPrefix),
 		Line(InLine),
 		PrefixColour(InPrefixColour),
-		LineColour(InLineColour)
+		LineColour(InLineColour),
+		BgColour(InBgColour)
 	{
 	}
 
 	
 };
+
+class SSUDSEditorOutputItem : public SMultiColumnTableRow< TSharedPtr<FString> >
+{
+public:	
+	SLATE_BEGIN_ARGS(SSUDSEditorOutputItem)
+	{}
+	SLATE_ARGUMENT(float, InitialWidth)
+	SLATE_ARGUMENT(FText, Prefix)
+	SLATE_ARGUMENT(FText, Line)
+	SLATE_ARGUMENT(FSlateColor, PrefixColour)
+	SLATE_ARGUMENT(FSlateColor, LineColour)
+	SLATE_ARGUMENT(FSlateColor, BgColour)
+	
+SLATE_END_ARGS()
+
+public:
+
+	/**
+	 * Construct this widget.  Called by the SNew() Slate macro.
+	 *
+	 * @param	InArgs	          Declaration used by the SNew() macro to construct this widget.
+	 * @oaram   InOwnerTableView  The owner table into which this row is being placed.
+	 */
+	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView );
+
+	/**
+	 * Generates the widget for the specified column.
+	 *
+	 * @param ColumnName The name of the column to generate the widget for.
+	 * @return The widget.
+	 */
+	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override;
+protected:
+	float InitialWidth = 70;
+	FText Prefix;
+	FText Line;
+	FSlateColor PrefixColour;
+	FSlateColor LineColour;
+	FSlateColor BgColour;
+};
+
 
 class FSUDSEditorVariableRow
 {
@@ -121,6 +165,7 @@ private:
 	USUDSScript* Script = nullptr;
 	USUDSDialogue* Dialogue = nullptr;
 	float VarColumnWidth = 75;
+	float PrefixColumnWidth = 75;
 	// FSUDSEditorDialogueRow needs to held by a TSharedPtr for SListView
 	TSharedPtr<SListView<TSharedPtr<FSUDSEditorOutputRow>>> OutputListView;
 	TArray<TSharedPtr<FSUDSEditorOutputRow>> OutputRows;
@@ -149,7 +194,7 @@ private:
 	void OnDialogueVariableChanged(USUDSDialogue* Dialogue, FName VariableName, const FSUDSValue& ToValue, bool bFromScript);
 	void OnDialogueVariableRequested(USUDSDialogue* Dialogue, FName VariableName);
 	
-	TSharedRef<ITableRow> OnGenerateRowForDialogue(
+	TSharedRef<ITableRow> OnGenerateRowForOutput(
 		TSharedPtr<FSUDSEditorOutputRow> FsudsEditorDialogueRow,
 		const TSharedRef<STableViewBase>& TableViewBase);
 	TSharedRef<ITableRow> OnGenerateRowForVariable(TSharedPtr<FSUDSEditorVariableRow> Row,

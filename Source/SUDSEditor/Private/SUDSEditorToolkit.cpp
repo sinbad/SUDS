@@ -55,7 +55,35 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 		OutputListView = SNew(SListView<TSharedPtr<FSUDSEditorOutputRow>>)
 				.ItemHeight(24)
 				.ListItemsSource(&OutputRows)
-				.OnGenerateRow(this, &FSUDSEditorToolkit::OnGenerateRowForDialogue);
+				.OnGenerateRow(this, &FSUDSEditorToolkit::OnGenerateRowForOutput)
+				.HeaderRow(
+					SNew(SHeaderRow)
+					+ SHeaderRow::Column("PrefixHeader")
+					.FillSized(PrefixColumnWidth)
+					[
+						SNew(SHorizontalBox)
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						[
+							SNew( STextBlock )
+							.Text( INVTEXT("") )
+						]
+					]
+					+ SHeaderRow::Column("LineHeader")
+					.FillWidth(1.0f)
+					[
+						SNew(SHorizontalBox)
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						.VAlign(VAlign_Center)
+						[
+							SNew( STextBlock )
+							.Text( INVTEXT("") )
+						]
+					]
+				);
+
 
 		ChoicesBox = SNew(SVerticalBox);
 
@@ -389,33 +417,17 @@ void FSUDSEditorToolkit::OnDialogueVariableRequested(USUDSDialogue* D, FName Var
 {
 }
 
-TSharedRef<ITableRow> FSUDSEditorToolkit::OnGenerateRowForDialogue(
+TSharedRef<ITableRow> FSUDSEditorToolkit::OnGenerateRowForOutput(
 	TSharedPtr<FSUDSEditorOutputRow> Row,
 	const TSharedRef<STableViewBase>& OwnerTable)
 {
-	return SNew(STableRow<TSharedPtr<FSUDSEditorOutputRow> >, OwnerTable)
-		[
-			SNew(SHorizontalBox)
-
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(10, 5, 10, 5)
-			[
-				SNew(STextBlock)
-				.Text(Row->Prefix)
-				.ColorAndOpacity(Row->PrefixColour)
-			]
-
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(10, 5, 10, 5)
-			[
-				SNew(STextBlock)
-				.Text(Row->Line)
-				.ColorAndOpacity(Row->LineColour)
-			]
-		];
-		
+	return SNew( SSUDSEditorOutputItem, OwnerTable )
+		.Prefix(Row->Prefix)
+		.PrefixColour(Row->PrefixColour)
+		.Line(Row->Line)
+		.LineColour(Row->LineColour)
+		.BgColour(Row->BgColour)
+		.InitialWidth( PrefixColumnWidth );
 }
 
 TSharedRef<ITableRow> FSUDSEditorToolkit::OnGenerateRowForVariable(TSharedPtr<FSUDSEditorVariableRow> Row,
@@ -504,5 +516,49 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 				ValueWidget.ToSharedRef()
 			];
 	}
+	
+}
+
+void SSUDSEditorOutputItem::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)
+{
+	InitialWidth = InArgs._InitialWidth;
+	Prefix = InArgs._Prefix;
+	PrefixColour = InArgs._PrefixColour;
+	Line = InArgs._Line;
+	LineColour = InArgs._LineColour;
+	BgColour = InArgs._BgColour;
+
+	SMultiColumnTableRow< TSharedPtr< FString > >::Construct( SMultiColumnTableRow< TSharedPtr< FString > >::FArguments(), InOwnerTableView );
+}
+
+TSharedRef<SWidget> SSUDSEditorOutputItem::GenerateWidgetForColumn(const FName& ColumnName)
+{
+	if (ColumnName == "PrefixHeader")
+	{
+		return SNew(SHorizontalBox)
+
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.0)
+		.Padding(10, 5, 10, 5)
+		[
+			SNew(STextBlock)
+			.Text(Prefix)
+			.ColorAndOpacity(PrefixColour)
+		];
+	}
+	else
+	{
+		return SNew(SHorizontalBox)
+
+		+ SHorizontalBox::Slot()
+		.FillWidth(1.0)
+		.Padding(10, 5, 10, 5)
+		[
+			SNew(STextBlock)
+			.Text(Line)
+			.ColorAndOpacity(LineColour)
+		];
+	}
+
 	
 }
