@@ -49,9 +49,9 @@ public:
 
 	FSUDSEditorOutputRow(const FText& InPrefix,
 	                     const FText& InLine,
-	                     const FSlateColor& InPrefixColour = FSlateColor::UseForeground(),
-	                     const FSlateColor& InLineColour = FSlateColor::UseForeground(),
-	                     const FSlateColor& InBgColour = FSlateColor(FLinearColor(0.1f, 0.1f ,0.1f ,1))) :
+	                     const FSlateColor& InPrefixColour,
+	                     const FSlateColor& InLineColour,
+	                     const FSlateColor& InBgColour) :
 		Prefix(InPrefix),
 		Line(InLine),
 		PrefixColour(InPrefixColour),
@@ -100,7 +100,6 @@ protected:
 	FText Line;
 	FSlateColor PrefixColour;
 	FSlateColor LineColour;
-	FSlateColor BgColour;
 };
 
 
@@ -178,12 +177,16 @@ private:
 	const FSlateColor EventColour = FLinearColor(0.2f, 0.6f, 1.0f, 1.0f);
 	const FSlateColor StartColour = FLinearColor(1.0f, 0.5f, 0.0f, 1.0f);
 	const FSlateColor FinishColour = FLinearColor(1.0f, 0.3f, 0.3f, 1.0f);
+	const FSlateColor RowBgColour1 = FLinearColor(0.15f, 0.15f, 0.15f, 1.0f);
+	const FSlateColor RowBgColour2 = FLinearColor(0.3f, 0.3f, 0.3f, 1.0f);
+	
 
 	void ExtendToolbar(FToolBarBuilder& ToolbarBuilder, TWeakPtr<SDockTab> Tab);
 	void UpdateVariables();
 	void StartDialogue();
 	void UpdateOutput();
 	void UpdateChoiceButtons();
+	void AddOutputRow(const FText& Prefix, const FText& Line, const FSlateColor& PrefixColour, const FSlateColor& LineColour);
 
 	void OnDialogueChoice(USUDSDialogue* Dialogue, int ChoiceIndex);
 	void OnDialogueEvent(USUDSDialogue* Dialogue, FName EventName, const TArray<FSUDSValue>& Args);

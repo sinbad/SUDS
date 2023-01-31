@@ -3,6 +3,7 @@
 #include "SUDSDialogue.h"
 #include "SUDSLibrary.h"
 #include "SUDSScript.h"
+#include "Styling/StyleColors.h"
 
 void FSUDSEditorToolkit::InitEditor(const TArray<UObject*>& InObjects)
 {
@@ -321,13 +322,10 @@ void FSUDSEditorToolkit::OnDialogueChoice(USUDSDialogue* D, int ChoiceIndex)
 {
 	if (!D->IsSimpleContinue())
 	{
-		OutputRows.Add(MakeShareable(new FSUDSEditorOutputRow(
-			INVTEXT("Choice"),
-			FText::Format(INVTEXT("[{1}] {0}"), D->GetChoiceText(ChoiceIndex), ChoiceIndex),
-			ChoiceColour,
-			ChoiceColour)));
-
-		UpdateOutput();
+		AddOutputRow(INVTEXT("Choice"),
+		             FText::Format(INVTEXT("[{1}] {0}"), D->GetChoiceText(ChoiceIndex), ChoiceIndex),
+		             ChoiceColour,
+		             ChoiceColour);
 
 	}
 }
@@ -352,21 +350,19 @@ void FSUDSEditorToolkit::OnDialogueEvent(USUDSDialogue* D, FName EventName, cons
 		B.Append(" )");
 	}
 	FText ArgText = FText::FromString(B.ToString());
-	OutputRows.Add(MakeShareable(
-		new FSUDSEditorOutputRow(INVTEXT("Event"),
-								 FText::FormatOrdered(INVTEXT("{0} {1}"), FText::FromName(EventName), ArgText),
-								 EventColour,
-								 EventColour)));
+	AddOutputRow(INVTEXT("Event"),
+	             FText::FormatOrdered(INVTEXT("{0} {1}"), FText::FromName(EventName), ArgText),
+	             EventColour,
+	             EventColour);
 	
 }
 
 void FSUDSEditorToolkit::OnDialogueFinished(USUDSDialogue* D)
 {
-	OutputRows.Add(MakeShareable(
-		new FSUDSEditorOutputRow(INVTEXT("End"),
-		                         INVTEXT("Dialogue Finished"),
-		                         FinishColour,
-		                         FinishColour)));
+	AddOutputRow(INVTEXT("End"),
+	             INVTEXT("Dialogue Finished"),
+	             FinishColour,
+	             FinishColour);
 }
 
 void FSUDSEditorToolkit::OnDialogueProceeding(USUDSDialogue* D)
@@ -376,20 +372,30 @@ void FSUDSEditorToolkit::OnDialogueProceeding(USUDSDialogue* D)
 void FSUDSEditorToolkit::OnDialogueStarting(USUDSDialogue* D, FName LabelName)
 {
 	FString LabelStr = LabelName.IsNone() ? FString("beginning") : LabelName.ToString();
-	OutputRows.Add(MakeShareable(
-		new FSUDSEditorOutputRow(INVTEXT("Start"),
-		                         FText::Format(INVTEXT("Starting from {0}"), FText::FromString(LabelStr)),
-		                         StartColour,
-		                         StartColour)));
+	AddOutputRow(INVTEXT("Start"),
+	             FText::Format(INVTEXT("Starting from {0}"), FText::FromString(LabelStr)),
+	             StartColour,
+	             StartColour);
 }
 
 void FSUDSEditorToolkit::OnDialogueSpeakerLine(USUDSDialogue* D)
 {
-	OutputRows.Add(MakeShareable(
-		new FSUDSEditorOutputRow(D->GetSpeakerDisplayName(), D->GetText(), SpeakerColour)));
-	UpdateOutput();
+	AddOutputRow(D->GetSpeakerDisplayName(), D->GetText(), SpeakerColour, FSlateColor::UseForeground());
 	UpdateChoiceButtons();
 
+}
+
+void FSUDSEditorToolkit::AddOutputRow(const FText& Prefix,
+	const FText& Line,
+	const FSlateColor& PrefixColour,
+	const FSlateColor& LineColour)
+{
+	// Stupid table changes any colours I give it, white = dark grey
+	// Can't figure out where it's coming from, I f**king hate Slate 
+	const FSlateColor BgColour = (OutputRows.Num() % 2) > 0 ? FSlateColor(FLinearColor::White) : FSlateColor(FLinearColor(0.9f, 0.9f, 0.9f, 1));
+	OutputRows.Add(MakeShareable(
+		new FSUDSEditorOutputRow(Prefix, Line, PrefixColour, LineColour, BgColour)));
+	UpdateOutput();
 }
 
 void FSUDSEditorToolkit::UpdateVariables()
@@ -526,7 +532,8 @@ void SSUDSEditorOutputItem::Construct(const FArguments& InArgs, const TSharedRef
 	PrefixColour = InArgs._PrefixColour;
 	Line = InArgs._Line;
 	LineColour = InArgs._LineColour;
-	BgColour = InArgs._BgColour;
+
+	SetBorderBackgroundColor(InArgs._BgColour);
 
 	SMultiColumnTableRow< TSharedPtr< FString > >::Construct( SMultiColumnTableRow< TSharedPtr< FString > >::FArguments(), InOwnerTableView );
 }
