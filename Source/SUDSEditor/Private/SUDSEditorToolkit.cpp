@@ -281,39 +281,42 @@ void FSUDSEditorToolkit::UpdateChoiceButtons()
 {
 	USUDSDialogue* D = Dialogue;
 	ChoicesBox->ClearChildren();
-	if (D->IsSimpleContinue())
+	if (!D->IsEnded())
 	{
-		ChoicesBox->AddSlot()
-		.Padding(0, 0 ,0 , 5)
-		[
-			SNew(SButton)
-			.HAlign(HAlign_Left)
-			.Text(INVTEXT("..."))
-			.OnClicked_Lambda([D]()
-			{
-				D->Continue();
-				return FReply::Handled();
-			})
-	];
-	}
-	else
-	{
-		for (int i = 0; i < D->GetNumberOfChoices(); ++i)
+		if (D->IsSimpleContinue())
 		{
 			ChoicesBox->AddSlot()
 			.Padding(0, 0 ,0 , 5)
 			[
 				SNew(SButton)
 				.HAlign(HAlign_Left)
-				.Text(D->GetChoiceText(i))
-				.OnClicked_Lambda([D, i]()
+				.Text(INVTEXT("..."))
+				.OnClicked_Lambda([D]()
 				{
-					D->Choose(i);
+					D->Continue();
 					return FReply::Handled();
 				})
-			];
+		];
 		}
+		else
+		{
+			for (int i = 0; i < D->GetNumberOfChoices(); ++i)
+			{
+				ChoicesBox->AddSlot()
+				.Padding(0, 0 ,0 , 5)
+				[
+					SNew(SButton)
+					.HAlign(HAlign_Left)
+					.Text(D->GetChoiceText(i))
+					.OnClicked_Lambda([D, i]()
+					{
+						D->Choose(i);
+						return FReply::Handled();
+					})
+				];
+			}
 		
+		}
 	}
 	
 }
