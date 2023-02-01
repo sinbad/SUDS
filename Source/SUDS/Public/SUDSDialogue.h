@@ -406,6 +406,12 @@ public:
 		return FSUDSValue();
 	}
 
+	UFUNCTION(BlueprintCallable)
+	bool IsVariableSet(FName Name) const
+	{
+		return VariableState.Contains(Name);
+	}
+
 	/// Get all variables
 	UFUNCTION(BlueprintCallable)
 	const TMap<FName, FSUDSValue>& GetVariables() { return VariableState; }
