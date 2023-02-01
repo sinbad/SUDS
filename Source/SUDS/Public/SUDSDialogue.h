@@ -397,7 +397,7 @@ public:
 	/// See GetDialogueText, GetDialogueInt etc for more type friendly versions, but if you want to access the state
 	/// as a type-flexible value then you can do so with this function.
 	UFUNCTION(BlueprintCallable)
-	FSUDSValue GetVariable(FName Name)
+	FSUDSValue GetVariable(FName Name) const
 	{
 		if (const auto Arg = VariableState.Find(Name))
 		{
@@ -414,7 +414,7 @@ public:
 
 	/// Get all variables
 	UFUNCTION(BlueprintCallable)
-	const TMap<FName, FSUDSValue>& GetVariables() { return VariableState; }
+	const TMap<FName, FSUDSValue>& GetVariables() const { return VariableState; }
 	
 	/**
 	 * Set a text dialogue variable
@@ -433,7 +433,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	FText GetVariableText(FName Name);
+	FText GetVariableText(FName Name) const;
 
 	/**
 	 * Set a dialogue variable on the passed in parameters collection.
@@ -449,7 +449,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	int GetVariableInt(FName Name);
+	int GetVariableInt(FName Name) const;
 	
 	/**
 	 * Set a float dialogue variable 
@@ -465,7 +465,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	float GetVariableFloat(FName Name);
+	float GetVariableFloat(FName Name) const;
 	
 	/**
 	 * Set a gender dialogue variable 
@@ -481,7 +481,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	ETextGender GetVariableGender(FName Name);
+	ETextGender GetVariableGender(FName Name) const;
 
 	/**
 	 * Set a boolean dialogue variable 
@@ -497,7 +497,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	bool GetVariableBoolean(FName Name);
+	bool GetVariableBoolean(FName Name) const;
 
 	/**
 	 * Set a name dialogue variable
@@ -513,7 +513,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	FName GetVariableName(FName Name);
+	FName GetVariableName(FName Name) const;
 
 	FOnDialogueSpeakerLineInternal InternalOnSpeakerLine;
 	FOnDialogueChoiceInternal InternalOnChoice;

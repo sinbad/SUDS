@@ -902,9 +902,9 @@ void USUDSDialogue::RaiseProceeding()
 	InternalOnProceeding.ExecuteIfBound(this);
 }
 
-FText USUDSDialogue::GetVariableText(FName Name)
+FText USUDSDialogue::GetVariableText(FName Name) const
 {
-	if (auto Arg = VariableState.Find(Name))
+	if (const auto Arg = VariableState.Find(Name))
 	{
 		if (Arg->GetType() == ESUDSValueType::Text)
 		{
@@ -923,9 +923,9 @@ void USUDSDialogue::SetVariableInt(FName Name, int32 Value)
 	SetVariable(Name, Value);
 }
 
-int USUDSDialogue::GetVariableInt(FName Name)
+int USUDSDialogue::GetVariableInt(FName Name) const
 {
-	if (auto Arg = VariableState.Find(Name))
+	if (const auto Arg = VariableState.Find(Name))
 	{
 		switch (Arg->GetType())
 		{
@@ -948,9 +948,9 @@ void USUDSDialogue::SetVariableFloat(FName Name, float Value)
 	SetVariable(Name, Value);
 }
 
-float USUDSDialogue::GetVariableFloat(FName Name)
+float USUDSDialogue::GetVariableFloat(FName Name) const
 {
-	if (auto Arg = VariableState.Find(Name))
+	if (const auto Arg = VariableState.Find(Name))
 	{
 		switch (Arg->GetType())
 		{
@@ -972,9 +972,9 @@ void USUDSDialogue::SetVariableGender(FName Name, ETextGender Value)
 	SetVariable(Name, Value);
 }
 
-ETextGender USUDSDialogue::GetVariableGender(FName Name)
+ETextGender USUDSDialogue::GetVariableGender(FName Name) const
 {
-	if (auto Arg = VariableState.Find(Name))
+	if (const auto Arg = VariableState.Find(Name))
 	{
 		switch (Arg->GetType())
 		{
@@ -996,9 +996,9 @@ void USUDSDialogue::SetVariableBoolean(FName Name, bool Value)
 	SetVariable(Name, FSUDSValue(Value));
 }
 
-bool USUDSDialogue::GetVariableBoolean(FName Name)
+bool USUDSDialogue::GetVariableBoolean(FName Name) const
 {
-	if (auto Arg = VariableState.Find(Name))
+	if (const auto Arg = VariableState.Find(Name))
 	{
 		switch (Arg->GetType())
 		{
@@ -1021,9 +1021,9 @@ void USUDSDialogue::SetVariableName(FName Name, FName Value)
 	SetVariable(Name, FSUDSValue(Value, false));
 }
 
-FName USUDSDialogue::GetVariableName(FName Name)
+FName USUDSDialogue::GetVariableName(FName Name) const
 {
-	if (auto Arg = VariableState.Find(Name))
+	if (const auto Arg = VariableState.Find(Name))
 	{
 		if (Arg->GetType() == ESUDSValueType::Name)
 		{
