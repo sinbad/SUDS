@@ -22,15 +22,17 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnDialogueEvent, class USUDSDial
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnVariableChangedEvent, class USUDSDialogue*, Dialogue, FName, VariableName, const FSUDSValue&, Value, bool, bFromScript);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnVariableRequestedEvent, class USUDSDialogue*, Dialogue, FName, VariableName);
 
-// Non-dynamic events for editor use
-DECLARE_DELEGATE_OneParam(FOnDialogueSpeakerLineInternal, class USUDSDialogue* /* Dialogue */);
-DECLARE_DELEGATE_TwoParams(FOnDialogueChoiceInternal, class USUDSDialogue* /* Dialogue*/, int /*ChoiceIndex*/);
-DECLARE_DELEGATE_OneParam(FOnDialogueProceedingInternal, class USUDSDialogue* /*Dialogue*/);
-DECLARE_DELEGATE_TwoParams(FOnDialogueStartingInternal, class USUDSDialogue* /*Dialogue*/, FName /*AtLabel*/);
-DECLARE_DELEGATE_OneParam(FOnDialogueFinishedInternal, class USUDSDialogue* /*Dialogue*/);
-DECLARE_DELEGATE_ThreeParams(FOnDialogueEventInternal, class USUDSDialogue* /*Dialogue*/, FName /*EventName*/, const TArray<FSUDSValue>& /*Arguments*/);
-DECLARE_DELEGATE_FourParams(FOnVariableChangedEventInternal, class USUDSDialogue* /* Dialogue*/, FName /*VariableName*/, const FSUDSValue& /*Value*/, bool /*bFromScript*/);
-DECLARE_DELEGATE_TwoParams(FOnVariableRequestedEventInternal, class USUDSDialogue* /*Dialogue*/, FName /*VariableName*/);
+#if WITH_EDITOR
+	// Non-dynamic events for editor use
+	DECLARE_DELEGATE_OneParam(FOnDialogueSpeakerLineInternal, class USUDSDialogue* /* Dialogue */);
+	DECLARE_DELEGATE_TwoParams(FOnDialogueChoiceInternal, class USUDSDialogue* /* Dialogue*/, int /*ChoiceIndex*/);
+	DECLARE_DELEGATE_OneParam(FOnDialogueProceedingInternal, class USUDSDialogue* /*Dialogue*/);
+	DECLARE_DELEGATE_TwoParams(FOnDialogueStartingInternal, class USUDSDialogue* /*Dialogue*/, FName /*AtLabel*/);
+	DECLARE_DELEGATE_OneParam(FOnDialogueFinishedInternal, class USUDSDialogue* /*Dialogue*/);
+	DECLARE_DELEGATE_ThreeParams(FOnDialogueEventInternal, class USUDSDialogue* /*Dialogue*/, FName /*EventName*/, const TArray<FSUDSValue>& /*Arguments*/);
+	DECLARE_DELEGATE_FourParams(FOnVariableChangedEventInternal, class USUDSDialogue* /* Dialogue*/, FName /*VariableName*/, const FSUDSValue& /*Value*/, bool /*bFromScript*/);
+	DECLARE_DELEGATE_TwoParams(FOnVariableRequestedEventInternal, class USUDSDialogue* /*Dialogue*/, FName /*VariableName*/);
+#endif
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSUDSDialogue, Verbose, All);
 
@@ -525,6 +527,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FName GetVariableName(FName Name) const;
 
+#if WITH_EDITOR
 	FOnDialogueSpeakerLineInternal InternalOnSpeakerLine;
 	FOnDialogueChoiceInternal InternalOnChoice;
 	FOnDialogueProceedingInternal InternalOnProceeding;
@@ -533,5 +536,5 @@ public:
 	FOnVariableRequestedEventInternal InternalOnVariableRequested;
 	FOnDialogueStartingInternal InternalOnStarting;
 	FOnDialogueFinishedInternal InternalOnFinished;
-	
+#endif
 };

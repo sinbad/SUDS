@@ -200,7 +200,9 @@ USUDSScriptNode* USUDSDialogue::RunEventNode(USUDSScriptNode* Node)
 			}
 		}
 		OnEvent.Broadcast(this, EvtNode->GetEventName(), ArgsResolved);
+#if WITH_EDITOR
 		InternalOnEvent.ExecuteIfBound(this, EvtNode->GetEventName(), ArgsResolved);
+#endif
 	}
 	return GetNextNode(Node);
 }
@@ -274,7 +276,9 @@ void USUDSDialogue::RaiseVariableChange(const FName& VarName, const FSUDSValue& 
 		}
 	}
 	OnVariableChanged.Broadcast(this, VarName, Value, bFromScript);
+#if WITH_EDITOR
 	InternalOnVariableChanged.ExecuteIfBound(this, VarName, Value, bFromScript);
+#endif
 
 }
 
@@ -282,7 +286,9 @@ void USUDSDialogue::RaiseVariableRequested(const FName& VarName)
 {
 	// Because variables set by participants should "win", raise event first
 	OnVariableRequested.Broadcast(this, VarName);
+#if WITH_EDITOR
 	InternalOnVariableRequested.ExecuteIfBound(this, VarName);
+#endif
 	for (const auto P : Participants)
 	{
 		if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
@@ -835,7 +841,9 @@ void USUDSDialogue::RaiseStarting(FName StartLabel)
 		}
 	}
 	OnStarting.Broadcast(this, StartLabel);
+#if WITH_EDITOR
 	InternalOnStarting.ExecuteIfBound(this, StartLabel);
+#endif
 }
 
 void USUDSDialogue::RaiseFinished()
@@ -848,7 +856,9 @@ void USUDSDialogue::RaiseFinished()
 		}
 	}
 	OnFinished.Broadcast(this);
+#if WITH_EDITOR
 	InternalOnFinished.ExecuteIfBound(this);
+#endif
 
 }
 
@@ -864,7 +874,9 @@ void USUDSDialogue::RaiseNewSpeakerLine()
 	
 	// Event listeners get it after
 	OnSpeakerLine.Broadcast(this);
+#if WITH_EDITOR
 	InternalOnSpeakerLine.ExecuteIfBound(this);
+#endif
 }
 
 void USUDSDialogue::RaiseChoiceMade(int Index)
@@ -878,7 +890,9 @@ void USUDSDialogue::RaiseChoiceMade(int Index)
 	}
 	// Event listeners get it after
 	OnChoice.Broadcast(this, Index);
+#if WITH_EDITOR
 	InternalOnChoice.ExecuteIfBound(this, Index);
+#endif
 }
 
 void USUDSDialogue::RaiseProceeding()
@@ -892,7 +906,9 @@ void USUDSDialogue::RaiseProceeding()
 	}
 	// Event listeners get it after
 	OnProceeding.Broadcast(this);
+#if WITH_EDITOR
 	InternalOnProceeding.ExecuteIfBound(this);
+#endif
 }
 
 FText USUDSDialogue::GetVariableText(FName Name) const
