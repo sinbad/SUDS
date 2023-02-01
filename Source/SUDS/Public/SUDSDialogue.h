@@ -199,6 +199,17 @@ protected:
 	FText ResolveParameterisedText(const TArray<FName> Params, const FTextFormat& TextFormat);
 	void GetTextFormatArgs(const TArray<FName>& ArgNames, FFormatNamedArguments& OutArgs) const;
 	bool CurrentNodeHasChoices() const;
+	void SetVariableImpl(FName Name, FSUDSValue Value, bool bFromScript)
+	{
+		const FSUDSValue OldValue = GetVariable(Name);
+		if (!IsVariableSet(Name) ||
+			(OldValue != Value).GetBooleanValue())
+		{
+			VariableState.Add(Name, Value);
+			RaiseVariableChange(Name, Value, bFromScript);
+		}
+		
+	}
 
 public:
 	USUDSDialogue();
@@ -385,12 +396,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetVariable(FName Name, FSUDSValue Value)
 	{
-		const FSUDSValue OldValue = GetVariable(Name);
-		if ((OldValue != Value).GetBooleanValue())
-		{
-			VariableState.Add(Name, Value);
-			RaiseVariableChange(Name, Value, false);
-		}
+		SetVariableImpl(Name, Value, false);
 	}
 
 	/// Get a variable in dialogue state as a general value type

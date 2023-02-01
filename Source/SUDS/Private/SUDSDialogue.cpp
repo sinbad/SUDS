@@ -255,14 +255,7 @@ USUDSScriptNode* USUDSDialogue::RunSetVariableNode(USUDSScriptNode* Node)
 		if (SetNode->GetExpression().IsValid())
 		{
 			RaiseExpressionVariablesRequested(SetNode->GetExpression());
-			const FSUDSValue OldValue = GetVariable(SetNode->GetIdentifier());
-			const FSUDSValue NewValue = SetNode->GetExpression().Evaluate(VariableState);
-			if (!IsVariableSet(SetNode->GetIdentifier()) ||
-				(OldValue != NewValue).GetBooleanValue())
-			{
-				VariableState.Add(SetNode->GetIdentifier(), NewValue);
-				RaiseVariableChange(SetNode->GetIdentifier(), NewValue, true);
-			}
+			SetVariableImpl(SetNode->GetIdentifier(), SetNode->GetExpression().Evaluate(VariableState), true);
 		}
 	}
 
