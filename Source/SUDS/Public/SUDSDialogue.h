@@ -213,6 +213,10 @@ protected:
 
 public:
 	USUDSDialogue();
+	// virtual ~USUDSDialogue() override
+	// {
+	//		UE_LOG(LogTemp, Warning, TEXT("*********** Destroyed Dialogue!"));
+	// }
 	void Initialise(const USUDSScript* Script);
 	void InitVariables();
 

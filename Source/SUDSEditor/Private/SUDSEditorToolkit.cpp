@@ -299,8 +299,14 @@ void FSUDSEditorToolkit::OnClose()
 
 	if (Dialogue)
 	{
-		Dialogue->MarkAsGarbage();
+		// Handle garbage collection of our UObject
+		{
+			FGCScopeGuard GCGuard;
+			Dialogue->RemoveFromRoot();
+			Dialogue->MarkAsGarbage();
+		}
 		Dialogue = nullptr;
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 	}
 }
 
@@ -312,9 +318,18 @@ void FSUDSEditorToolkit::StartDialogue()
 	TraceLog->ClearMessages();
 	if (!Dialogue)
 	{
-		Dialogue = USUDSLibrary::CreateDialogue(nullptr, Script);
-		Dialogue->SetFlags(RF_Transient);
-		Dialogue->ClearFlags(RF_Transactional);
+		// Custom creation of USUDSDialogue, we want it to exist only for this window.
+		// Mark as a root object (we'll clear it on close)
+		{
+			// Have to guard vs GC
+			FGCScopeGuard GCGuard;
+			const FName Name = MakeUniqueObjectName(GetTransientPackage(),
+			                                        USUDSDialogue::StaticClass(),
+			                                        Script->GetFName());
+			Dialogue = NewObject<USUDSDialogue>(GetTransientPackage(),
+				Name, RF_Transient | RF_MarkAsRootSet);
+		}
+		Dialogue->Initialise(Script);
 		
 		Dialogue->InternalOnChoice.BindSP(this, &FSUDSEditorToolkit::OnDialogueChoice);
 		Dialogue->InternalOnEvent.BindSP(this, &FSUDSEditorToolkit::OnDialogueEvent);
