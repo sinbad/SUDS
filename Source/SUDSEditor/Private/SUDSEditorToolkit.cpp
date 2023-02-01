@@ -352,7 +352,7 @@ void FSUDSEditorToolkit::UpdateChoiceButtons()
 			[
 				SNew(SButton)
 				.HAlign(HAlign_Left)
-				.Text(INVTEXT("..."))
+				.Text(INVTEXT("(Continue...)"))
 				.OnClicked_Lambda([D]()
 				{
 					D->Continue();
