@@ -210,12 +210,59 @@ void FSUDSEditorToolkit::ExtendToolbar(FToolBarBuilder& ToolbarBuilder, TWeakPtr
 		return;
 	}
 
-	ToolbarBuilder.AddToolBarButton(FSUDSToolbarCommands::Get().StartDialogue,
-		NAME_None, TAttribute<FText>(), TAttribute<FText>(),
-		FSlateIcon(FEditorStyle::GetStyleSetName(), TEXT("BlueprintMerge.NextDiff")));
+	ToolbarBuilder.BeginSection("CachedState");
+	{
+		ToolbarBuilder.AddToolBarButton(FSUDSToolbarCommands::Get().StartDialogue,
+			NAME_None, TAttribute<FText>(), TAttribute<FText>(),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), TEXT("BlueprintMerge.NextDiff")));
+
+		TSharedRef<SWidget> LabelSelectionBox = SNew(SComboButton)
+			.OnGetMenuContent(this, &FSUDSEditorToolkit::GetStartLabelMenu)
+			.ButtonContent()
+			[
+				SNew(STextBlock)
+				.ToolTipText( INVTEXT("Choose where to start dialogue from") )
+				.Text(this, &FSUDSEditorToolkit::GetSelectedStartLabel )
+			];
+
+		ToolbarBuilder.AddWidget(LabelSelectionBox);
+		
+	}
+	ToolbarBuilder.EndSection();
+	
 }
 
+TSharedRef<SWidget> FSUDSEditorToolkit::GetStartLabelMenu()
+{
+	FMenuBuilder MenuBuilder(true, NULL);
 
+	const FUIAction StartAction(FExecuteAction::CreateSP(this, &FSUDSEditorToolkit::OnStartLabelSelected, FName(NAME_None)));
+	MenuBuilder.AddMenuEntry(INVTEXT("Beginning"), INVTEXT("Start from the beginning of the dialogue"), FSlateIcon(), StartAction);
+	MenuBuilder.AddSeparator();
+	
+	if (IsValid(Script))
+	{
+		for (auto& LabelPair : Script->GetLabelList())
+		{
+			FUIAction LabelAction(FExecuteAction::CreateSP(this, &FSUDSEditorToolkit::OnStartLabelSelected, LabelPair.Key));
+			MenuBuilder.AddMenuEntry(FText::FromName(LabelPair.Key), FText(), FSlateIcon(), LabelAction);
+		}
+	}
+
+
+	return MenuBuilder.MakeWidget();
+}
+
+void FSUDSEditorToolkit::OnStartLabelSelected(FName Label)
+{
+	StartLabel = Label;
+}
+
+FText FSUDSEditorToolkit::GetSelectedStartLabel() const
+{
+	return FText::Format(INVTEXT("From: {0}"),
+		StartLabel.IsNone() ? INVTEXT("Beginning") : FText::FromName(StartLabel));
+}
 
 void FSUDSEditorToolkit::UnregisterTabSpawners(const TSharedRef<FTabManager>& InTabManager)
 {
@@ -280,7 +327,7 @@ void FSUDSEditorToolkit::StartDialogue()
 
 
 	}
-	Dialogue->Restart(true);
+	Dialogue->Restart(true, StartLabel);
 
 	UpdateVariables();
 	

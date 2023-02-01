@@ -224,6 +224,7 @@ private:
 	USUDSDialogue* Dialogue = nullptr;
 	float VarColumnWidth = 75;
 	float PrefixColumnWidth = 75;
+	FName StartLabel = NAME_None;
 	// FSUDSEditorDialogueRow needs to held by a TSharedPtr for SListView
 	TSharedPtr<SListView<TSharedPtr<FSUDSEditorOutputRow>>> OutputListView;
 	TArray<TSharedPtr<FSUDSEditorOutputRow>> OutputRows;
@@ -240,9 +241,11 @@ private:
 	const FSlateColor FinishColour = FLinearColor(1.0f, 0.3f, 0.3f, 1.0f);
 	const FSlateColor RowBgColour1 = FLinearColor(0.15f, 0.15f, 0.15f, 1.0f);
 	const FSlateColor RowBgColour2 = FLinearColor(0.3f, 0.3f, 0.3f, 1.0f);
-	
 
 	void ExtendToolbar(FToolBarBuilder& ToolbarBuilder, TWeakPtr<SDockTab> Tab);
+	TSharedRef<class SWidget> GetStartLabelMenu();
+	FText GetSelectedStartLabel() const;
+	void OnStartLabelSelected(FName Label);
 	void UpdateVariables();
 	void StartDialogue();
 	void UpdateOutput();
