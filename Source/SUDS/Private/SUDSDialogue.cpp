@@ -168,7 +168,12 @@ USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node)
 		{
 			// use the first satisfied edge
 			RaiseExpressionVariablesRequested(Edge.GetCondition(), Edge.GetSourceLineNo());
-			if (Edge.GetCondition().EvaluateBoolean(VariableState, BaseScript->GetName()))
+			const bool bSuccess = Edge.GetCondition().EvaluateBoolean(VariableState, BaseScript->GetName());
+#if WITH_EDITOR
+			InternalOnSelectEval.ExecuteIfBound(this, Edge.GetCondition().GetSourceString(), bSuccess, Edge.GetSourceLineNo());
+#endif
+			
+			if (bSuccess)
 			{
 				return Edge.GetTargetNode().Get();
 			}
@@ -257,7 +262,17 @@ USUDSScriptNode* USUDSDialogue::RunSetVariableNode(USUDSScriptNode* Node)
 		if (SetNode->GetExpression().IsValid())
 		{
 			RaiseExpressionVariablesRequested(SetNode->GetExpression(), SetNode->GetSourceLineNo());
-			SetVariableImpl(SetNode->GetIdentifier(), SetNode->GetExpression().Evaluate(VariableState), true, SetNode->GetSourceLineNo());
+			FSUDSValue Value = SetNode->GetExpression().Evaluate(VariableState);
+			SetVariableImpl(SetNode->GetIdentifier(), Value, true, SetNode->GetSourceLineNo());
+#if WITH_EDITOR
+			InternalOnSetVar.ExecuteIfBound(this,
+			                                SetNode->GetIdentifier(),
+			                                Value,
+			                                SetNode->GetExpression().IsLiteral()
+				                                ? ""
+				                                : SetNode->GetExpression().GetSourceString(),
+			                                SetNode->GetSourceLineNo());
+#endif
 		}
 	}
 
@@ -276,19 +291,12 @@ void USUDSDialogue::RaiseVariableChange(const FName& VarName, const FSUDSValue& 
 		}
 	}
 	OnVariableChanged.Broadcast(this, VarName, Value, bFromScript);
-#if WITH_EDITOR
-	InternalOnVariableChanged.ExecuteIfBound(this, VarName, Value, bFromScript, LineNo);
-#endif
-
 }
 
 void USUDSDialogue::RaiseVariableRequested(const FName& VarName, int LineNo)
 {
 	// Because variables set by participants should "win", raise event first
 	OnVariableRequested.Broadcast(this, VarName);
-#if WITH_EDITOR
-	InternalOnVariableRequested.ExecuteIfBound(this, VarName, LineNo);
-#endif
 	for (const auto P : Participants)
 	{
 		if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))

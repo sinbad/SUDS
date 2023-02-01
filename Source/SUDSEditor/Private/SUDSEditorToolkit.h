@@ -262,8 +262,7 @@ private:
 	void OnDialogueProceeding(USUDSDialogue* Dialogue);
 	void OnDialogueStarting(USUDSDialogue* Dialogue, FName LabelName);
 	void OnDialogueSpeakerLine(USUDSDialogue* Dialogue, int LineNo);
-	void OnDialogueVariableChanged(USUDSDialogue* Dialogue, FName VariableName, const FSUDSValue& ToValue, bool bFromScript, int LineNo);
-	void OnDialogueVariableRequested(USUDSDialogue* Dialogue, FName VariableName, int LineNo);
+	void OnDialogueSetVar(USUDSDialogue* Dialogue, FName VariableName, const FSUDSValue& ToValue, const FString& ExpressionStr, int LineNo);
 	
 	TSharedRef<ITableRow> OnGenerateRowForOutput(
 		TSharedPtr<FSUDSEditorOutputRow> FsudsEditorDialogueRow,

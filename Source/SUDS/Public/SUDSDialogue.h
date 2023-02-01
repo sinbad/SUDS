@@ -30,9 +30,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnVariableRequestedEvent, class US
 	DECLARE_DELEGATE_TwoParams(FOnDialogueStartingInternal, class USUDSDialogue* /*Dialogue*/, FName /*AtLabel*/);
 	DECLARE_DELEGATE_OneParam(FOnDialogueFinishedInternal, class USUDSDialogue* /*Dialogue*/);
 	DECLARE_DELEGATE_FourParams(FOnDialogueEventInternal, class USUDSDialogue* /*Dialogue*/, FName /*EventName*/, const TArray<FSUDSValue>& /*Arguments*/, int /*SourceLineNo*/);
-	DECLARE_DELEGATE_FiveParams(FOnVariableChangedEventInternal, class USUDSDialogue* /* Dialogue*/, FName /*VariableName*/, const FSUDSValue& /*Value*/, bool /*bFromScript*/, int /*SourceLineNo*/);
-	DECLARE_DELEGATE_ThreeParams(FOnVariableRequestedEventInternal, class USUDSDialogue* /*Dialogue*/, FName /*VariableName*/, int /*SourceLineNo*/);
-	DECLARE_DELEGATE_FourParams(FOnDialogueSelectEval, class USUDSDialogue* /*Dialogue*/, const FString& ConditionString, bool bResult, int /*SourceLineNo*/);
+	DECLARE_DELEGATE_FiveParams(FOnDialogueVarChangedByScriptInternal, class USUDSDialogue* /* Dialogue*/, FName /*VariableName*/, const FSUDSValue& /*Value*/, const FString& /*ExprString*/, int /*SourceLineNo*/);
+	DECLARE_DELEGATE_FourParams(FOnDialogueSelectEval, class USUDSDialogue* /*Dialogue*/, const FString& /*ConditionString*/, bool /*bResult*/, int /*SourceLineNo*/);
 #endif
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSUDSDialogue, Verbose, All);
@@ -202,7 +201,7 @@ protected:
 	FText ResolveParameterisedText(const TArray<FName> Params, const FTextFormat& TextFormat, int LineNo);
 	void GetTextFormatArgs(const TArray<FName>& ArgNames, FFormatNamedArguments& OutArgs) const;
 	bool CurrentNodeHasChoices() const;
-	void SetVariableImpl(FName Name, FSUDSValue Value, bool bFromScript, int LineNo)
+	void SetVariableImpl(FName Name, const FSUDSValue& Value, bool bFromScript, int LineNo)
 	{
 		const FSUDSValue OldValue = GetVariable(Name);
 		if (!IsVariableSet(Name) ||
@@ -538,8 +537,8 @@ public:
 	FOnDialogueChoiceInternal InternalOnChoice;
 	FOnDialogueProceedingInternal InternalOnProceeding;
 	FOnDialogueEventInternal InternalOnEvent;
-	FOnVariableChangedEventInternal InternalOnVariableChanged;
-	FOnVariableRequestedEventInternal InternalOnVariableRequested;
+	FOnDialogueVarChangedByScriptInternal InternalOnSetVar;
+	FOnDialogueSelectEval InternalOnSelectEval;
 	FOnDialogueStartingInternal InternalOnStarting;
 	FOnDialogueFinishedInternal InternalOnFinished;
 #endif

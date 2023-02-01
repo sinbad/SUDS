@@ -327,8 +327,7 @@ void FSUDSEditorToolkit::StartDialogue()
 		Dialogue->InternalOnProceeding.BindSP(this, &FSUDSEditorToolkit::OnDialogueProceeding);
 		Dialogue->InternalOnStarting.BindSP(this, &FSUDSEditorToolkit::OnDialogueStarting);
 		Dialogue->InternalOnSpeakerLine.BindSP(this, &FSUDSEditorToolkit::OnDialogueSpeakerLine);
-		Dialogue->InternalOnVariableChanged.BindSP(this, &FSUDSEditorToolkit::OnDialogueVariableChanged);
-		Dialogue->InternalOnVariableRequested.BindSP(this, &FSUDSEditorToolkit::OnDialogueVariableRequested);
+		Dialogue->InternalOnSetVar.BindSP(this, &FSUDSEditorToolkit::OnDialogueSetVar);
 
 
 	}
@@ -586,25 +585,32 @@ void FSUDSEditorToolkit::OnPostReimport(UObject* Object, bool bSuccess)
 	}
 }
 
-void FSUDSEditorToolkit::OnDialogueVariableChanged(USUDSDialogue* D,
+void FSUDSEditorToolkit::OnDialogueSetVar(USUDSDialogue* D,
 	FName VariableName,
 	const FSUDSValue& ToValue,
-	bool bFromScript,
+	const FString& ExpressionStr,
 	int LineNo)
 {
-	if (bFromScript)
+	FText Description;
+	if (ExpressionStr.Len() > 0)
 	{
-		AddDialogueStep(NAME_VariableSet, LineNo,
-		                FText::Format(INVTEXT("{0} = {1}"),
-		                              FText::FromName(VariableName),
-		                              FText::FromString(ToValue.ToString())),
-		                INVTEXT("Set Variable"));
+		Description = FText::Format(INVTEXT("{0} = {1} = {2}"),
+		                            FText::FromName(VariableName),
+		                            FText::FromString(ExpressionStr),
+		                            FText::FromString(ToValue.ToString()));
 	}
+	else
+	{
+		Description = FText::Format(INVTEXT("{0} = {1}"),
+									FText::FromName(VariableName),
+									FText::FromString(ToValue.ToString()));
+		
+	}
+	AddDialogueStep(NAME_VariableSet,
+	                LineNo,
+	                Description,
+	                INVTEXT("Set Variable"));
 	UpdateVariables();
-}
-
-void FSUDSEditorToolkit::OnDialogueVariableRequested(USUDSDialogue* D, FName VariableName, int LineNo)
-{
 }
 
 TSharedRef<ITableRow> FSUDSEditorToolkit::OnGenerateRowForOutput(
