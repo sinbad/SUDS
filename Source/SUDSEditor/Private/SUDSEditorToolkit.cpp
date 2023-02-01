@@ -1,5 +1,6 @@
 ﻿#include "SUDSEditorToolkit.h"
 
+#include "EditorReimportHandler.h"
 #include "SUDSDialogue.h"
 #include "SUDSLibrary.h"
 #include "SUDSScript.h"
@@ -21,6 +22,8 @@ void FSUDSEditorToolkit::InitEditor(const TArray<UObject*>& InObjects)
 	if (InObjects.Num() > 0)
 	{
 		Script = Cast<USUDSScript>(InObjects[0]);
+
+		FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FSUDSEditorToolkit::OnPostReimport);		
 
 		const TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout("SUDSEditorLayout")
 			->AddArea
@@ -296,26 +299,13 @@ FString FSUDSEditorToolkit::GetWorldCentricTabPrefix() const
 void FSUDSEditorToolkit::OnClose()
 {
 	FAssetEditorToolkit::OnClose();
+	DestroyDialogue();
 
-	if (Dialogue)
-	{
-		// Handle garbage collection of our UObject
-		{
-			FGCScopeGuard GCGuard;
-			Dialogue->RemoveFromRoot();
-			Dialogue->MarkAsGarbage();
-		}
-		Dialogue = nullptr;
-		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
-	}
 }
 
 void FSUDSEditorToolkit::StartDialogue()
 {
-	OutputRows.Empty();
-	OutputListView->RequestListRefresh();
-	VariableRows.Empty();
-	TraceLog->ClearMessages();
+	Clear();
 	if (!Dialogue)
 	{
 		// Custom creation of USUDSDialogue, we want it to exist only for this window.
@@ -346,6 +336,31 @@ void FSUDSEditorToolkit::StartDialogue()
 
 	UpdateVariables();
 	
+}
+
+void FSUDSEditorToolkit::Clear()
+{
+	OutputRows.Empty();
+	OutputListView->RequestListRefresh();
+	VariableRows.Empty();
+	VariablesListView->RequestListRefresh();
+	TraceLog->ClearMessages();
+	
+}
+
+void FSUDSEditorToolkit::DestroyDialogue()
+{
+	if (Dialogue)
+	{
+		// Handle garbage collection of our UObject
+		{
+			FGCScopeGuard GCGuard;
+			Dialogue->RemoveFromRoot();
+			Dialogue->MarkAsGarbage();
+		}
+		Dialogue = nullptr;
+		CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+	}
 }
 
 void FSUDSEditorToolkit::UpdateOutput()
@@ -560,6 +575,16 @@ void FSUDSEditorToolkit::UpdateVariables()
 	
 }
 
+
+void FSUDSEditorToolkit::OnPostReimport(UObject* Object, bool bSuccess)
+{
+	if (Object == Script)
+	{
+		// Destroy any dialogue instance, will not be valid post-import
+		DestroyDialogue();
+		Clear();
+	}
+}
 
 void FSUDSEditorToolkit::OnDialogueVariableChanged(USUDSDialogue* D,
 	FName VariableName,

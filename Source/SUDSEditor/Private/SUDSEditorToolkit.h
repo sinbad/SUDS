@@ -248,6 +248,7 @@ private:
 	void OnStartLabelSelected(FName Label);
 	void UpdateVariables();
 	void StartDialogue();
+	void DestroyDialogue();
 	void UpdateOutput();
 	void UpdateChoiceButtons();
 	void AddOutputRow(const FText& Prefix, const FText& Line, const FSlateColor& PrefixColour, const FSlateColor& LineColour);
@@ -270,6 +271,8 @@ private:
 	TSharedRef<ITableRow> OnGenerateRowForVariable(TSharedPtr<FSUDSEditorVariableRow> Row,
 	                                               const TSharedRef<STableViewBase>& Table);
 	FSlateColor GetColourForCategory(const FName& Category);
+	void OnPostReimport(UObject* Object, bool bSuccess);
+	void Clear();
 
 };
 
