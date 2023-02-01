@@ -425,6 +425,7 @@ void FSUDSEditorToolkit::OnDialogueFinished(USUDSDialogue* D)
 	AddDialogueStep(NAME_Finish,
 	                INVTEXT("Dialogue Finished"),
 	                INVTEXT("Finish"));
+	UpdateChoiceButtons();
 }
 
 void FSUDSEditorToolkit::OnDialogueProceeding(USUDSDialogue* D)
