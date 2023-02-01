@@ -11,7 +11,8 @@ USUDSDialogue* USUDSLibrary::CreateDialogue(UObject* Owner, USUDSScript* Script,
 		{
 			Owner = GetTransientPackage();
 		}
-		USUDSDialogue* Ret = NewObject<USUDSDialogue>(Owner, Script->GetFName());
+		const FName Name = MakeUniqueObjectName(Owner, USUDSDialogue::StaticClass(), Script->GetFName());
+		USUDSDialogue* Ret = NewObject<USUDSDialogue>(Owner, Name);
 		Ret->Initialise(Script);
 		if (bStartImmediately)
 		{
