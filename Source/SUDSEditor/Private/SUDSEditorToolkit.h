@@ -171,7 +171,7 @@ public:
 	virtual void SetText(const FString& SourceString, FTextLayout& TargetTextLayout) override;
 	virtual void GetText(FString& TargetString, const FTextLayout& SourceTextLayout) override;
 
-	void AppendMessage(FName InCategory, const FString& Message, const FSlateColor& Colour);
+	void AppendMessage(FName InCategory, int LineNo, const FString& Message, const FSlateColor& Colour);
 	void ClearMessages();
 protected:
 	TArray< TSharedPtr<FSUDSTraceLogMessage> > Messages;	
@@ -190,7 +190,7 @@ public:
 	void Construct(const FArguments& InArgs);
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
-	void AppendMessage(FName InCategory, const FString& Message, const FSlateColor& Colour);
+	void AppendMessage(FName InCategory, int LineNo, const FString& Message, const FSlateColor& Colour);
 	void ClearMessages();
 	void ScrollToEnd();
 	
@@ -252,18 +252,18 @@ private:
 	void UpdateOutput();
 	void UpdateChoiceButtons();
 	void AddOutputRow(const FText& Prefix, const FText& Line, const FSlateColor& PrefixColour, const FSlateColor& LineColour);
-	void AddTraceLogRow(const FName& Category, const FString& Message);
+	void AddTraceLogRow(const FName& Category, int SourceLineNo, const FString& Message);
 
-	void AddDialogueStep(const FName& Category, const FText& Description, const FText& Prefix);
+	void AddDialogueStep(const FName& Category, int SourceLineNo, const FText& Description, const FText& Prefix);
 
-	void OnDialogueChoice(USUDSDialogue* Dialogue, int ChoiceIndex);
-	void OnDialogueEvent(USUDSDialogue* Dialogue, FName EventName, const TArray<FSUDSValue>& Args);
+	void OnDialogueChoice(USUDSDialogue* Dialogue, int ChoiceIndex, int LineNo);
+	void OnDialogueEvent(USUDSDialogue* Dialogue, FName EventName, const TArray<FSUDSValue>& Args, int LineNo);
 	void OnDialogueFinished(USUDSDialogue* Dialogue);
 	void OnDialogueProceeding(USUDSDialogue* Dialogue);
 	void OnDialogueStarting(USUDSDialogue* Dialogue, FName LabelName);
-	void OnDialogueSpeakerLine(USUDSDialogue* Dialogue);
-	void OnDialogueVariableChanged(USUDSDialogue* Dialogue, FName VariableName, const FSUDSValue& ToValue, bool bFromScript);
-	void OnDialogueVariableRequested(USUDSDialogue* Dialogue, FName VariableName);
+	void OnDialogueSpeakerLine(USUDSDialogue* Dialogue, int LineNo);
+	void OnDialogueVariableChanged(USUDSDialogue* Dialogue, FName VariableName, const FSUDSValue& ToValue, bool bFromScript, int LineNo);
+	void OnDialogueVariableRequested(USUDSDialogue* Dialogue, FName VariableName, int LineNo);
 	
 	TSharedRef<ITableRow> OnGenerateRowForOutput(
 		TSharedPtr<FSUDSEditorOutputRow> FsudsEditorDialogueRow,

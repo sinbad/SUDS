@@ -413,18 +413,18 @@ void FSUDSEditorToolkit::UpdateChoiceButtons()
 	
 }
 
-void FSUDSEditorToolkit::OnDialogueChoice(USUDSDialogue* D, int ChoiceIndex)
+void FSUDSEditorToolkit::OnDialogueChoice(USUDSDialogue* D, int ChoiceIndex, int LineNo)
 {
 	if (!D->IsSimpleContinue())
 	{
-		AddDialogueStep(NAME_Choice,
+		AddDialogueStep(NAME_Choice, LineNo,
 		                FText::Format(INVTEXT("[{1}] {0}"), D->GetChoiceText(ChoiceIndex), ChoiceIndex),
 		                INVTEXT("Choice"));
 
 	}
 }
 
-void FSUDSEditorToolkit::OnDialogueEvent(USUDSDialogue* D, FName EventName, const TArray<FSUDSValue>& Args)
+void FSUDSEditorToolkit::OnDialogueEvent(USUDSDialogue* D, FName EventName, const TArray<FSUDSValue>& Args, int LineNo)
 {
 	FStringBuilderBase B;
 	if (Args.Num() > 0)
@@ -444,7 +444,7 @@ void FSUDSEditorToolkit::OnDialogueEvent(USUDSDialogue* D, FName EventName, cons
 		B.Append(" )");
 	}
 	FText ArgText = FText::FromString(B.ToString());
-	AddDialogueStep(NAME_Event,
+	AddDialogueStep(NAME_Event, LineNo,
 	                FText::FormatOrdered(INVTEXT("{0} {1}"), FText::FromName(EventName), ArgText),
 	                INVTEXT("Event"));
 	
@@ -452,7 +452,7 @@ void FSUDSEditorToolkit::OnDialogueEvent(USUDSDialogue* D, FName EventName, cons
 
 void FSUDSEditorToolkit::OnDialogueFinished(USUDSDialogue* D)
 {
-	AddDialogueStep(NAME_Finish,
+	AddDialogueStep(NAME_Finish, 0,
 	                INVTEXT("Dialogue Finished"),
 	                INVTEXT("Finish"));
 	UpdateChoiceButtons();
@@ -465,14 +465,14 @@ void FSUDSEditorToolkit::OnDialogueProceeding(USUDSDialogue* D)
 void FSUDSEditorToolkit::OnDialogueStarting(USUDSDialogue* D, FName LabelName)
 {
 	FString LabelStr = LabelName.IsNone() ? FString("beginning") : LabelName.ToString();
-	AddDialogueStep(NAME_Start,
+	AddDialogueStep(NAME_Start, 0, 
 	                FText::Format(INVTEXT("Starting from {0}"), FText::FromString(LabelStr)),
 	                INVTEXT("Start"));
 }
 
-void FSUDSEditorToolkit::OnDialogueSpeakerLine(USUDSDialogue* D)
+void FSUDSEditorToolkit::OnDialogueSpeakerLine(USUDSDialogue* D, int LineNo)
 {
-	AddDialogueStep(NAME_SpeakerLine, D->GetText(), D->GetSpeakerDisplayName());
+	AddDialogueStep(NAME_SpeakerLine, LineNo , D->GetText(),D->GetSpeakerDisplayName());
 	UpdateChoiceButtons();
 
 }
@@ -491,11 +491,11 @@ void FSUDSEditorToolkit::AddOutputRow(const FText& Prefix,
 
 }
 
-void FSUDSEditorToolkit::AddTraceLogRow(const FName& Category, const FString& Message)
+void FSUDSEditorToolkit::AddTraceLogRow(const FName& Category, int SourceLineNo, const FString& Message)
 {
 	FSlateColor Colour = GetColourForCategory(Category);
 	
-	TraceLog->AppendMessage(Category, Message, Colour);
+	TraceLog->AppendMessage(Category, SourceLineNo, Message, Colour);
 }
 
 FSlateColor FSUDSEditorToolkit::GetColourForCategory(const FName& Category)
@@ -533,31 +533,31 @@ FSlateColor FSUDSEditorToolkit::GetColourForCategory(const FName& Category)
 	
 }
 
-void FSUDSEditorToolkit::AddDialogueStep(const FName& Category, const FText& Description, const FText& Prefix)
+void FSUDSEditorToolkit::AddDialogueStep(const FName& Category, int SourceLineNo, const FText& Description, const FText& Prefix)
 {
 	if (Category == NAME_SpeakerLine)
 	{
 		AddOutputRow(Prefix, Description, SpeakerColour, FSlateColor::UseForeground());
-		AddTraceLogRow(Category, FString::Printf(TEXT("%s: %s"), *Prefix.ToString(), *Description.ToString()));
+		AddTraceLogRow(Category, SourceLineNo, FString::Printf(TEXT("%s: %s"), *Prefix.ToString(), *Description.ToString()));
 	}
 	else if (Category == NAME_Choice)
 	{
 		AddOutputRow(Prefix, Description, ChoiceColour, ChoiceColour);
-		AddTraceLogRow(Category, Description.ToString());
+		AddTraceLogRow(Category, SourceLineNo, Description.ToString());
 	}
 	else if (Category == NAME_Start)
 	{
 		AddOutputRow(Prefix, Description, StartColour, StartColour);
-		AddTraceLogRow(Category, Description.ToString());
+		AddTraceLogRow(Category, SourceLineNo, Description.ToString());
 	}
 	else if (Category == NAME_Finish)
 	{
 		AddOutputRow(Prefix, Description, FinishColour, FinishColour);
-		AddTraceLogRow(Category, Description.ToString());
+		AddTraceLogRow(Category, SourceLineNo, Description.ToString());
 	}
 	else
 	{
-		AddTraceLogRow(Category, Description.ToString());
+		AddTraceLogRow(Category, SourceLineNo, Description.ToString());
 	}
 }
 
@@ -589,11 +589,12 @@ void FSUDSEditorToolkit::OnPostReimport(UObject* Object, bool bSuccess)
 void FSUDSEditorToolkit::OnDialogueVariableChanged(USUDSDialogue* D,
 	FName VariableName,
 	const FSUDSValue& ToValue,
-	bool bFromScript)
+	bool bFromScript,
+	int LineNo)
 {
 	if (bFromScript)
 	{
-		AddDialogueStep(NAME_VariableSet,
+		AddDialogueStep(NAME_VariableSet, LineNo,
 		                FText::Format(INVTEXT("{0} = {1}"),
 		                              FText::FromName(VariableName),
 		                              FText::FromString(ToValue.ToString())),
@@ -602,7 +603,7 @@ void FSUDSEditorToolkit::OnDialogueVariableChanged(USUDSDialogue* D,
 	UpdateVariables();
 }
 
-void FSUDSEditorToolkit::OnDialogueVariableRequested(USUDSDialogue* D, FName VariableName)
+void FSUDSEditorToolkit::OnDialogueVariableRequested(USUDSDialogue* D, FName VariableName, int LineNo)
 {
 }
 
@@ -783,12 +784,13 @@ void FSUDSTraceLogMarshaller::GetText(FString& TargetString, const FTextLayout& 
 	SourceTextLayout.GetAsText(TargetString);
 }
 
-void FSUDSTraceLogMarshaller::AppendMessage(FName InCategory, const FString& Message, const FSlateColor& Colour)
+void FSUDSTraceLogMarshaller::AppendMessage(FName InCategory, int LineNo, const FString& Message, const FSlateColor& Colour)
 {
 	const int MinCategorySize = 12;
-	FString CatStr = InCategory.ToString();
-	FString Padding = CatStr.Len() < MinCategorySize ? FString::ChrN(MinCategorySize - CatStr.Len(), ' ') : "";
-	const FString ConcatLine = FString::Printf(TEXT("%s[%s] %s"), *Padding, *CatStr, *Message);
+	const FString CatStr = InCategory.ToString();
+	int CatLen = CatStr.Len();
+	const FString CatPadding = CatLen < MinCategorySize ? FString::ChrN(MinCategorySize - CatLen, ' ') : "";
+	const FString ConcatLine = FString::Printf(TEXT("%s[%s] L%04d %s"), *CatPadding, *CatStr, LineNo, *Message);
 	Messages.Add(MakeShareable(new FSUDSTraceLogMessage(InCategory, ConcatLine, Colour)));
 	MakeDirty();
 }
@@ -847,9 +849,9 @@ void SSUDSTraceLog::Tick(const FGeometry& AllottedGeometry, const double InCurre
 	}
 }
 
-void SSUDSTraceLog::AppendMessage(FName InCategory, const FString& Message, const FSlateColor& Colour)
+void SSUDSTraceLog::AppendMessage(FName InCategory, int LineNo, const FString& Message, const FSlateColor& Colour)
 {
-	TraceLogMarshaller->AppendMessage(InCategory, Message, Colour);
+	TraceLogMarshaller->AppendMessage(InCategory, LineNo, Message, Colour);
 }
 
 void SSUDSTraceLog::ClearMessages()

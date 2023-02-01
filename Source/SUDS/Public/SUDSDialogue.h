@@ -24,14 +24,15 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnVariableRequestedEvent, class US
 
 #if WITH_EDITOR
 	// Non-dynamic events for editor use
-	DECLARE_DELEGATE_OneParam(FOnDialogueSpeakerLineInternal, class USUDSDialogue* /* Dialogue */);
-	DECLARE_DELEGATE_TwoParams(FOnDialogueChoiceInternal, class USUDSDialogue* /* Dialogue*/, int /*ChoiceIndex*/);
+	DECLARE_DELEGATE_TwoParams(FOnDialogueSpeakerLineInternal, class USUDSDialogue* /* Dialogue */, int /*SourceLineNo*/);
+	DECLARE_DELEGATE_ThreeParams(FOnDialogueChoiceInternal, class USUDSDialogue* /* Dialogue*/, int /*ChoiceIndex*/, int /*SourceLineNo*/);
 	DECLARE_DELEGATE_OneParam(FOnDialogueProceedingInternal, class USUDSDialogue* /*Dialogue*/);
 	DECLARE_DELEGATE_TwoParams(FOnDialogueStartingInternal, class USUDSDialogue* /*Dialogue*/, FName /*AtLabel*/);
 	DECLARE_DELEGATE_OneParam(FOnDialogueFinishedInternal, class USUDSDialogue* /*Dialogue*/);
-	DECLARE_DELEGATE_ThreeParams(FOnDialogueEventInternal, class USUDSDialogue* /*Dialogue*/, FName /*EventName*/, const TArray<FSUDSValue>& /*Arguments*/);
-	DECLARE_DELEGATE_FourParams(FOnVariableChangedEventInternal, class USUDSDialogue* /* Dialogue*/, FName /*VariableName*/, const FSUDSValue& /*Value*/, bool /*bFromScript*/);
-	DECLARE_DELEGATE_TwoParams(FOnVariableRequestedEventInternal, class USUDSDialogue* /*Dialogue*/, FName /*VariableName*/);
+	DECLARE_DELEGATE_FourParams(FOnDialogueEventInternal, class USUDSDialogue* /*Dialogue*/, FName /*EventName*/, const TArray<FSUDSValue>& /*Arguments*/, int /*SourceLineNo*/);
+	DECLARE_DELEGATE_FiveParams(FOnVariableChangedEventInternal, class USUDSDialogue* /* Dialogue*/, FName /*VariableName*/, const FSUDSValue& /*Value*/, bool /*bFromScript*/, int /*SourceLineNo*/);
+	DECLARE_DELEGATE_ThreeParams(FOnVariableRequestedEventInternal, class USUDSDialogue* /*Dialogue*/, FName /*VariableName*/, int /*SourceLineNo*/);
+	DECLARE_DELEGATE_FourParams(FOnDialogueSelectEval, class USUDSDialogue* /*Dialogue*/, const FString& ConditionString, bool bResult, int /*SourceLineNo*/);
 #endif
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSUDSDialogue, Verbose, All);
@@ -181,11 +182,11 @@ protected:
 	void RaiseStarting(FName StartLabel);
 	void RaiseFinished();
 	void RaiseNewSpeakerLine();
-	void RaiseChoiceMade(int Index);
+	void RaiseChoiceMade(int Index, int LineNo);
 	void RaiseProceeding();
-	void RaiseVariableChange(const FName& VarName, const FSUDSValue& Value, bool bFromScript);
-	void RaiseVariableRequested(const FName& VarName);
-	void RaiseExpressionVariablesRequested(const FSUDSExpression& Expression);
+	void RaiseVariableChange(const FName& VarName, const FSUDSValue& Value, bool bFromScript, int LineNo);
+	void RaiseVariableRequested(const FName& VarName, int LineNo);
+	void RaiseExpressionVariablesRequested(const FSUDSExpression& Expression, int LineNo);
 
 	USUDSScriptNode* GetNextNode(USUDSScriptNode* Node);
 	bool IsChoiceOrTextNode(ESUDSScriptNodeType Type);
@@ -198,17 +199,17 @@ protected:
 	void UpdateChoices();
 	void RecurseAppendChoices(const USUDSScriptNode* Node, TArray<FSUDSScriptEdge>& OutChoices);
 
-	FText ResolveParameterisedText(const TArray<FName> Params, const FTextFormat& TextFormat);
+	FText ResolveParameterisedText(const TArray<FName> Params, const FTextFormat& TextFormat, int LineNo);
 	void GetTextFormatArgs(const TArray<FName>& ArgNames, FFormatNamedArguments& OutArgs) const;
 	bool CurrentNodeHasChoices() const;
-	void SetVariableImpl(FName Name, FSUDSValue Value, bool bFromScript)
+	void SetVariableImpl(FName Name, FSUDSValue Value, bool bFromScript, int LineNo)
 	{
 		const FSUDSValue OldValue = GetVariable(Name);
 		if (!IsVariableSet(Name) ||
 			(OldValue != Value).GetBooleanValue())
 		{
 			VariableState.Add(Name, Value);
-			RaiseVariableChange(Name, Value, bFromScript);
+			RaiseVariableChange(Name, Value, bFromScript, LineNo);
 		}
 		
 	}
@@ -342,6 +343,11 @@ public:
 	/// End the dialogue early
 	UFUNCTION(BlueprintCallable)
 	void End(bool bQuietly);
+
+	/// Get the source line number of the current position of the dialogue (returns 0 if not applicable)
+	UFUNCTION(BlueprintCallable)
+	int GetCurrentSourceLine() const;
+
 	
 	/**
 	 * Restart the dialogue, either from the start or from a named label.
@@ -402,7 +408,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetVariable(FName Name, FSUDSValue Value)
 	{
-		SetVariableImpl(Name, Value, false);
+		SetVariableImpl(Name, Value, false, 0);
 	}
 
 	/// Get a variable in dialogue state as a general value type

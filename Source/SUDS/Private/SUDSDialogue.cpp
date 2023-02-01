@@ -167,7 +167,7 @@ USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node)
 		if (Edge.GetCondition().IsValid())
 		{
 			// use the first satisfied edge
-			RaiseExpressionVariablesRequested(Edge.GetCondition());
+			RaiseExpressionVariablesRequested(Edge.GetCondition(), Edge.GetSourceLineNo());
 			if (Edge.GetCondition().EvaluateBoolean(VariableState, BaseScript->GetName()))
 			{
 				return Edge.GetTargetNode().Get();
@@ -188,7 +188,7 @@ USUDSScriptNode* USUDSDialogue::RunEventNode(USUDSScriptNode* Node)
 		
 		for (auto& Expr : EvtNode->GetArgs())
 		{
-			RaiseExpressionVariablesRequested(Expr);
+			RaiseExpressionVariablesRequested(Expr, EvtNode->GetSourceLineNo());
 			ArgsResolved.Add(Expr.Evaluate(VariableState));
 		}
 		
@@ -201,7 +201,7 @@ USUDSScriptNode* USUDSDialogue::RunEventNode(USUDSScriptNode* Node)
 		}
 		OnEvent.Broadcast(this, EvtNode->GetEventName(), ArgsResolved);
 #if WITH_EDITOR
-		InternalOnEvent.ExecuteIfBound(this, EvtNode->GetEventName(), ArgsResolved);
+		InternalOnEvent.ExecuteIfBound(this, EvtNode->GetEventName(), ArgsResolved, EvtNode->GetSourceLineNo());
 #endif
 	}
 	return GetNextNode(Node);
@@ -256,8 +256,8 @@ USUDSScriptNode* USUDSDialogue::RunSetVariableNode(USUDSScriptNode* Node)
 	{
 		if (SetNode->GetExpression().IsValid())
 		{
-			RaiseExpressionVariablesRequested(SetNode->GetExpression());
-			SetVariableImpl(SetNode->GetIdentifier(), SetNode->GetExpression().Evaluate(VariableState), true);
+			RaiseExpressionVariablesRequested(SetNode->GetExpression(), SetNode->GetSourceLineNo());
+			SetVariableImpl(SetNode->GetIdentifier(), SetNode->GetExpression().Evaluate(VariableState), true, SetNode->GetSourceLineNo());
 		}
 	}
 
@@ -266,7 +266,7 @@ USUDSScriptNode* USUDSDialogue::RunSetVariableNode(USUDSScriptNode* Node)
 	
 }
 
-void USUDSDialogue::RaiseVariableChange(const FName& VarName, const FSUDSValue& Value, bool bFromScript)
+void USUDSDialogue::RaiseVariableChange(const FName& VarName, const FSUDSValue& Value, bool bFromScript, int LineNo)
 {
 	for (const auto P : Participants)
 	{
@@ -277,17 +277,17 @@ void USUDSDialogue::RaiseVariableChange(const FName& VarName, const FSUDSValue& 
 	}
 	OnVariableChanged.Broadcast(this, VarName, Value, bFromScript);
 #if WITH_EDITOR
-	InternalOnVariableChanged.ExecuteIfBound(this, VarName, Value, bFromScript);
+	InternalOnVariableChanged.ExecuteIfBound(this, VarName, Value, bFromScript, LineNo);
 #endif
 
 }
 
-void USUDSDialogue::RaiseVariableRequested(const FName& VarName)
+void USUDSDialogue::RaiseVariableRequested(const FName& VarName, int LineNo)
 {
 	// Because variables set by participants should "win", raise event first
 	OnVariableRequested.Broadcast(this, VarName);
 #if WITH_EDITOR
-	InternalOnVariableRequested.ExecuteIfBound(this, VarName);
+	InternalOnVariableRequested.ExecuteIfBound(this, VarName, LineNo);
 #endif
 	for (const auto P : Participants)
 	{
@@ -298,11 +298,11 @@ void USUDSDialogue::RaiseVariableRequested(const FName& VarName)
 	}
 }
 
-void USUDSDialogue::RaiseExpressionVariablesRequested(const FSUDSExpression& Expression)
+void USUDSDialogue::RaiseExpressionVariablesRequested(const FSUDSExpression& Expression, int LineNo)
 {
 	for (auto& Var : Expression.GetVariableNames())
 	{
-		RaiseVariableRequested(Var);
+		RaiseVariableRequested(Var, LineNo);
 	}
 }
 
@@ -325,11 +325,11 @@ void USUDSDialogue::SetCurrentSpeakerNode(USUDSScriptNodeText* Node, bool bQuiet
 
 }
 
-FText USUDSDialogue::ResolveParameterisedText(const TArray<FName> Params, const FTextFormat& TextFormat)
+FText USUDSDialogue::ResolveParameterisedText(const TArray<FName> Params, const FTextFormat& TextFormat, int LineNo)
 {
 	for (const auto& P : Params)
 	{
-		RaiseVariableRequested(P);
+		RaiseVariableRequested(P, LineNo);
 	}
 	// Need to make a temp arg list for compatibility
 	// Also lets us just set the ones we need to
@@ -357,7 +357,9 @@ FText USUDSDialogue::GetText()
 	{
 		if (CurrentSpeakerNode->HasParameters())
 		{
-			return ResolveParameterisedText(CurrentSpeakerNode->GetParameterNames(), CurrentSpeakerNode->GetTextFormat());
+			return ResolveParameterisedText(CurrentSpeakerNode->GetParameterNames(),
+			                                CurrentSpeakerNode->GetTextFormat(),
+			                                CurrentSpeakerNode->GetSourceLineNo());
 		}
 		else
 		{
@@ -541,7 +543,7 @@ void USUDSDialogue::RecurseAppendChoices(const USUDSScriptNode* Node, TArray<FSU
 			// Conditional edges are under selects
 			if (Edge.GetCondition().IsValid())
 			{
-				RaiseExpressionVariablesRequested(Edge.GetCondition());
+				RaiseExpressionVariablesRequested(Edge.GetCondition(), Edge.GetSourceLineNo());
 				if (Edge.GetCondition().EvaluateBoolean(VariableState, BaseScript->GetName()))
 				{
 					RecurseAppendChoices(Edge.GetTargetNode().Get(), OutChoices);
@@ -619,7 +621,7 @@ FText USUDSDialogue::GetChoiceText(int Index)
 		auto& Choice = CurrentChoices[Index];
 		if (Choice.HasParameters())
 		{
-			return ResolveParameterisedText(Choice.GetParameterNames(), Choice.GetTextFormat());
+			return ResolveParameterisedText(Choice.GetParameterNames(), Choice.GetTextFormat(), Choice.GetSourceLineNo());
 		}
 		else
 		{
@@ -665,9 +667,10 @@ bool USUDSDialogue::Choose(int Index)
 		// This method is called for Continue() too, which has no choice node
 		if (CurrentNodeHasChoices())
 		{
-			ChoicesTaken.Add(CurrentChoices[Index].GetTextID());
+			const auto& Choice = CurrentChoices[Index]; 
+			ChoicesTaken.Add(Choice.GetTextID());
 			
-			RaiseChoiceMade(Index);
+			RaiseChoiceMade(Index, Choice.GetSourceLineNo());
 			RaiseProceeding();
 		}
 		else
@@ -698,6 +701,15 @@ bool USUDSDialogue::IsEnded() const
 void USUDSDialogue::End(bool bQuietly)
 {
 	SetCurrentSpeakerNode(nullptr, bQuietly);
+}
+
+int USUDSDialogue::GetCurrentSourceLine() const
+{
+	if (CurrentSpeakerNode)
+	{
+		return CurrentSpeakerNode->GetSourceLineNo();
+	}
+	return 0;
 }
 
 void USUDSDialogue::ResetState(bool bResetVariables, bool bResetPosition, bool bResetVisited)
@@ -875,11 +887,11 @@ void USUDSDialogue::RaiseNewSpeakerLine()
 	// Event listeners get it after
 	OnSpeakerLine.Broadcast(this);
 #if WITH_EDITOR
-	InternalOnSpeakerLine.ExecuteIfBound(this);
+	InternalOnSpeakerLine.ExecuteIfBound(this, GetCurrentSourceLine());
 #endif
 }
 
-void USUDSDialogue::RaiseChoiceMade(int Index)
+void USUDSDialogue::RaiseChoiceMade(int Index, int LineNo)
 {
 	for (const auto P : Participants)
 	{
@@ -891,7 +903,7 @@ void USUDSDialogue::RaiseChoiceMade(int Index)
 	// Event listeners get it after
 	OnChoice.Broadcast(this, Index);
 #if WITH_EDITOR
-	InternalOnChoice.ExecuteIfBound(this, Index);
+	InternalOnChoice.ExecuteIfBound(this, Index, LineNo);
 #endif
 }
 
