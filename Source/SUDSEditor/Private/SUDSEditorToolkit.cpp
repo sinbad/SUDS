@@ -344,7 +344,7 @@ void FSUDSEditorToolkit::Clear()
 	OutputListView->RequestListRefresh();
 	VariableRows.Empty();
 	VariablesListView->RequestListRefresh();
-	TraceLog->ClearMessages();
+	//TraceLog->ClearMessages();
 	
 }
 
