@@ -785,7 +785,7 @@ void FSUDSTraceLogMarshaller::SetText(const FString& SourceString, FTextLayout& 
 	static const FName LogNormalStyle(TEXT("Log.Normal"));
 	const FTextBlockStyle& OrigStyle = FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>(LogNormalStyle);
 
-	for (auto Msg : Messages)
+	for (const auto Msg : Messages)
 	{
 		// Get base style & copy
 		FTextBlockStyle Style = OrigStyle;
@@ -810,7 +810,8 @@ void FSUDSTraceLogMarshaller::AppendMessage(FName InCategory, int LineNo, const 
 	const FString CatStr = InCategory.ToString();
 	int CatLen = CatStr.Len();
 	const FString CatPadding = CatLen < MinCategorySize ? FString::ChrN(MinCategorySize - CatLen, ' ') : "";
-	const FString ConcatLine = FString::Printf(TEXT("%s[%s] L%04d %s"), *CatPadding, *CatStr, LineNo, *Message);
+	const FString LineNoStr = LineNo > 0 ? FString::Printf(TEXT("L%04d"), LineNo) : "     ";
+	const FString ConcatLine = FString::Printf(TEXT("%s[%s] %s %s"), *CatPadding, *CatStr, *LineNoStr, *Message);
 	Messages.Add(MakeShareable(new FSUDSTraceLogMessage(InCategory, ConcatLine, Colour)));
 	MakeDirty();
 }
