@@ -239,6 +239,7 @@ private:
 	const FSlateColor VarSetColour = FLinearColor(0.8f, 0.6f, 0.9f, 1.0f);
 	const FSlateColor StartColour = FLinearColor(1.0f, 0.5f, 0.0f, 1.0f);
 	const FSlateColor FinishColour = FLinearColor(1.0f, 0.3f, 0.3f, 1.0f);
+	const FSlateColor SelectColour = FLinearColor(1.0f, 0.0f, 0.5f, 1.0f);
 	const FSlateColor RowBgColour1 = FLinearColor(0.15f, 0.15f, 0.15f, 1.0f);
 	const FSlateColor RowBgColour2 = FLinearColor(0.3f, 0.3f, 0.3f, 1.0f);
 
@@ -263,6 +264,7 @@ private:
 	void OnDialogueStarting(USUDSDialogue* Dialogue, FName LabelName);
 	void OnDialogueSpeakerLine(USUDSDialogue* Dialogue, int LineNo);
 	void OnDialogueSetVar(USUDSDialogue* Dialogue, FName VariableName, const FSUDSValue& ToValue, const FString& ExpressionStr, int LineNo);
+	void OnDialogueSelectEval(USUDSDialogue* Dialogue, const FString& ExpressionStr, bool bSuccess, int LineNo);
 	
 	TSharedRef<ITableRow> OnGenerateRowForOutput(
 		TSharedPtr<FSUDSEditorOutputRow> FsudsEditorDialogueRow,

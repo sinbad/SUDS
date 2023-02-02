@@ -11,8 +11,8 @@
 const FName NAME_SpeakerLine("SpeakerLine");
 const FName NAME_Choice("Choice");
 const FName NAME_VariableSet("VariableSet");
+const FName NAME_SelectEval("Condition");
 const FName NAME_Event("Event");
-const FName NAME_FlowControl("FlowControl");
 const FName NAME_Start("Start");
 const FName NAME_Finish("Finish");
 
@@ -328,6 +328,7 @@ void FSUDSEditorToolkit::StartDialogue()
 		Dialogue->InternalOnStarting.BindSP(this, &FSUDSEditorToolkit::OnDialogueStarting);
 		Dialogue->InternalOnSpeakerLine.BindSP(this, &FSUDSEditorToolkit::OnDialogueSpeakerLine);
 		Dialogue->InternalOnSetVar.BindSP(this, &FSUDSEditorToolkit::OnDialogueSetVar);
+		Dialogue->InternalOnSelectEval.BindSP(this, &FSUDSEditorToolkit::OnDialogueSelectEval);
 
 
 	}
@@ -523,9 +524,9 @@ FSlateColor FSUDSEditorToolkit::GetColourForCategory(const FName& Category)
 	{
 		return FinishColour;
 	}
-	else if (Category == NAME_FlowControl)
+	else if (Category == NAME_SelectEval)
 	{
-		return StartColour;
+		return SelectColour;
 	}
 
 	return FSlateColor::UseForeground();
@@ -611,6 +612,19 @@ void FSUDSEditorToolkit::OnDialogueSetVar(USUDSDialogue* D,
 	                Description,
 	                INVTEXT("Set Variable"));
 	UpdateVariables();
+}
+
+void FSUDSEditorToolkit::OnDialogueSelectEval(USUDSDialogue* D,
+	const FString& ExpressionStr,
+	bool bSuccess,
+	int LineNo)
+{
+	AddDialogueStep(NAME_SelectEval,
+	                LineNo,
+	                FText::Format(INVTEXT("{0} = {1}"),
+	                              FText::FromString(ExpressionStr),
+	                              bSuccess ? INVTEXT("true") : INVTEXT("false")),
+	                INVTEXT("Conditional"));
 }
 
 TSharedRef<ITableRow> FSUDSEditorToolkit::OnGenerateRowForOutput(
