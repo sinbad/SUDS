@@ -265,6 +265,7 @@ USUDSScriptNode* USUDSDialogue::RunSetVariableNode(USUDSScriptNode* Node)
 			FSUDSValue Value = SetNode->GetExpression().Evaluate(VariableState);
 			SetVariableImpl(SetNode->GetIdentifier(), Value, true, SetNode->GetSourceLineNo());
 #if WITH_EDITOR
+			// We do this here so that we have access to the expression
 			InternalOnSetVar.ExecuteIfBound(this,
 			                                SetNode->GetIdentifier(),
 			                                Value,
@@ -291,6 +292,14 @@ void USUDSDialogue::RaiseVariableChange(const FName& VarName, const FSUDSValue& 
 		}
 	}
 	OnVariableChanged.Broadcast(this, VarName, Value, bFromScript);
+#if WITH_EDITOR
+	if (!bFromScript)
+	{
+		// Script setting is raised in SetNode so we have access to expressions
+		InternalOnSetVarByCode.ExecuteIfBound(this, VarName, Value);
+	}
+#endif
+
 }
 
 void USUDSDialogue::RaiseVariableRequested(const FName& VarName, int LineNo)

@@ -121,6 +121,7 @@ public:
 	SLATE_ARGUMENT(float, InitialWidth)
 	SLATE_ARGUMENT(FName, VariableName)
 	SLATE_ARGUMENT(FSUDSValue, VariableValue)
+	SLATE_ARGUMENT(USUDSDialogue*, Dialogue)
 SLATE_END_ARGS()
 
 public:
@@ -144,6 +145,11 @@ protected:
 	float InitialWidth = 70;
 	FName VariableName;
 	FSUDSValue VariableValue;
+	USUDSDialogue* Dialogue = nullptr;
+
+	TSharedRef<class SWidget>  GetGenderMenu();
+	void OnGenderSelected(ETextGender TextGender);
+
 };
 
 struct FSUDSTraceLogMessage
@@ -222,8 +228,8 @@ protected:
 private:
 	USUDSScript* Script = nullptr;
 	USUDSDialogue* Dialogue = nullptr;
-	float VarColumnWidth = 75;
-	float PrefixColumnWidth = 75;
+	float VarColumnWidth = 120;
+	float PrefixColumnWidth = 100;
 	FName StartLabel = NAME_None;
 	// FSUDSEditorDialogueRow needs to held by a TSharedPtr for SListView
 	TSharedPtr<SListView<TSharedPtr<FSUDSEditorOutputRow>>> OutputListView;
@@ -237,6 +243,7 @@ private:
 	const FSlateColor ChoiceColour = FLinearColor(0.4f, 1.0f, 0.4f, 1.0f);
 	const FSlateColor EventColour = FLinearColor(0.2f, 0.6f, 1.0f, 1.0f);
 	const FSlateColor VarSetColour = FLinearColor(0.8f, 0.6f, 0.9f, 1.0f);
+	const FSlateColor VarEditColour = FLinearColor(0.6f, 0.3f, 1.0f, 1.0f);
 	const FSlateColor StartColour = FLinearColor(1.0f, 0.5f, 0.0f, 1.0f);
 	const FSlateColor FinishColour = FLinearColor(1.0f, 0.3f, 0.3f, 1.0f);
 	const FSlateColor SelectColour = FLinearColor(1.0f, 0.0f, 0.5f, 1.0f);
@@ -264,6 +271,7 @@ private:
 	void OnDialogueStarting(USUDSDialogue* Dialogue, FName LabelName);
 	void OnDialogueSpeakerLine(USUDSDialogue* Dialogue, int LineNo);
 	void OnDialogueSetVar(USUDSDialogue* Dialogue, FName VariableName, const FSUDSValue& ToValue, const FString& ExpressionStr, int LineNo);
+	void OnDialogueUserEditedVar(USUDSDialogue* Dialogue, FName VariableName, const FSUDSValue& ToValue);
 	void OnDialogueSelectEval(USUDSDialogue* Dialogue, const FString& ExpressionStr, bool bSuccess, int LineNo);
 	
 	TSharedRef<ITableRow> OnGenerateRowForOutput(

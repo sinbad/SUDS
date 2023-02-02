@@ -31,6 +31,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnVariableRequestedEvent, class US
 	DECLARE_DELEGATE_OneParam(FOnDialogueFinishedInternal, class USUDSDialogue* /*Dialogue*/);
 	DECLARE_DELEGATE_FourParams(FOnDialogueEventInternal, class USUDSDialogue* /*Dialogue*/, FName /*EventName*/, const TArray<FSUDSValue>& /*Arguments*/, int /*SourceLineNo*/);
 	DECLARE_DELEGATE_FiveParams(FOnDialogueVarChangedByScriptInternal, class USUDSDialogue* /* Dialogue*/, FName /*VariableName*/, const FSUDSValue& /*Value*/, const FString& /*ExprString*/, int /*SourceLineNo*/);
+	DECLARE_DELEGATE_ThreeParams(FOnDialogueVarChangedByCodeInternal, class USUDSDialogue* /* Dialogue*/, FName /*VariableName*/, const FSUDSValue& /*Value*/);
 	DECLARE_DELEGATE_FourParams(FOnDialogueSelectEval, class USUDSDialogue* /*Dialogue*/, const FString& /*ConditionString*/, bool /*bResult*/, int /*SourceLineNo*/);
 #endif
 
@@ -538,6 +539,7 @@ public:
 	FOnDialogueProceedingInternal InternalOnProceeding;
 	FOnDialogueEventInternal InternalOnEvent;
 	FOnDialogueVarChangedByScriptInternal InternalOnSetVar;
+	FOnDialogueVarChangedByCodeInternal InternalOnSetVarByCode;
 	FOnDialogueSelectEval InternalOnSelectEval;
 	FOnDialogueStartingInternal InternalOnStarting;
 	FOnDialogueFinishedInternal InternalOnFinished;

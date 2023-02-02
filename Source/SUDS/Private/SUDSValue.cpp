@@ -60,7 +60,7 @@ FString FSUDSValue::ToString() const
 	case ESUDSValueType::Boolean:
 		return GetBooleanValue() ? "True" : "False";
 	case ESUDSValueType::Gender:
-		return StaticEnum<ETextGender>()->GetValueAsString(GetGenderValue());
+		return StaticEnum<ETextGender>()->GetNameStringByValue((int64)GetGenderValue());
 	case ESUDSValueType::Name:
 		return GetNameValue().ToString();
 	case ESUDSValueType::Variable:

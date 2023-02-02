@@ -7,10 +7,12 @@
 #include "Framework/Text/SlateTextRun.h"
 #include "Styling/StyleColors.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
+#include "Widgets/Input/SNumericEntryBox.h"
 
 const FName NAME_SpeakerLine("SpeakerLine");
 const FName NAME_Choice("Choice");
 const FName NAME_VariableSet("VariableSet");
+const FName NAME_VariableEdit("VariableEdit");
 const FName NAME_SelectEval("Condition");
 const FName NAME_Event("Event");
 const FName NAME_Start("Start");
@@ -104,14 +106,15 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 		ChoicesBox = SNew(SVerticalBox);
 
 		VariablesListView = SNew(SListView<TSharedPtr<FSUDSEditorVariableRow>>)
-				.ItemHeight(24)
+				.ItemHeight(28)
 				.SelectionMode(ESelectionMode::None)
 				.ListItemsSource(&VariableRows)
 				.OnGenerateRow(this, &FSUDSEditorToolkit::OnGenerateRowForVariable)
 				.HeaderRow(
 					SNew(SHeaderRow)
 					+ SHeaderRow::Column("NameHeader")
-					.FillWidth(0.4f)
+					.FillSized(VarColumnWidth)
+					.VAlignCell(VAlign_Center)
 					[
 						SNew(SHorizontalBox)
 						+SHorizontalBox::Slot()
@@ -123,7 +126,8 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 						]
 					]
 					+ SHeaderRow::Column("ValueHeader")
-					.FillWidth(0.6f)
+					.FillWidth(1.0f)
+					.VAlignCell(VAlign_Fill)
 					[
 						SNew(SHorizontalBox)
 						+SHorizontalBox::Slot()
@@ -328,6 +332,7 @@ void FSUDSEditorToolkit::StartDialogue()
 		Dialogue->InternalOnStarting.BindSP(this, &FSUDSEditorToolkit::OnDialogueStarting);
 		Dialogue->InternalOnSpeakerLine.BindSP(this, &FSUDSEditorToolkit::OnDialogueSpeakerLine);
 		Dialogue->InternalOnSetVar.BindSP(this, &FSUDSEditorToolkit::OnDialogueSetVar);
+		Dialogue->InternalOnSetVarByCode.BindSP(this, &FSUDSEditorToolkit::OnDialogueUserEditedVar);
 		Dialogue->InternalOnSelectEval.BindSP(this, &FSUDSEditorToolkit::OnDialogueSelectEval);
 
 
@@ -516,6 +521,10 @@ FSlateColor FSUDSEditorToolkit::GetColourForCategory(const FName& Category)
 	{
 		return VarSetColour;
 	}
+	else if (Category == NAME_VariableEdit)
+	{
+		return VarEditColour;
+	}
 	else if (Category == NAME_Start)
 	{
 		return StartColour;
@@ -614,10 +623,24 @@ void FSUDSEditorToolkit::OnDialogueSetVar(USUDSDialogue* D,
 	UpdateVariables();
 }
 
+void FSUDSEditorToolkit::OnDialogueUserEditedVar(USUDSDialogue* D, FName VariableName, const FSUDSValue& ToValue)
+{
+	// User-edited value
+	const FText Description = FText::Format(INVTEXT("{0} = {1}"),
+								FText::FromName(VariableName),
+								FText::FromString(ToValue.ToString()));
+	AddDialogueStep(NAME_VariableEdit,
+					0,
+					Description,
+					INVTEXT("Edit Variable"));
+	UpdateVariables();
+	
+}
+
 void FSUDSEditorToolkit::OnDialogueSelectEval(USUDSDialogue* D,
-	const FString& ExpressionStr,
-	bool bSuccess,
-	int LineNo)
+                                              const FString& ExpressionStr,
+                                              bool bSuccess,
+                                              int LineNo)
 {
 	AddDialogueStep(NAME_SelectEval,
 	                LineNo,
@@ -647,7 +670,9 @@ TSharedRef<ITableRow> FSUDSEditorToolkit::OnGenerateRowForVariable(TSharedPtr<FS
 	return SNew( SSUDSEditorVariableItem, Table )
 		.VariableName(Row->Name)
 		.VariableValue(Row->Value)
+		.Dialogue(Dialogue)
 		.InitialWidth( VarColumnWidth );
+		
 	
 }
 
@@ -656,59 +681,97 @@ void SSUDSEditorVariableItem::Construct(const FArguments& InArgs, const TSharedR
 	InitialWidth = InArgs._InitialWidth;
 	VariableName = InArgs._VariableName;
 	VariableValue = InArgs._VariableValue;
+	Dialogue = InArgs._Dialogue;
 
 	SMultiColumnTableRow< TSharedPtr< FString > >::Construct( SMultiColumnTableRow< TSharedPtr< FString > >::FArguments(), InOwnerTableView );
 }
 
 TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName& ColumnName)
 {
+	const FSlateFontInfo PropertyFont = FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont"));
 	if (ColumnName == "NameHeader")
 	{
 		return SNew(SHorizontalBox)
 
 		+ SHorizontalBox::Slot()
 		.FillWidth(1.0)
-		.Padding(10, 5, 10, 5)
+		.Padding(10, 2, 5, 2)
+		.VAlign(VAlign_Center)
 		[
 			SNew(STextBlock)
+			.Font(PropertyFont)
 			.Text(FText::FromName(VariableName))
 		];
 		
 	}
 	else
 	{
-		// TODO: editable widgets
 		TSharedPtr<SWidget> ValueWidget;
 
-		ValueWidget = SNew(STextBlock)
-			.Text(FText::FromString(VariableValue.ToString()));
-
-		/*
+		FMargin Padding = FMargin(5, 2, 5, 2);
 		switch (VariableValue.GetType())
 		{
 		case ESUDSValueType::Int:
-			ValueWidget = SNew(STextBlock)
-			.Text(FText::FromString(VariableValue.ToString())
+			ValueWidget = SNew(SNumericEntryBox<int32>)
+				.Value(VariableValue.GetIntValue())
+				.OnValueCommitted_Lambda([this] (const int32 InValue, ETextCommit::Type)
+				{
+					// This will cause a refresh
+					Dialogue->SetVariableInt(VariableName, InValue);
+				})
+				.MinDesiredValueWidth(60)
+				.Font(PropertyFont);
 			break;
 		case ESUDSValueType::Float:
-			ValueWidget = SNew(STextBlock)
-			.Text(FText::Format(INVTEXT("{0}"), VariableValue.GetFloatValue()));
+			ValueWidget = SNew(SNumericEntryBox<float>)
+				.Value(VariableValue.GetFloatValue())
+				.OnValueCommitted_Lambda([this] (const float InValue, ETextCommit::Type)
+				{
+					// This will cause a refresh
+					Dialogue->SetVariableFloat(VariableName, InValue);
+				})
+				.MinDesiredValueWidth(60)
+				.Font(PropertyFont);
 			break;
 		case ESUDSValueType::Boolean:
-			ValueWidget = SNew(STextBlock)
-			.Text(VariableValue.GetBooleanValue() ? FText::FromString("True") : FText::FromString("False"));
+			ValueWidget = SNew(SCheckBox)
+				.IsChecked(VariableValue.GetBooleanValue())
+				.OnCheckStateChanged_Lambda([this] (ECheckBoxState NewState)
+				{
+					// This will cause a refresh
+					Dialogue->SetVariableBoolean(VariableName, NewState == ECheckBoxState::Checked);
+				});
+			Padding.Top = Padding.Bottom = 4;
 			break;
 		case ESUDSValueType::Gender:
-			ValueWidget = SNew(STextBlock)
-			.Text(FText::Format(INVTEXT("{0}"), VariableValue.GetGenderValue()));
+			ValueWidget = SNew(SComboButton)
+				.OnGetMenuContent(this, &SSUDSEditorVariableItem::GetGenderMenu)
+				.ButtonContent()
+				[
+					SNew(STextBlock)
+						.Text(FText::FromString(VariableValue.ToString()))
+				];
+
 			break;
 		case ESUDSValueType::Text:
-			ValueWidget = SNew(STextBlock)
-			.Text(VariableValue.GetTextValue());
+			ValueWidget = SNew(SEditableTextBox)
+				.IsReadOnly(false)
+				.Text(VariableValue.GetTextValue())
+				.OnTextCommitted_Lambda([this] (const FText& InValue, ETextCommit::Type)
+				{
+					// This will cause a refresh
+					Dialogue->SetVariableText(VariableName, InValue);
+				});
 			break;
 		case ESUDSValueType::Name:
-			ValueWidget = SNew(STextBlock)
-			.Text(FText::FromString(VariableValue.GetNameValue().ToString()));
+			ValueWidget = SNew(SEditableTextBox)
+				.IsReadOnly(false)
+				.Text(FText::FromString(VariableValue.GetNameValue().ToString()))
+				.OnTextCommitted_Lambda([this] (const FText& InValue, ETextCommit::Type)
+				{
+					// This will cause a refresh
+					Dialogue->SetVariableName(VariableName, FName(InValue.ToString()));
+				});
 			break;
 		case ESUDSValueType::Variable:
 		case ESUDSValueType::Empty:
@@ -717,16 +780,42 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 			break;
 			
 		};
-		*/
+		
 		return SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
+			.Padding(Padding)
 			.AutoWidth()
-			.Padding(10, 5, 10, 5)
 			[
 				ValueWidget.ToSharedRef()
 			];
 	}
 	
+}
+
+TSharedRef<SWidget> SSUDSEditorVariableItem::GetGenderMenu()
+{
+	FMenuBuilder MenuBuilder(true, NULL);
+
+	// NumEnums() - 1 because the last value is the autogen _MAX value
+	for (int i = 0; i < StaticEnum<ETextGender>()->NumEnums() - 1; ++i)
+	{
+		ETextGender Val = (ETextGender)StaticEnum<ETextGender>()->GetValueByIndex(i);
+		const FUIAction Action(FExecuteAction::CreateSP(this, &SSUDSEditorVariableItem::OnGenderSelected, Val));
+		MenuBuilder.AddMenuEntry(FText::FromString(StaticEnum<ETextGender>()->GetNameStringByIndex(i)),
+		                         FText(),
+		                         FSlateIcon(),
+		                         Action);
+		
+	}
+	
+	return MenuBuilder.MakeWidget();
+	
+}
+
+void SSUDSEditorVariableItem::OnGenderSelected(ETextGender NewGender)
+{
+	// This will cause a refresh
+	Dialogue->SetVariableGender(VariableName, NewGender);	
 }
 
 void SSUDSEditorOutputItem::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)
