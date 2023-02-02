@@ -691,16 +691,22 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 	const FSlateFontInfo PropertyFont = FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont"));
 	if (ColumnName == "NameHeader")
 	{
-		return SNew(SHorizontalBox)
-
-		+ SHorizontalBox::Slot()
-		.FillWidth(1.0)
-		.Padding(10, 2, 5, 2)
-		.VAlign(VAlign_Center)
+		const FMargin BoxMargin(0, 2, 0, 1.333f);
+		return SNew(SBorder)
+		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+		.Padding(BoxMargin)
 		[
-			SNew(STextBlock)
-			.Font(PropertyFont)
-			.Text(FText::FromName(VariableName))
+			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0)
+			.Padding(10, 5, 5, 5)
+			.VAlign(VAlign_Center)
+			[
+				SNew(STextBlock)
+				.Font(PropertyFont)
+				.Text(FText::FromName(VariableName))
+			]
 		];
 		
 	}
@@ -708,7 +714,7 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 	{
 		TSharedPtr<SWidget> ValueWidget;
 
-		FMargin Padding = FMargin(5, 2, 5, 2);
+		FMargin InnerPadding = FMargin(5, 2, 5, 2);
 		switch (VariableValue.GetType())
 		{
 		case ESUDSValueType::Int:
@@ -741,7 +747,7 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 					// This will cause a refresh
 					Dialogue->SetVariableBoolean(VariableName, NewState == ECheckBoxState::Checked);
 				});
-			Padding.Top = Padding.Bottom = 4;
+			InnerPadding.Top = InnerPadding.Bottom = 2;
 			break;
 		case ESUDSValueType::Gender:
 			ValueWidget = SNew(SComboButton)
@@ -750,13 +756,16 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 				[
 					SNew(STextBlock)
 						.Text(FText::FromString(VariableValue.ToString()))
+						.Font(PropertyFont)
 				];
+			InnerPadding.Top = InnerPadding.Bottom = 1;
 
 			break;
 		case ESUDSValueType::Text:
 			ValueWidget = SNew(SEditableTextBox)
 				.IsReadOnly(false)
 				.Text(VariableValue.GetTextValue())
+				.Font(PropertyFont)
 				.OnTextCommitted_Lambda([this] (const FText& InValue, ETextCommit::Type)
 				{
 					// This will cause a refresh
@@ -767,6 +776,7 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 			ValueWidget = SNew(SEditableTextBox)
 				.IsReadOnly(false)
 				.Text(FText::FromString(VariableValue.GetNameValue().ToString()))
+				.Font(PropertyFont)
 				.OnTextCommitted_Lambda([this] (const FText& InValue, ETextCommit::Type)
 				{
 					// This will cause a refresh
@@ -780,14 +790,28 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 			break;
 			
 		};
-		
-		return SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.Padding(Padding)
-			.AutoWidth()
+
+		const FMargin BoxMargin(2, 1, 0, 1);
+		return SNew(SBox)
+		.HeightOverride(26)
+		.Padding(BoxMargin)
+		[
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			.VAlign(VAlign_Center)
 			[
-				ValueWidget.ToSharedRef()
-			];
+			
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(InnerPadding)
+				.AutoWidth()
+				[
+					ValueWidget.ToSharedRef()
+				]
+			]
+		];
+		
+
 	}
 	
 }
@@ -816,6 +840,14 @@ void SSUDSEditorVariableItem::OnGenderSelected(ETextGender NewGender)
 {
 	// This will cause a refresh
 	Dialogue->SetVariableGender(VariableName, NewGender);	
+}
+
+FVector2D SSUDSEditorVariableItem::ComputeDesiredSize(float X) const
+{
+	// ItemHeight(28) at table level is totally not working for some reason, so fudge it here
+	FVector2D Desired = SMultiColumnTableRow<TSharedPtr<FString, ESPMode::ThreadSafe>>::ComputeDesiredSize(X);
+	Desired.Y = 28;
+	return Desired;
 }
 
 void SSUDSEditorOutputItem::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView)

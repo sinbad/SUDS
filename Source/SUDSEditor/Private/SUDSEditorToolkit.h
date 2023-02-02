@@ -134,6 +134,7 @@ public:
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView );
 
+public:
 	/**
 	 * Generates the widget for the specified column.
 	 *
@@ -149,6 +150,7 @@ protected:
 
 	TSharedRef<class SWidget>  GetGenderMenu();
 	void OnGenderSelected(ETextGender TextGender);
+	virtual FVector2D ComputeDesiredSize(float) const override;
 
 };
 
