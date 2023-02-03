@@ -785,12 +785,13 @@ FReply FSUDSEditorToolkit::AddVariableClicked()
 void FSUDSEditorToolkit::UpdateVariables()
 {
 	VariableRows.Empty();
-	// From dialogue
+	// From dialogue (will contain manual overrides already)
 	if (Dialogue)
 	{
 		for (auto& Pair : Dialogue->GetVariables())
 		{
-			VariableRows.Add(MakeShareable(new FSUDSEditorVariableRow(Pair.Key, Pair.Value)));
+			VariableRows.Add(MakeShareable(
+				new FSUDSEditorVariableRow(Pair.Key, Pair.Value, ManualOverrideVariables.Contains(Pair.Key))));
 		}
 	}
 	else
@@ -799,7 +800,7 @@ void FSUDSEditorToolkit::UpdateVariables()
 		// Otherwise, they will be in the dialogue
 		for (auto& Pair : ManualOverrideVariables)
 		{
-			VariableRows.Add(MakeShareable(new FSUDSEditorVariableRow(Pair.Key, Pair.Value)));
+			VariableRows.Add(MakeShareable(new FSUDSEditorVariableRow(Pair.Key, Pair.Value, true)));
 		}
 	}
 	VariableRows.Sort();
@@ -894,6 +895,7 @@ TSharedRef<ITableRow> FSUDSEditorToolkit::OnGenerateRowForVariable(TSharedPtr<FS
 	return SNew( SSUDSEditorVariableItem, Table )
 		.VariableName(Row->Name)
 		.VariableValue(Row->Value)
+		.bIsManualOverride(Row->bIsManualOverride)
 		.Parent(this)
 		.InitialWidth( VarColumnWidth );
 		
@@ -905,6 +907,7 @@ void SSUDSEditorVariableItem::Construct(const FArguments& InArgs, const TSharedR
 	InitialWidth = InArgs._InitialWidth;
 	VariableName = InArgs._VariableName;
 	VariableValue = InArgs._VariableValue;
+	bIsManualOverride = InArgs._bIsManualOverride;
 	Parent = InArgs._Parent;
 
 	SMultiColumnTableRow< TSharedPtr< FString > >::Construct( SMultiColumnTableRow< TSharedPtr< FString > >::FArguments(), InOwnerTableView );
@@ -913,11 +916,17 @@ void SSUDSEditorVariableItem::Construct(const FArguments& InArgs, const TSharedR
 TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName& ColumnName)
 {
 	const FSlateFontInfo PropertyFont = FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont"));
+
+	const FSlateBrush* BorderBrush = FEditorStyle::GetBrush("ToolPanel.GroupBorder");
+	const FSlateColor NormalBgColour = FSlateColor(FLinearColor::White);
+	const FSlateColor ManualOverrideBgColour = FSlateColor(FLinearColor(0.9f,0.7f,1,1));
+	
 	if (ColumnName == "NameHeader")
 	{
 		const FMargin BoxMargin(0, 2, 0, 1.333f);
 		return SNew(SBorder)
-		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+		.BorderImage(BorderBrush)
+		.BorderBackgroundColor(bIsManualOverride ? ManualOverrideBgColour : NormalBgColour)
 		.Padding(BoxMargin)
 		[
 			SNew(SHorizontalBox)
@@ -1016,7 +1025,8 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 		.Padding(BoxMargin)
 		[
 			SNew(SBorder)
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			.BorderImage(BorderBrush)
+			.BorderBackgroundColor(bIsManualOverride ? ManualOverrideBgColour : NormalBgColour)
 			.VAlign(VAlign_Center)
 			[
 			

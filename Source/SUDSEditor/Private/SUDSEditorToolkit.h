@@ -110,7 +110,13 @@ class FSUDSEditorVariableRow
 public:
 	FName Name;
 	FSUDSValue Value;
-	FSUDSEditorVariableRow(const FName& InName, const FSUDSValue& InValue) : Name(InName), Value(InValue) {}
+	bool bIsManualOverride;
+
+	FSUDSEditorVariableRow(const FName& InName, const FSUDSValue& InValue, bool bIsManual) : Name(InName),
+		Value(InValue),
+		bIsManualOverride(bIsManual)
+	{
+	}
 
 	friend bool operator<(const FSUDSEditorVariableRow& Lhs, const FSUDSEditorVariableRow& RHS)
 	{
@@ -134,6 +140,7 @@ public:
 	SLATE_ARGUMENT(float, InitialWidth)
 	SLATE_ARGUMENT(FName, VariableName)
 	SLATE_ARGUMENT(FSUDSValue, VariableValue)
+	SLATE_ARGUMENT(bool, bIsManualOverride)
 	SLATE_ARGUMENT(class FSUDSEditorToolkit*, Parent)
 SLATE_END_ARGS()
 
@@ -159,6 +166,7 @@ protected:
 	float InitialWidth = 70;
 	FName VariableName;
 	FSUDSValue VariableValue;
+	bool bIsManualOverride;
 	class FSUDSEditorToolkit* Parent = nullptr;
 
 	TSharedRef<class SWidget>  GetGenderMenu();
