@@ -321,19 +321,27 @@ FString FSUDSEditorToolkit::GetWorldCentricTabPrefix() const
 
 void FSUDSEditorToolkit::UserEditVariable(const FName& Name, FSUDSValue Value)
 {
-	// This will cause a refresh
-	if (Dialogue)
-		Dialogue->SetVariable(Name, Value);
 
 	// Update manual overrides if it's one of these
 	if (ManualOverrideVariables.Contains(Name))
 	{
 		ManualOverrideVariables[Name] = Value;
-		// If no dialogue, no event will come through to cause refresh
-		if (!Dialogue)
-			UpdateVariables();
 	}
 
+	// This will cause a refresh
+	if (Dialogue)
+		Dialogue->SetVariable(Name, Value);
+	else
+		UpdateVariables();
+}
+
+void FSUDSEditorToolkit::DeleteVariable(const FName& Name)
+{
+	ManualOverrideVariables.Remove(Name);
+	if (Dialogue)
+		Dialogue->UnSetVariable(Name);
+	
+	UpdateVariables();
 }
 
 void FSUDSEditorToolkit::OnClose()
@@ -1036,6 +1044,28 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 				.AutoWidth()
 				[
 					ValueWidget.ToSharedRef()
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(5,2,5,2)
+				.FillWidth(1.0)
+				.HAlign(HAlign_Right)
+				[
+					SNew(SButton)
+					.ButtonStyle( FAppStyle::Get(), "SimpleButton" )
+					.OnClicked_Lambda([this]
+					{
+						// Delete click
+						Parent->DeleteVariable(VariableName);
+						return FReply::Handled();
+					} )
+					.ContentPadding(0)
+					.IsFocusable(false)
+					[ 
+						SNew( SImage )
+						.Image( FEditorStyle::GetBrush("Icons.Delete") )
+						.ColorAndOpacity( FSlateColor::UseForeground() )
+					]
+					
 				]
 			]
 		];

@@ -245,6 +245,7 @@ public:
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	virtual FString GetWorldCentricTabPrefix() const override;
 	void UserEditVariable(const FName& Name, FSUDSValue Value);
+	void DeleteVariable(const FName& Name);
 
 protected:
 	virtual void OnClose() override;
