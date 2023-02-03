@@ -22,6 +22,19 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnDialogueEvent, class USUDSDial
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FourParams(FOnVariableChangedEvent, class USUDSDialogue*, Dialogue, FName, VariableName, const FSUDSValue&, Value, bool, bFromScript);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnVariableRequestedEvent, class USUDSDialogue*, Dialogue, FName, VariableName);
 
+#if WITH_EDITOR
+	// Non-dynamic events for editor use
+	DECLARE_DELEGATE_TwoParams(FOnDialogueSpeakerLineInternal, class USUDSDialogue* /* Dialogue */, int /*SourceLineNo*/);
+	DECLARE_DELEGATE_ThreeParams(FOnDialogueChoiceInternal, class USUDSDialogue* /* Dialogue*/, int /*ChoiceIndex*/, int /*SourceLineNo*/);
+	DECLARE_DELEGATE_OneParam(FOnDialogueProceedingInternal, class USUDSDialogue* /*Dialogue*/);
+	DECLARE_DELEGATE_TwoParams(FOnDialogueStartingInternal, class USUDSDialogue* /*Dialogue*/, FName /*AtLabel*/);
+	DECLARE_DELEGATE_OneParam(FOnDialogueFinishedInternal, class USUDSDialogue* /*Dialogue*/);
+	DECLARE_DELEGATE_FourParams(FOnDialogueEventInternal, class USUDSDialogue* /*Dialogue*/, FName /*EventName*/, const TArray<FSUDSValue>& /*Arguments*/, int /*SourceLineNo*/);
+	DECLARE_DELEGATE_FiveParams(FOnDialogueVarChangedByScriptInternal, class USUDSDialogue* /* Dialogue*/, FName /*VariableName*/, const FSUDSValue& /*Value*/, const FString& /*ExprString*/, int /*SourceLineNo*/);
+	DECLARE_DELEGATE_ThreeParams(FOnDialogueVarChangedByCodeInternal, class USUDSDialogue* /* Dialogue*/, FName /*VariableName*/, const FSUDSValue& /*Value*/);
+	DECLARE_DELEGATE_FourParams(FOnDialogueSelectEval, class USUDSDialogue* /*Dialogue*/, const FString& /*ConditionString*/, bool /*bResult*/, int /*SourceLineNo*/);
+#endif
+
 DECLARE_LOG_CATEGORY_EXTERN(LogSUDSDialogue, Verbose, All);
 
 /// Copy of the internal state of a dialogue
@@ -169,11 +182,11 @@ protected:
 	void RaiseStarting(FName StartLabel);
 	void RaiseFinished();
 	void RaiseNewSpeakerLine();
-	void RaiseChoiceMade(int Index);
+	void RaiseChoiceMade(int Index, int LineNo);
 	void RaiseProceeding();
-	void RaiseVariableChange(const FName& VarName, const FSUDSValue& Value, bool bFromScript);
-	void RaiseVariableRequested(const FName& VarName);
-	void RaiseExpressionVariablesRequested(const FSUDSExpression& Expression);
+	void RaiseVariableChange(const FName& VarName, const FSUDSValue& Value, bool bFromScript, int LineNo);
+	void RaiseVariableRequested(const FName& VarName, int LineNo);
+	void RaiseExpressionVariablesRequested(const FSUDSExpression& Expression, int LineNo);
 
 	USUDSScriptNode* GetNextNode(USUDSScriptNode* Node);
 	bool IsChoiceOrTextNode(ESUDSScriptNodeType Type);
@@ -186,12 +199,27 @@ protected:
 	void UpdateChoices();
 	void RecurseAppendChoices(const USUDSScriptNode* Node, TArray<FSUDSScriptEdge>& OutChoices);
 
-	FText ResolveParameterisedText(const TArray<FName> Params, const FTextFormat& TextFormat);
+	FText ResolveParameterisedText(const TArray<FName> Params, const FTextFormat& TextFormat, int LineNo);
 	void GetTextFormatArgs(const TArray<FName>& ArgNames, FFormatNamedArguments& OutArgs) const;
 	bool CurrentNodeHasChoices() const;
+	void SetVariableImpl(FName Name, const FSUDSValue& Value, bool bFromScript, int LineNo)
+	{
+		const FSUDSValue OldValue = GetVariable(Name);
+		if (!IsVariableSet(Name) ||
+			(OldValue != Value).GetBooleanValue())
+		{
+			VariableState.Add(Name, Value);
+			RaiseVariableChange(Name, Value, bFromScript, LineNo);
+		}
+		
+	}
 
 public:
 	USUDSDialogue();
+	// virtual ~USUDSDialogue() override
+	// {
+	//		UE_LOG(LogTemp, Warning, TEXT("*********** Destroyed Dialogue!"));
+	// }
 	void Initialise(const USUDSScript* Script);
 	void InitVariables();
 
@@ -250,11 +278,20 @@ public:
 	/**
 	 * Get the number of choices available from this node.
 	 * Note, this will return 1 in the case of just linear text progression. The difference between just linked text
-	 * lines and a choice with only 1 option is whether the choice text is blank or not.
+	 * lines and a choice with only 1 option is whether the choice text is blank or not. 
+	 * See also IsSimpleContinue()
 	 * @return The number of choices available
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	int GetNumberOfChoices() const;
+
+	/**
+	 * Return whether to progress from here is a simple continue (no choices, no text), meaning you probably want
+	 * to display a simpler prompt to the player.
+	 * This will return false even if there's only one choice, if that choice has text associated with it.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool IsSimpleContinue() const;
 
 	/**
 	 * Get the text associated with a choice.
@@ -306,6 +343,11 @@ public:
 	/// End the dialogue early
 	UFUNCTION(BlueprintCallable)
 	void End(bool bQuietly);
+
+	/// Get the source line number of the current position of the dialogue (returns 0 if not applicable)
+	UFUNCTION(BlueprintCallable)
+	int GetCurrentSourceLine() const;
+
 	
 	/**
 	 * Restart the dialogue, either from the start or from a named label.
@@ -366,19 +408,14 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SetVariable(FName Name, FSUDSValue Value)
 	{
-		const FSUDSValue OldValue = GetVariable(Name);
-		if ((OldValue != Value).GetBooleanValue())
-		{
-			VariableState.Add(Name, Value);
-			RaiseVariableChange(Name, Value, false);
-		}
+		SetVariableImpl(Name, Value, false, 0);
 	}
 
 	/// Get a variable in dialogue state as a general value type
 	/// See GetDialogueText, GetDialogueInt etc for more type friendly versions, but if you want to access the state
 	/// as a type-flexible value then you can do so with this function.
 	UFUNCTION(BlueprintCallable)
-	FSUDSValue GetVariable(FName Name)
+	FSUDSValue GetVariable(FName Name) const
 	{
 		if (const auto Arg = VariableState.Find(Name))
 		{
@@ -387,9 +424,15 @@ public:
 		return FSUDSValue();
 	}
 
+	UFUNCTION(BlueprintCallable)
+	bool IsVariableSet(FName Name) const
+	{
+		return VariableState.Contains(Name);
+	}
+
 	/// Get all variables
 	UFUNCTION(BlueprintCallable)
-	const TMap<FName, FSUDSValue>& GetVariables() { return VariableState; }
+	const TMap<FName, FSUDSValue>& GetVariables() const { return VariableState; }
 	
 	/**
 	 * Set a text dialogue variable
@@ -408,7 +451,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	FText GetVariableText(FName Name);
+	FText GetVariableText(FName Name) const;
 
 	/**
 	 * Set a dialogue variable on the passed in parameters collection.
@@ -424,7 +467,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	int GetVariableInt(FName Name);
+	int GetVariableInt(FName Name) const;
 	
 	/**
 	 * Set a float dialogue variable 
@@ -440,7 +483,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	float GetVariableFloat(FName Name);
+	float GetVariableFloat(FName Name) const;
 	
 	/**
 	 * Set a gender dialogue variable 
@@ -456,7 +499,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	ETextGender GetVariableGender(FName Name);
+	ETextGender GetVariableGender(FName Name) const;
 
 	/**
 	 * Set a boolean dialogue variable 
@@ -472,7 +515,7 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	bool GetVariableBoolean(FName Name);
+	bool GetVariableBoolean(FName Name) const;
 
 	/**
 	 * Set a name dialogue variable
@@ -488,6 +531,27 @@ public:
 	 * @returns Value The value of the variable
 	 */
 	UFUNCTION(BlueprintCallable)
-	FName GetVariableName(FName Name);
+	FName GetVariableName(FName Name) const;
 
+	
+	/**
+	 * Remove the definition of a variable.
+	 * This has much same effect as setting the variable back to the default value for this type, since attempting to
+	 * retrieve a missing variable result in a default value.
+	 * @param Name The name of the variable
+	 */
+	UFUNCTION(BlueprintCallable)
+	void UnSetVariable(FName Name);
+
+#if WITH_EDITOR
+	FOnDialogueSpeakerLineInternal InternalOnSpeakerLine;
+	FOnDialogueChoiceInternal InternalOnChoice;
+	FOnDialogueProceedingInternal InternalOnProceeding;
+	FOnDialogueEventInternal InternalOnEvent;
+	FOnDialogueVarChangedByScriptInternal InternalOnSetVar;
+	FOnDialogueVarChangedByCodeInternal InternalOnSetVarByCode;
+	FOnDialogueSelectEval InternalOnSelectEval;
+	FOnDialogueStartingInternal InternalOnStarting;
+	FOnDialogueFinishedInternal InternalOnFinished;
+#endif
 };

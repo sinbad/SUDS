@@ -167,8 +167,13 @@ USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node)
 		if (Edge.GetCondition().IsValid())
 		{
 			// use the first satisfied edge
-			RaiseExpressionVariablesRequested(Edge.GetCondition());
-			if (Edge.GetCondition().EvaluateBoolean(VariableState, BaseScript->GetName()))
+			RaiseExpressionVariablesRequested(Edge.GetCondition(), Edge.GetSourceLineNo());
+			const bool bSuccess = Edge.GetCondition().EvaluateBoolean(VariableState, BaseScript->GetName());
+#if WITH_EDITOR
+			InternalOnSelectEval.ExecuteIfBound(this, Edge.GetCondition().GetSourceString(), bSuccess, Edge.GetSourceLineNo());
+#endif
+			
+			if (bSuccess)
 			{
 				return Edge.GetTargetNode().Get();
 			}
@@ -188,7 +193,7 @@ USUDSScriptNode* USUDSDialogue::RunEventNode(USUDSScriptNode* Node)
 		
 		for (auto& Expr : EvtNode->GetArgs())
 		{
-			RaiseExpressionVariablesRequested(Expr);
+			RaiseExpressionVariablesRequested(Expr, EvtNode->GetSourceLineNo());
 			ArgsResolved.Add(Expr.Evaluate(VariableState));
 		}
 		
@@ -200,6 +205,9 @@ USUDSScriptNode* USUDSDialogue::RunEventNode(USUDSScriptNode* Node)
 			}
 		}
 		OnEvent.Broadcast(this, EvtNode->GetEventName(), ArgsResolved);
+#if WITH_EDITOR
+		InternalOnEvent.ExecuteIfBound(this, EvtNode->GetEventName(), ArgsResolved, EvtNode->GetSourceLineNo());
+#endif
 	}
 	return GetNextNode(Node);
 }
@@ -253,14 +261,19 @@ USUDSScriptNode* USUDSDialogue::RunSetVariableNode(USUDSScriptNode* Node)
 	{
 		if (SetNode->GetExpression().IsValid())
 		{
-			RaiseExpressionVariablesRequested(SetNode->GetExpression());
-			const FSUDSValue OldValue = GetVariable(SetNode->GetIdentifier());
-			const FSUDSValue NewValue = SetNode->GetExpression().Evaluate(VariableState);
-			if ((OldValue != NewValue).GetBooleanValue())
-			{
-				VariableState.Add(SetNode->GetIdentifier(), NewValue);
-				RaiseVariableChange(SetNode->GetIdentifier(), NewValue, true);
-			}
+			RaiseExpressionVariablesRequested(SetNode->GetExpression(), SetNode->GetSourceLineNo());
+			FSUDSValue Value = SetNode->GetExpression().Evaluate(VariableState);
+			SetVariableImpl(SetNode->GetIdentifier(), Value, true, SetNode->GetSourceLineNo());
+#if WITH_EDITOR
+			// We do this here so that we have access to the expression
+			InternalOnSetVar.ExecuteIfBound(this,
+			                                SetNode->GetIdentifier(),
+			                                Value,
+			                                SetNode->GetExpression().IsLiteral()
+				                                ? ""
+				                                : SetNode->GetExpression().GetSourceString(),
+			                                SetNode->GetSourceLineNo());
+#endif
 		}
 	}
 
@@ -269,7 +282,7 @@ USUDSScriptNode* USUDSDialogue::RunSetVariableNode(USUDSScriptNode* Node)
 	
 }
 
-void USUDSDialogue::RaiseVariableChange(const FName& VarName, const FSUDSValue& Value, bool bFromScript)
+void USUDSDialogue::RaiseVariableChange(const FName& VarName, const FSUDSValue& Value, bool bFromScript, int LineNo)
 {
 	for (const auto P : Participants)
 	{
@@ -279,10 +292,17 @@ void USUDSDialogue::RaiseVariableChange(const FName& VarName, const FSUDSValue& 
 		}
 	}
 	OnVariableChanged.Broadcast(this, VarName, Value, bFromScript);
+#if WITH_EDITOR
+	if (!bFromScript)
+	{
+		// Script setting is raised in SetNode so we have access to expressions
+		InternalOnSetVarByCode.ExecuteIfBound(this, VarName, Value);
+	}
+#endif
 
 }
 
-void USUDSDialogue::RaiseVariableRequested(const FName& VarName)
+void USUDSDialogue::RaiseVariableRequested(const FName& VarName, int LineNo)
 {
 	// Because variables set by participants should "win", raise event first
 	OnVariableRequested.Broadcast(this, VarName);
@@ -295,11 +315,11 @@ void USUDSDialogue::RaiseVariableRequested(const FName& VarName)
 	}
 }
 
-void USUDSDialogue::RaiseExpressionVariablesRequested(const FSUDSExpression& Expression)
+void USUDSDialogue::RaiseExpressionVariablesRequested(const FSUDSExpression& Expression, int LineNo)
 {
 	for (auto& Var : Expression.GetVariableNames())
 	{
-		RaiseVariableRequested(Var);
+		RaiseVariableRequested(Var, LineNo);
 	}
 }
 
@@ -322,11 +342,11 @@ void USUDSDialogue::SetCurrentSpeakerNode(USUDSScriptNodeText* Node, bool bQuiet
 
 }
 
-FText USUDSDialogue::ResolveParameterisedText(const TArray<FName> Params, const FTextFormat& TextFormat)
+FText USUDSDialogue::ResolveParameterisedText(const TArray<FName> Params, const FTextFormat& TextFormat, int LineNo)
 {
 	for (const auto& P : Params)
 	{
-		RaiseVariableRequested(P);
+		RaiseVariableRequested(P, LineNo);
 	}
 	// Need to make a temp arg list for compatibility
 	// Also lets us just set the ones we need to
@@ -354,7 +374,9 @@ FText USUDSDialogue::GetText()
 	{
 		if (CurrentSpeakerNode->HasParameters())
 		{
-			return ResolveParameterisedText(CurrentSpeakerNode->GetParameterNames(), CurrentSpeakerNode->GetTextFormat());
+			return ResolveParameterisedText(CurrentSpeakerNode->GetParameterNames(),
+			                                CurrentSpeakerNode->GetTextFormat(),
+			                                CurrentSpeakerNode->GetSourceLineNo());
 		}
 		else
 		{
@@ -538,7 +560,7 @@ void USUDSDialogue::RecurseAppendChoices(const USUDSScriptNode* Node, TArray<FSU
 			// Conditional edges are under selects
 			if (Edge.GetCondition().IsValid())
 			{
-				RaiseExpressionVariablesRequested(Edge.GetCondition());
+				RaiseExpressionVariablesRequested(Edge.GetCondition(), Edge.GetSourceLineNo());
 				if (Edge.GetCondition().EvaluateBoolean(VariableState, BaseScript->GetName()))
 				{
 					RecurseAppendChoices(Edge.GetTargetNode().Get(), OutChoices);
@@ -603,6 +625,11 @@ int USUDSDialogue::GetNumberOfChoices() const
 	return CurrentChoices.Num();
 }
 
+bool USUDSDialogue::IsSimpleContinue() const
+{
+	return CurrentChoices.Num() == 1 && CurrentChoices[0].GetText().IsEmpty();
+}
+
 FText USUDSDialogue::GetChoiceText(int Index)
 {
 
@@ -611,7 +638,7 @@ FText USUDSDialogue::GetChoiceText(int Index)
 		auto& Choice = CurrentChoices[Index];
 		if (Choice.HasParameters())
 		{
-			return ResolveParameterisedText(Choice.GetParameterNames(), Choice.GetTextFormat());
+			return ResolveParameterisedText(Choice.GetParameterNames(), Choice.GetTextFormat(), Choice.GetSourceLineNo());
 		}
 		else
 		{
@@ -657,9 +684,10 @@ bool USUDSDialogue::Choose(int Index)
 		// This method is called for Continue() too, which has no choice node
 		if (CurrentNodeHasChoices())
 		{
-			ChoicesTaken.Add(CurrentChoices[Index].GetTextID());
+			const auto& Choice = CurrentChoices[Index]; 
+			ChoicesTaken.Add(Choice.GetTextID());
 			
-			RaiseChoiceMade(Index);
+			RaiseChoiceMade(Index, Choice.GetSourceLineNo());
 			RaiseProceeding();
 		}
 		else
@@ -690,6 +718,15 @@ bool USUDSDialogue::IsEnded() const
 void USUDSDialogue::End(bool bQuietly)
 {
 	SetCurrentSpeakerNode(nullptr, bQuietly);
+}
+
+int USUDSDialogue::GetCurrentSourceLine() const
+{
+	if (CurrentSpeakerNode)
+	{
+		return CurrentSpeakerNode->GetSourceLineNo();
+	}
+	return 0;
 }
 
 void USUDSDialogue::ResetState(bool bResetVariables, bool bResetPosition, bool bResetVisited)
@@ -833,6 +870,9 @@ void USUDSDialogue::RaiseStarting(FName StartLabel)
 		}
 	}
 	OnStarting.Broadcast(this, StartLabel);
+#if WITH_EDITOR
+	InternalOnStarting.ExecuteIfBound(this, StartLabel);
+#endif
 }
 
 void USUDSDialogue::RaiseFinished()
@@ -845,6 +885,9 @@ void USUDSDialogue::RaiseFinished()
 		}
 	}
 	OnFinished.Broadcast(this);
+#if WITH_EDITOR
+	InternalOnFinished.ExecuteIfBound(this);
+#endif
 
 }
 
@@ -860,9 +903,12 @@ void USUDSDialogue::RaiseNewSpeakerLine()
 	
 	// Event listeners get it after
 	OnSpeakerLine.Broadcast(this);
+#if WITH_EDITOR
+	InternalOnSpeakerLine.ExecuteIfBound(this, GetCurrentSourceLine());
+#endif
 }
 
-void USUDSDialogue::RaiseChoiceMade(int Index)
+void USUDSDialogue::RaiseChoiceMade(int Index, int LineNo)
 {
 	for (const auto P : Participants)
 	{
@@ -873,6 +919,9 @@ void USUDSDialogue::RaiseChoiceMade(int Index)
 	}
 	// Event listeners get it after
 	OnChoice.Broadcast(this, Index);
+#if WITH_EDITOR
+	InternalOnChoice.ExecuteIfBound(this, Index, LineNo);
+#endif
 }
 
 void USUDSDialogue::RaiseProceeding()
@@ -886,11 +935,14 @@ void USUDSDialogue::RaiseProceeding()
 	}
 	// Event listeners get it after
 	OnProceeding.Broadcast(this);
+#if WITH_EDITOR
+	InternalOnProceeding.ExecuteIfBound(this);
+#endif
 }
 
-FText USUDSDialogue::GetVariableText(FName Name)
+FText USUDSDialogue::GetVariableText(FName Name) const
 {
-	if (auto Arg = VariableState.Find(Name))
+	if (const auto Arg = VariableState.Find(Name))
 	{
 		if (Arg->GetType() == ESUDSValueType::Text)
 		{
@@ -909,9 +961,9 @@ void USUDSDialogue::SetVariableInt(FName Name, int32 Value)
 	SetVariable(Name, Value);
 }
 
-int USUDSDialogue::GetVariableInt(FName Name)
+int USUDSDialogue::GetVariableInt(FName Name) const
 {
-	if (auto Arg = VariableState.Find(Name))
+	if (const auto Arg = VariableState.Find(Name))
 	{
 		switch (Arg->GetType())
 		{
@@ -934,9 +986,9 @@ void USUDSDialogue::SetVariableFloat(FName Name, float Value)
 	SetVariable(Name, Value);
 }
 
-float USUDSDialogue::GetVariableFloat(FName Name)
+float USUDSDialogue::GetVariableFloat(FName Name) const
 {
-	if (auto Arg = VariableState.Find(Name))
+	if (const auto Arg = VariableState.Find(Name))
 	{
 		switch (Arg->GetType())
 		{
@@ -958,9 +1010,9 @@ void USUDSDialogue::SetVariableGender(FName Name, ETextGender Value)
 	SetVariable(Name, Value);
 }
 
-ETextGender USUDSDialogue::GetVariableGender(FName Name)
+ETextGender USUDSDialogue::GetVariableGender(FName Name) const
 {
-	if (auto Arg = VariableState.Find(Name))
+	if (const auto Arg = VariableState.Find(Name))
 	{
 		switch (Arg->GetType())
 		{
@@ -982,9 +1034,9 @@ void USUDSDialogue::SetVariableBoolean(FName Name, bool Value)
 	SetVariable(Name, FSUDSValue(Value));
 }
 
-bool USUDSDialogue::GetVariableBoolean(FName Name)
+bool USUDSDialogue::GetVariableBoolean(FName Name) const
 {
-	if (auto Arg = VariableState.Find(Name))
+	if (const auto Arg = VariableState.Find(Name))
 	{
 		switch (Arg->GetType())
 		{
@@ -1007,9 +1059,9 @@ void USUDSDialogue::SetVariableName(FName Name, FName Value)
 	SetVariable(Name, FSUDSValue(Value, false));
 }
 
-FName USUDSDialogue::GetVariableName(FName Name)
+FName USUDSDialogue::GetVariableName(FName Name) const
 {
-	if (auto Arg = VariableState.Find(Name))
+	if (const auto Arg = VariableState.Find(Name))
 	{
 		if (Arg->GetType() == ESUDSValueType::Name)
 		{
@@ -1021,4 +1073,9 @@ FName USUDSDialogue::GetVariableName(FName Name)
 		}
 	}
 	return NAME_None;
+}
+
+void USUDSDialogue::UnSetVariable(FName Name)
+{
+	VariableState.Remove(Name);
 }

@@ -340,7 +340,8 @@ bool FTestRunningBasicConditionals::RunTest(const FString& Parameters)
     TestDialogueText(this, "Text", Dlg, "NPC", "OK");
     TestFalse("Continue", Dlg->Continue());
     TestTrue("End", Dlg->IsEnded());
-    
+
+    Script->MarkAsGarbage();
     return true;
     
 }
@@ -621,7 +622,8 @@ bool FTestMixedChoiceAndBranch::RunTest(const FString& Parameters)
         TestDialogueText(this, "Text node", Dlg, "NPC", "Bye");
         
     }
-    
+
+    Script->MarkAsGarbage();
     return true;
 }
 
@@ -674,6 +676,8 @@ bool FTestChoiceAfterConditionals::RunTest(const FString& Parameters)
     TestDialogueText(this, "Text node", Dlg, "NPC", "Choice 1 after conditional");
     TestTrue("Continue", Dlg->Continue());
     TestDialogueText(this, "Text node", Dlg, "NPC", "Bye");
+    
+    Script->MarkAsGarbage();
     return true;
 }
 
@@ -729,6 +733,8 @@ bool FTestChoiceAfterNestedConditionals::RunTest(const FString& Parameters)
     TestDialogueText(this, "Text node", Dlg, "NPC", "Choice 1 after conditional");
     TestTrue("Continue", Dlg->Continue());
     TestDialogueText(this, "Text node", Dlg, "NPC", "Bye");
+    
+    Script->MarkAsGarbage();
     return true;
 }
 
@@ -776,6 +782,7 @@ bool FVarsSetBetweenTextAndChoiceChoice::RunTest(const FString& Parameters)
     TestEqual("Choice text", Dlg->GetChoiceText(0).ToString(), "Alt Choice");
     TestEqual("Choice text", Dlg->GetChoiceText(1).ToString(), "Common Choice");
 
+    Script->MarkAsGarbage();
     return true;
 }
 

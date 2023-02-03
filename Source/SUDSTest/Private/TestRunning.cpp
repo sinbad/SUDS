@@ -202,6 +202,7 @@ bool FTestSimpleRunning::RunTest(const FString& Parameters)
 	// Should have fallen through
 	TestDialogueText(this, "Direct goto", Dlg, "Player", "This is the latter half of the discussion");
 
+	Script->MarkAsGarbage();
 	return true;
 }
 
@@ -301,6 +302,7 @@ bool FTestSetVariableRunning::RunTest(const FString& Parameters)
 	TestTrue("At end", Dlg->IsEnded());
 	
 
+	Script->MarkAsGarbage();
 	return true;
 
 }
@@ -353,7 +355,7 @@ bool FTestSpeakerNames::RunTest(const FString& Parameters)
 	TestEqual("NPC speaker name should have changed", Dlg->GetSpeakerDisplayName().ToString(), "Actually A Villain");
 
 
-	
+	Script->MarkAsGarbage();
 	return true;
 }
 
@@ -410,6 +412,7 @@ bool FTestFallthroughEdgeCase::RunTest(const FString& Parameters)
 		TestEqual("Choice text", Dlg->GetChoiceText(1).ToString(), "Fallthrough 2");
 	}
 	
+	Script->MarkAsGarbage();
 	return true;
 }
 

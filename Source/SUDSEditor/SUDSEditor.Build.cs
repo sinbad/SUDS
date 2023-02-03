@@ -37,10 +37,12 @@ public class SUDSEditor : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+				"InputCore", // needed by come Slate widgets
 				"Projects", // So that we can use the IPluginManager, required for our custom style
 				"ToolMenus",
 				"MessageLog",
-				"UnrealEd"
+				"UnrealEd",
+				"EditorStyle"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

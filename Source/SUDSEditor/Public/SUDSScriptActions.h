@@ -24,6 +24,9 @@ public:
 	virtual bool IsImportedAsset() const override { return true; }
 	virtual void GetActions(const TArray<UObject*>& InObjects, FToolMenuSection& Section) override;
 	virtual bool HasActions(const TArray<UObject*>& InObjects) const override;
+	virtual void OpenAssetEditor(const TArray<UObject*>& InObjects,
+		TSharedPtr<IToolkitHost> EditWithinLevelEditor) override;
+
 protected:
 	void WriteBackTextIDs(TArray<TWeakObjectPtr<USUDSScript>> Scripts);
 	void WriteBackTextIDs(USUDSScript* Script, FSUDSMessageLogger& Logger);
