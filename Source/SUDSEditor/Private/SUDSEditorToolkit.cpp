@@ -167,7 +167,26 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 		// Possibly use a SPropertyTable with a custom IPropertyTable to implement variable binding
 		return SNew(SDockTab)
 		[
-			VariablesListView.ToSharedRef()
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.VAlign(VAlign_Top)
+			.AutoHeight()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.HAlign(HAlign_Right)
+				.Padding(2)
+				[
+					SNew(SButton)
+					.Text(INVTEXT("Add Variable"))
+					.OnClicked(this, &FSUDSEditorToolkit::AddVariableClicked)
+				]
+			]
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0)
+			[
+				VariablesListView.ToSharedRef()
+			]
 		];
 	}))
 	.SetDisplayName(INVTEXT("Variables"))
@@ -300,6 +319,23 @@ FString FSUDSEditorToolkit::GetWorldCentricTabPrefix() const
 	return "SUDS Script ";
 }
 
+void FSUDSEditorToolkit::UserEditVariable(const FName& Name, FSUDSValue Value)
+{
+	// This will cause a refresh
+	if (Dialogue)
+		Dialogue->SetVariable(Name, Value);
+
+	// Update manual overrides if it's one of these
+	if (ManualOverrideVariables.Contains(Name))
+	{
+		ManualOverrideVariables[Name] = Value;
+		// If no dialogue, no event will come through to cause refresh
+		if (!Dialogue)
+			UpdateVariables();
+	}
+
+}
+
 void FSUDSEditorToolkit::OnClose()
 {
 	FAssetEditorToolkit::OnClose();
@@ -338,6 +374,12 @@ void FSUDSEditorToolkit::StartDialogue()
 
 	}
 	Dialogue->Restart(true, StartLabel);
+
+	// Set manual override vars
+	for (auto& Pair : ManualOverrideVariables)
+	{
+		Dialogue->SetVariable(Pair.Key, Pair.Value);
+	}
 
 	UpdateVariables();
 	
@@ -570,14 +612,183 @@ void FSUDSEditorToolkit::AddDialogueStep(const FName& Category, int SourceLineNo
 	}
 }
 
+FReply FSUDSEditorToolkit::AddVariableClicked()
+{
+	TSharedRef<SWindow> Window = SNew(SWindow)
+		.Title(INVTEXT("Add Variable"))
+		.IsPopupWindow(true)
+		.SupportsMaximize(false) 
+		.SupportsMinimize(false)
+		.CreateTitleBar(true)
+		.SizingRule(ESizingRule::Autosized)
+		.FocusWhenFirstShown(true)
+		.MinWidth(400)
+		.ActivationPolicy(EWindowActivationPolicy::FirstShown);
+
+	bool bConfirmed = false;
+	ESUDSValueType ValType = ESUDSValueType::Int;
+	FText VarNameText = FText::FromString("NewVar");
+	
+	Window->SetContent(
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(5)
+		[
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.FillWidth(0.4)
+			[
+				SNew(STextBlock)
+				.Text(INVTEXT("Name"))
+			]
+			+SHorizontalBox::Slot()
+			.FillWidth(0.6)
+			[
+				SNew(SEditableTextBox)
+				.MinDesiredWidth(150)
+				.SelectAllTextWhenFocused(true)
+				.Text(VarNameText)
+				.OnTextCommitted_Lambda([&VarNameText](const FText& NewText, ETextCommit::Type CommitType)
+				{
+					VarNameText = NewText;
+				})
+			]
+			
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(5)
+		[
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.FillWidth(0.4)
+			[
+				SNew(STextBlock)
+				.Text(INVTEXT("Type"))
+			]
+			+SHorizontalBox::Slot()
+			.FillWidth(0.6)
+			[
+			SNew(SComboButton)
+				.OnGetMenuContent_Lambda([&ValType]
+				{
+					FMenuBuilder MenuBuilder(true, NULL);
+
+					// NumEnums() - 1 because the last value is the autogen _MAX value
+					for (int i = 0; i < StaticEnum<ESUDSValueType>()->NumEnums() - 1; ++i)
+					{
+						ESUDSValueType Val = (ESUDSValueType)StaticEnum<ESUDSValueType>()->GetValueByIndex(i);
+						if (Val != ESUDSValueType::Empty && Val != ESUDSValueType::Variable)
+						{
+							const FUIAction Action(FExecuteAction::CreateLambda([Val, &ValType]()
+							{
+								ValType = Val;
+							}));
+							MenuBuilder.AddMenuEntry(FText::FromString(StaticEnum<ESUDSValueType>()->GetNameStringByIndex(i)),
+													 FText(),
+													 FSlateIcon(),
+													 Action);
+						}
+		
+					}
+	
+					return MenuBuilder.MakeWidget();
+					
+				})
+				.ButtonContent()
+				[
+					SNew(STextBlock)
+						.Text_Lambda([&ValType]
+						{
+							return FText::FromString(StaticEnum<ESUDSValueType>()->GetNameStringByValue((int64)ValType));
+						})
+				]
+			]
+		]
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(0, 5, 0, 3)
+		[
+			SNew(SHorizontalBox)
+			+SHorizontalBox::Slot()
+			.HAlign(HAlign_Right)
+			.Padding(2)
+			[
+				SNew(SButton)
+				.Text(INVTEXT("OK"))
+				.OnClicked_Lambda([&bConfirmed, Window, VarNameText]()
+				{
+					if (!VarNameText.IsEmptyOrWhitespace())
+					{
+						bConfirmed = true;
+						Window->RequestDestroyWindow();
+					}
+					return FReply::Handled();
+				})
+			]
+			+SHorizontalBox::Slot()
+			.HAlign(HAlign_Right)
+			.AutoWidth()
+			.Padding(2)
+			[
+				SNew(SButton)
+				.Text(INVTEXT("Cancel"))
+				.OnClicked_Lambda([&bConfirmed, Window]()
+				{
+					bConfirmed = false;
+					Window->RequestDestroyWindow();
+					return FReply::Handled();
+				})
+			]
+			
+		]
+	);
+
+	FVector2D Pos = FSlateApplication::Get().GetCursorPos();
+	Pos.X -= 230;
+	Pos.Y += 100;
+	Window->MoveWindowTo(Pos);
+
+	// This doesn't return until closed
+	GEditor->EditorAddModalWindow(Window);
+
+	if (bConfirmed)
+	{
+		FName VarName(VarNameText.ToString().TrimStartAndEnd());
+		FSUDSValue Val(ValType);
+		ManualOverrideVariables.Add(VarName, Val);
+		if (Dialogue)
+		{
+			Dialogue->SetVariable(VarName, FSUDSValue(ValType));
+		}
+		UpdateVariables();
+	}
+	return FReply::Handled();
+	
+}
+
 
 
 void FSUDSEditorToolkit::UpdateVariables()
 {
 	VariableRows.Empty();
-	for (auto& Pair : Dialogue->GetVariables())
+	// From dialogue
+	if (Dialogue)
 	{
-		VariableRows.Add(MakeShareable(new FSUDSEditorVariableRow(Pair.Key, Pair.Value)));
+		for (auto& Pair : Dialogue->GetVariables())
+		{
+			VariableRows.Add(MakeShareable(new FSUDSEditorVariableRow(Pair.Key, Pair.Value)));
+		}
+	}
+	else
+	{
+		// Manual overrides can occur before dialogue is started
+		// Otherwise, they will be in the dialogue
+		for (auto& Pair : ManualOverrideVariables)
+		{
+			VariableRows.Add(MakeShareable(new FSUDSEditorVariableRow(Pair.Key, Pair.Value)));
+		}
 	}
 	
 	VariablesListView->RequestListRefresh();
@@ -670,7 +881,7 @@ TSharedRef<ITableRow> FSUDSEditorToolkit::OnGenerateRowForVariable(TSharedPtr<FS
 	return SNew( SSUDSEditorVariableItem, Table )
 		.VariableName(Row->Name)
 		.VariableValue(Row->Value)
-		.Dialogue(Dialogue)
+		.Parent(this)
 		.InitialWidth( VarColumnWidth );
 		
 	
@@ -681,7 +892,7 @@ void SSUDSEditorVariableItem::Construct(const FArguments& InArgs, const TSharedR
 	InitialWidth = InArgs._InitialWidth;
 	VariableName = InArgs._VariableName;
 	VariableValue = InArgs._VariableValue;
-	Dialogue = InArgs._Dialogue;
+	Parent = InArgs._Parent;
 
 	SMultiColumnTableRow< TSharedPtr< FString > >::Construct( SMultiColumnTableRow< TSharedPtr< FString > >::FArguments(), InOwnerTableView );
 }
@@ -722,8 +933,7 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 				.Value(VariableValue.GetIntValue())
 				.OnValueCommitted_Lambda([this] (const int32 InValue, ETextCommit::Type)
 				{
-					// This will cause a refresh
-					Dialogue->SetVariableInt(VariableName, InValue);
+					Parent->UserEditVariable(VariableName, InValue);
 				})
 				.MinDesiredValueWidth(60)
 				.Font(PropertyFont);
@@ -733,8 +943,7 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 				.Value(VariableValue.GetFloatValue())
 				.OnValueCommitted_Lambda([this] (const float InValue, ETextCommit::Type)
 				{
-					// This will cause a refresh
-					Dialogue->SetVariableFloat(VariableName, InValue);
+					Parent->UserEditVariable(VariableName, InValue);
 				})
 				.MinDesiredValueWidth(60)
 				.Font(PropertyFont);
@@ -744,8 +953,7 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 				.IsChecked(VariableValue.GetBooleanValue())
 				.OnCheckStateChanged_Lambda([this] (ECheckBoxState NewState)
 				{
-					// This will cause a refresh
-					Dialogue->SetVariableBoolean(VariableName, NewState == ECheckBoxState::Checked);
+					Parent->UserEditVariable(VariableName, NewState == ECheckBoxState::Checked);
 				});
 			InnerPadding.Top = InnerPadding.Bottom = 2;
 			break;
@@ -768,8 +976,7 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 				.Font(PropertyFont)
 				.OnTextCommitted_Lambda([this] (const FText& InValue, ETextCommit::Type)
 				{
-					// This will cause a refresh
-					Dialogue->SetVariableText(VariableName, InValue);
+					Parent->UserEditVariable(VariableName, InValue);
 				});
 			break;
 		case ESUDSValueType::Name:
@@ -779,8 +986,7 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 				.Font(PropertyFont)
 				.OnTextCommitted_Lambda([this] (const FText& InValue, ETextCommit::Type)
 				{
-					// This will cause a refresh
-					Dialogue->SetVariableName(VariableName, FName(InValue.ToString()));
+					Parent->UserEditVariable(VariableName, FSUDSValue(FName(InValue.ToString()), false));
 				});
 			break;
 		case ESUDSValueType::Variable:
@@ -838,8 +1044,7 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GetGenderMenu()
 
 void SSUDSEditorVariableItem::OnGenderSelected(ETextGender NewGender)
 {
-	// This will cause a refresh
-	Dialogue->SetVariableGender(VariableName, NewGender);	
+	Parent->UserEditVariable(VariableName, NewGender);
 }
 
 FVector2D SSUDSEditorVariableItem::ComputeDesiredSize(float X) const

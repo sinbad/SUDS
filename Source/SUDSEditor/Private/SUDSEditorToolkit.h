@@ -111,6 +111,12 @@ public:
 	FName Name;
 	FSUDSValue Value;
 	FSUDSEditorVariableRow(const FName& InName, const FSUDSValue& InValue) : Name(InName), Value(InValue) {}
+
+	friend bool operator<(const FSUDSEditorVariableRow& Lhs, const FSUDSEditorVariableRow& RHS)
+	{
+		return Lhs.Name.FastLess(RHS.Name);
+	}
+
 };
 
 class SSUDSEditorVariableItem : public SMultiColumnTableRow< TSharedPtr<FString> >
@@ -121,7 +127,7 @@ public:
 	SLATE_ARGUMENT(float, InitialWidth)
 	SLATE_ARGUMENT(FName, VariableName)
 	SLATE_ARGUMENT(FSUDSValue, VariableValue)
-	SLATE_ARGUMENT(USUDSDialogue*, Dialogue)
+	SLATE_ARGUMENT(class FSUDSEditorToolkit*, Parent)
 SLATE_END_ARGS()
 
 public:
@@ -146,7 +152,7 @@ protected:
 	float InitialWidth = 70;
 	FName VariableName;
 	FSUDSValue VariableValue;
-	USUDSDialogue* Dialogue = nullptr;
+	class FSUDSEditorToolkit* Parent = nullptr;
 
 	TSharedRef<class SWidget>  GetGenderMenu();
 	void OnGenderSelected(ETextGender TextGender);
@@ -223,6 +229,7 @@ public:
 	virtual FName GetToolkitFName() const override;
 	virtual FLinearColor GetWorldCentricTabColorScale() const override;
 	virtual FString GetWorldCentricTabPrefix() const override;
+	void UserEditVariable(const FName& Name, FSUDSValue Value);
 
 protected:
 	virtual void OnClose() override;
@@ -240,6 +247,7 @@ private:
 	TSharedPtr<SListView<TSharedPtr<FSUDSEditorVariableRow>>> VariablesListView;
 	TArray<TSharedPtr<FSUDSEditorVariableRow>> VariableRows;
 	TSharedPtr<SSUDSTraceLog> TraceLog;
+	TMap<FName, FSUDSValue> ManualOverrideVariables;
 
 	const FSlateColor SpeakerColour = FLinearColor(1.0f, 1.0f, 0.6f, 1.0f);
 	const FSlateColor ChoiceColour = FLinearColor(0.4f, 1.0f, 0.4f, 1.0f);
@@ -256,6 +264,7 @@ private:
 	TSharedRef<class SWidget> GetStartLabelMenu();
 	FText GetSelectedStartLabel() const;
 	void OnStartLabelSelected(FName Label);
+	FReply AddVariableClicked();
 	void UpdateVariables();
 	void StartDialogue();
 	void DestroyDialogue();

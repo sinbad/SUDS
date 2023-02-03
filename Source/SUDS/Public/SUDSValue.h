@@ -76,6 +76,12 @@ public:
 	{
 	}
 
+	// Construct a default value of a given type
+	explicit FSUDSValue(ESUDSValueType ValType)
+		: Type(ValType), IntValue(0)
+	{
+	}
+
 	/// Whether this value is empty, i.e. hasn't been set to anything
 	FORCEINLINE bool IsEmpty() const
 	{
