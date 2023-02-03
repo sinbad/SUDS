@@ -533,6 +533,16 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FName GetVariableName(FName Name) const;
 
+	
+	/**
+	 * Remove the definition of a variable.
+	 * This has much same effect as setting the variable back to the default value for this type, since attempting to
+	 * retrieve a missing variable result in a default value.
+	 * @param Name The name of the variable
+	 */
+	UFUNCTION(BlueprintCallable)
+	void UnSetVariable(FName Name);
+
 #if WITH_EDITOR
 	FOnDialogueSpeakerLineInternal InternalOnSpeakerLine;
 	FOnDialogueChoiceInternal InternalOnChoice;

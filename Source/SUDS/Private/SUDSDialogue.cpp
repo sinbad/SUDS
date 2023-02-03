@@ -1074,3 +1074,8 @@ FName USUDSDialogue::GetVariableName(FName Name) const
 	}
 	return NAME_None;
 }
+
+void USUDSDialogue::UnSetVariable(FName Name)
+{
+	VariableState.Remove(Name);
+}
