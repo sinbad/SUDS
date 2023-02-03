@@ -802,6 +802,7 @@ void FSUDSEditorToolkit::UpdateVariables()
 			VariableRows.Add(MakeShareable(new FSUDSEditorVariableRow(Pair.Key, Pair.Value)));
 		}
 	}
+	VariableRows.Sort();
 	
 	VariablesListView->RequestListRefresh();
 	

@@ -117,6 +117,13 @@ public:
 		return Lhs.Name.FastLess(RHS.Name);
 	}
 
+	friend bool operator<(const TSharedPtr<FSUDSEditorVariableRow>& Lhs, const TSharedPtr<FSUDSEditorVariableRow>& RHS)
+	{
+		return *Lhs < *RHS;
+	}
+
+	
+
 };
 
 class SSUDSEditorVariableItem : public SMultiColumnTableRow< TSharedPtr<FString> >
