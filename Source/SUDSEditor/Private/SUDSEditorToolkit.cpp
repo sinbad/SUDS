@@ -373,13 +373,20 @@ void FSUDSEditorToolkit::StartDialogue()
 
 
 	}
-	Dialogue->Restart(true, StartLabel);
-
-	// Set manual override vars
+	else
+	{
+		// Reset things manually so we can set manual override vars
+		Dialogue->ResetState();
+	}
+	
+	// Set manual override vars before we start
 	for (auto& Pair : ManualOverrideVariables)
 	{
 		Dialogue->SetVariable(Pair.Key, Pair.Value);
 	}
+	
+	Dialogue->Restart(false, StartLabel);
+
 
 	UpdateVariables();
 	
@@ -756,13 +763,18 @@ FReply FSUDSEditorToolkit::AddVariableClicked()
 	if (bConfirmed)
 	{
 		FName VarName(VarNameText.ToString().TrimStartAndEnd());
-		FSUDSValue Val(ValType);
+		const FSUDSValue Val(ValType);
 		ManualOverrideVariables.Add(VarName, Val);
 		if (Dialogue)
 		{
-			Dialogue->SetVariable(VarName, FSUDSValue(ValType));
+			// This will cause a refresh
+			Dialogue->SetVariable(VarName, Val);
 		}
-		UpdateVariables();
+		else
+		{
+			// This won't get called if dialogue is not initialised, so call it to get log & refresh
+			OnDialogueUserEditedVar(nullptr, VarName, Val);
+		}
 	}
 	return FReply::Handled();
 	
