@@ -202,7 +202,12 @@ import it.
 You should have 2 new assets, a "SUDS Script" asset named the same as your
 source file, and a String Table asset named the same but with a "Strings" suffix.
 
-### Running the Dialogue
+### Testing Dialogue
+
+You can double-click on the imported script asset to open the 
+[in-editor dialogue tester](Testing.md).
+
+### Running Dialogue In Your Game
 
 Here's the absolute simplest way to create a dialogue using this script and
 display the first line using Blueprints:
@@ -231,6 +236,7 @@ the [SUDS Example Project](https://github.com/sinbad/SUDSExample).
 
 ### Next:
 * [Script Reference](ScriptReference.md)
+* [Testing Scripts](Testing.md)
 * [Running Dialogue in UE](RunningDialogue.md)
 * [SUDS Example Project](https://github.com/sinbad/SUDSExample)
 * [Full Documentation Index](../Index.md)

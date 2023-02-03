@@ -24,6 +24,7 @@ SUDS has many features, including:
 * Persistent [variable state](docs/Variables.md)
 * Send [events](docs/EventLines.md) back to code/blueprints with any number of arguments
 * Supports all the [variable substitution and formatting features](docs/TextMarkup.md) in the same way Unreal does
+* A convenient [in-editor testing tool](docs/Testing.md)
 * [Localisation](docs/Localisation.md) support
 * Easy integration with save games ([SPUD](https://github.com/sinbad/SPUD) or otherwise)
 
@@ -39,7 +40,8 @@ SUDS has many features, including:
 * [Your First SUD Script](docs/MyFirstSUDScript.md)
 
 > ### See Also
-> * [Running Dialogue in UE](docs/RunningDialogue.md)
+> * [Testing Scripts](docs/Testing.md)
+> * [Running Dialogue in Game](docs/RunningDialogue.md)
 > * [Script reference](docs/ScriptReference.md)
 > * [Full Documentation Index](Index.md)
 > * [Frequently Asked Questions](docs/FAQ.md)

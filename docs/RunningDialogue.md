@@ -3,7 +3,10 @@
 Writing a [script](ScriptReference.md) is one half of using SUDS, the other is
 running that script via a Dialogue Instance. 
 
-To create a dialogue, use one of the `CreateDialogue` methods, for example: 
+> Note: if you just want to test your script, and not have to hook the dialogue 
+> up in your game yet, see [Testing Your Dialogue](Testing.md).
+
+To create a dialogue in game, use one of the `CreateDialogue` methods, for example: 
 
 ![Create dialogue](img/BPCreateDialogue.png)
 
@@ -110,6 +113,7 @@ the [SUDS Example Project](https://github.com/sinbad/SUDSExample).
 
 ### See Also:
 * [Variables](Variables.md)
+* [Testing Scripts](Testing.md)
 * [Script Reference](ScriptReference.md)
 * [Localisation](Localisation.md)
 * [SUDS Example Project](https://github.com/sinbad/SUDSExample)

@@ -3,6 +3,7 @@
 1. [Readme](Readme.md)
 1. [Installation](docs/Installation.md)
 1. [Writing Your First Script](docs/MyFirstSUDScript.md)
+1. [Testing Your Script](docs/Testing.md)
 1. [Running Dialogue](docs/RunningDialogue.md)
     - [Participants](docs/Participants.md)
     - [Saving and Restoring State](docs/SavingState.md)
