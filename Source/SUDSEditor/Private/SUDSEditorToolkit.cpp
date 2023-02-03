@@ -244,7 +244,7 @@ void FSUDSEditorToolkit::ExtendToolbar(FToolBarBuilder& ToolbarBuilder, TWeakPtr
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
 				FAppStyle::GetAppStyleSetName(),
 #else
-				FEditorStyle::GetStyleSetName()
+				FEditorStyle::GetStyleSetName(),
 #endif
 				TEXT("BlueprintMerge.NextDiff")));
 
@@ -931,10 +931,11 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 {
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0	
 	const FSlateFontInfo PropertyFont = FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont"));
+	const FSlateBrush* BorderBrush = FAppStyle::GetBrush("ToolPanel.GroupBorder");
 #else
 	const FSlateFontInfo PropertyFont = FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont"));
+	const FSlateBrush* BorderBrush = FEditorStyle::GetBrush("ToolPanel.GroupBorder");
 #endif
-	const FSlateBrush* BorderBrush = FAppStyle::GetBrush("ToolPanel.GroupBorder");
 	const FSlateColor NormalBgColour = FSlateColor(FLinearColor::White);
 	const FSlateColor ManualOverrideBgColour = FSlateColor(FLinearColor(0.9f,0.7f,1,1));
 	
