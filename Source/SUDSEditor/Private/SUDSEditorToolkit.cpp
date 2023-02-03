@@ -240,7 +240,13 @@ void FSUDSEditorToolkit::ExtendToolbar(FToolBarBuilder& ToolbarBuilder, TWeakPtr
 	{
 		ToolbarBuilder.AddToolBarButton(FSUDSToolbarCommands::Get().StartDialogue,
 			NAME_None, TAttribute<FText>(), TAttribute<FText>(),
-			FSlateIcon(FEditorStyle::GetStyleSetName(), TEXT("BlueprintMerge.NextDiff")));
+			FSlateIcon(
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
+				FAppStyle::GetAppStyleSetName(),
+#else
+				FEditorStyle::GetStyleSetName()
+#endif
+				TEXT("BlueprintMerge.NextDiff")));
 
 		TSharedRef<SWidget> LabelSelectionBox = SNew(SComboButton)
 			.OnGetMenuContent(this, &FSUDSEditorToolkit::GetStartLabelMenu)
@@ -923,9 +929,12 @@ void SSUDSEditorVariableItem::Construct(const FArguments& InArgs, const TSharedR
 
 TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName& ColumnName)
 {
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0	
+	const FSlateFontInfo PropertyFont = FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont"));
+#else
 	const FSlateFontInfo PropertyFont = FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont"));
-
-	const FSlateBrush* BorderBrush = FEditorStyle::GetBrush("ToolPanel.GroupBorder");
+#endif
+	const FSlateBrush* BorderBrush = FAppStyle::GetBrush("ToolPanel.GroupBorder");
 	const FSlateColor NormalBgColour = FSlateColor(FLinearColor::White);
 	const FSlateColor ManualOverrideBgColour = FSlateColor(FLinearColor(0.9f,0.7f,1,1));
 	
@@ -1062,7 +1071,11 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 					.IsFocusable(false)
 					[ 
 						SNew( SImage )
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
+						.Image( FAppStyle::GetBrush("Icons.Delete") )
+#else
 						.Image( FEditorStyle::GetBrush("Icons.Delete") )
+#endif
 						.ColorAndOpacity( FSlateColor::UseForeground() )
 					]
 					
@@ -1162,7 +1175,11 @@ void FSUDSTraceLogMarshaller::SetText(const FString& SourceString, FTextLayout& 
 {
 	
 	static const FName LogNormalStyle(TEXT("Log.Normal"));
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
+	const FTextBlockStyle& OrigStyle = FAppStyle::Get().GetWidgetStyle<FTextBlockStyle>(LogNormalStyle);
+#else
 	const FTextBlockStyle& OrigStyle = FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>(LogNormalStyle);
+#endif
 
 	for (const auto Msg : Messages)
 	{
@@ -1205,8 +1222,12 @@ void SSUDSTraceLog::Construct(const FArguments& InArgs)
 {
 	TraceLogMarshaller = MakeShareable(new FSUDSTraceLogMarshaller());
 	TraceLogTextBox = SNew(SMultiLineEditableTextBox)
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
+		.Style(FAppStyle::Get(), "Log.TextBox")
+#else
 		.Style(FEditorStyle::Get(), "Log.TextBox")
 		.TextStyle(FEditorStyle::Get(), "Log.Normal")
+#endif
 		.Marshaller(TraceLogMarshaller)
 		.IsReadOnly(true)
 		.AutoWrapText(true)

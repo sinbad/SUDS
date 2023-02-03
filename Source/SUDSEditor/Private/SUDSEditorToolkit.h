@@ -21,7 +21,12 @@ public:
 		: TCommands<FSUDSToolbarCommands>(
 			"SUDS",
 			LOCTEXT("SUDS", "Steves Unreal Dialogue System"),
-			NAME_None, FEditorStyle::GetStyleSetName()
+			NAME_None,
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
+			FAppStyle::GetAppStyleSetName()
+#else
+			FEditorStyle::GetStyleSetName()
+#endif
 		)
 	{ }
 
