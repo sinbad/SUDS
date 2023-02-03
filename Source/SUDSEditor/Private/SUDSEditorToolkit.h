@@ -114,7 +114,7 @@ public:
 
 	friend bool operator<(const FSUDSEditorVariableRow& Lhs, const FSUDSEditorVariableRow& RHS)
 	{
-		return Lhs.Name.FastLess(RHS.Name);
+		return Lhs.Name.LexicalLess(RHS.Name);
 	}
 
 	friend bool operator<(const TSharedPtr<FSUDSEditorVariableRow>& Lhs, const TSharedPtr<FSUDSEditorVariableRow>& RHS)
