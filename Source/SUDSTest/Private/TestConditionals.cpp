@@ -787,4 +787,88 @@ bool FVarsSetBetweenTextAndChoiceChoice::RunTest(const FString& Parameters)
 }
 
 
+const FString MultipleOptionalChoicesWithLinesBetweenTextAndChoice = R"RAWSUD(
+NPC: Hello
+NPC: Testing
+# This event plus
+[event SomeEvent]
+    * Choice 1?
+        Player: Choice 1
+    [if {Opt2}]
+    * Optional Choice 2?
+        Player: Choice 2
+    [endif]
+    [if {Opt3}]
+    * Optional Choice 3?
+        Player: Choice 3
+    [endif]
+    * Back
+        Player: going back
+NPC: Fallthrough
+)RAWSUD";
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestMultipleOptionalChoicesWithLinesBetweenTextAndChoice,
+                                 "SUDSTest.TestMultipleOptionalChoicesWithLinesBetweenTextAndChoice",
+                                 EAutomationTestFlags::EditorContext |
+                                 EAutomationTestFlags::ClientContext |
+                                 EAutomationTestFlags::ProductFilter)
+
+
+bool FTestMultipleOptionalChoicesWithLinesBetweenTextAndChoice::RunTest(const FString& Parameters)
+{
+    FSUDSMessageLogger Logger(false);
+    FSUDSScriptImporter Importer;
+    TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(MultipleOptionalChoicesWithLinesBetweenTextAndChoice), MultipleOptionalChoicesWithLinesBetweenTextAndChoice.Len(), "MultipleOptionalChoicesWithLinesBetweenTextAndChoice", &Logger, true));
+
+    auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
+    const ScopedStringTableHolder StringTableHolder;
+    Importer.PopulateAsset(Script, StringTableHolder.StringTable);
+
+    // Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
+    auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
+
+    // For the first run, do not set any state
+    Dlg->Start();
+
+    TestDialogueText(this, "Text node", Dlg, "NPC", "Hello");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text node", Dlg, "NPC", "Testing");
+    TestEqual("Number of choices", Dlg->GetNumberOfChoices(), 2);
+    TestEqual("Choice text 0", Dlg->GetChoiceText(0).ToString(), "Choice 1?");
+    TestEqual("Choice text 1", Dlg->GetChoiceText(1).ToString(), "Back");
+
+    Dlg->Restart(true);
+    Dlg->SetVariableBoolean("Opt2", true);
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text node", Dlg, "NPC", "Testing");
+    TestEqual("Number of choices", Dlg->GetNumberOfChoices(), 3);
+    TestEqual("Choice text 0", Dlg->GetChoiceText(0).ToString(), "Choice 1?");
+    TestEqual("Choice text 1", Dlg->GetChoiceText(1).ToString(), "Optional Choice 2?");
+    TestEqual("Choice text 2", Dlg->GetChoiceText(2).ToString(), "Back");
+
+    Dlg->Restart(true);
+    Dlg->SetVariableBoolean("Opt3", true);
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text node", Dlg, "NPC", "Testing");
+    TestEqual("Number of choices", Dlg->GetNumberOfChoices(), 3);
+    TestEqual("Choice text 0", Dlg->GetChoiceText(0).ToString(), "Choice 1?");
+    TestEqual("Choice text 1", Dlg->GetChoiceText(1).ToString(), "Optional Choice 3?");
+    TestEqual("Choice text 2", Dlg->GetChoiceText(2).ToString(), "Back");
+
+    Dlg->Restart(true);
+    Dlg->SetVariableBoolean("Opt2", true);
+    Dlg->SetVariableBoolean("Opt3", true);
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Text node", Dlg, "NPC", "Testing");
+    TestEqual("Number of choices", Dlg->GetNumberOfChoices(), 4);
+    TestEqual("Choice text 0", Dlg->GetChoiceText(0).ToString(), "Choice 1?");
+    TestEqual("Choice text 1", Dlg->GetChoiceText(1).ToString(), "Optional Choice 2?");
+    TestEqual("Choice text 2", Dlg->GetChoiceText(2).ToString(), "Optional Choice 3?");
+    TestEqual("Choice text 3", Dlg->GetChoiceText(3).ToString(), "Back");
+    
+    Script->MarkAsGarbage();
+    return true;
+}
+
+
 PRAGMA_ENABLE_OPTIMIZATION
