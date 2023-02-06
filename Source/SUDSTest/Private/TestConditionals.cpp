@@ -790,7 +790,7 @@ bool FVarsSetBetweenTextAndChoiceChoice::RunTest(const FString& Parameters)
 const FString MultipleOptionalChoicesWithLinesBetweenTextAndChoice = R"RAWSUD(
 NPC: Hello
 NPC: Testing
-# This event plus
+# This event being here could mess up multiple sibling optional choices
 [event SomeEvent]
     * Choice 1?
         Player: Choice 1
