@@ -92,8 +92,13 @@ void USUDSDialogue::SortParticipants()
 		// We'll do a stable sort so that otherwise order is maintained
 		Participants.StableSort([](const UObject& A, const UObject& B)
 		{
-			return ISUDSParticipant::Execute_GetDialogueParticipantPriority(&A) <
-				ISUDSParticipant::Execute_GetDialogueParticipantPriority(&B);
+			if (A.Implements<USUDSParticipant>() && B.Implements<USUDSParticipant>())
+			{
+				return ISUDSParticipant::Execute_GetDialogueParticipantPriority(&A) <
+					ISUDSParticipant::Execute_GetDialogueParticipantPriority(&B);
+			}
+			// Be deterministic
+			return &A < &B;
 		});
 	}
 }
