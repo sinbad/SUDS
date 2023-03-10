@@ -376,6 +376,8 @@ public:
 	}
 	
 	FString ToString() const;
+
+	bool ExportTextItem(FString& ValueStr, FSUDSValue const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
 };
 template<>
 struct TStructOpsTypeTraits<FSUDSValue> : public TStructOpsTypeTraitsBase2<FSUDSValue>
@@ -383,6 +385,7 @@ struct TStructOpsTypeTraits<FSUDSValue> : public TStructOpsTypeTraitsBase2<FSUDS
 	enum
 	{
 		WithSerializer = true,
+		WithExportTextItem = true
 	};
 };
 
