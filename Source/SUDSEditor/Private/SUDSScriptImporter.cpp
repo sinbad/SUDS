@@ -1655,6 +1655,14 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 				case ESUDSParsedNodeType::Text:
 					{
 						StringTable->GetMutableStringTable()->SetSourceString(InNode.TextID, InNode.Text);
+						// Always include speaker metadata
+						StringTable->GetMutableStringTable()->SetMetaData(InNode.TextID, FName("Speaker"), InNode.Identifier);
+						// Other metadata
+						for (auto Pair : InNode.TextMetadata)
+						{
+							StringTable->GetMutableStringTable()->SetMetaData(InNode.TextID, Pair.Key, Pair.Value);	
+						}
+						
 						auto TextNode = NewObject<USUDSScriptNodeText>(Asset);
 						TextNode->Init(InNode.Identifier, FText::FromStringTable (StringTable->GetStringTableId(), InNode.TextID), InNode.SourceLineNo);
 						Node = TextNode;
@@ -1811,6 +1819,14 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 						{
 							StringTable->GetMutableStringTable()->SetSourceString(InEdge.TextID, InEdge.Text);
 							NewEdge.SetText(FText::FromStringTable(StringTable->GetStringTableId(), InEdge.TextID));
+							// Always include speaker metadata, always the player in a choice
+							// Identify that it's a choice so translators know that there may be more limited space
+							StringTable->GetMutableStringTable()->SetMetaData(InEdge.TextID, FName("Speaker"), "Player (Choice)");
+							// Other metadata
+							for (auto Pair : InEdge.TextMetadata)
+							{
+								StringTable->GetMutableStringTable()->SetMetaData(InEdge.TextID, Pair.Key, Pair.Value);	
+							}
 						}
 
 						Node->AddEdge(NewEdge);

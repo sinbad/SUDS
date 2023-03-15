@@ -14,6 +14,8 @@ public:
 	FString Text;
 	/// Identifier of the text, for the string table
 	FString TextID;
+	/// Metadata associated with text, for translator comments
+	TMap<FName, FString> TextMetadata;
 	/// The line this edge was created on
 	int SourceLineNo;
 	/// Condition expression that applies to this edge (for select nodes)
@@ -75,6 +77,8 @@ public:
 	FString Text;
 	/// Identifier of the text, for the string table
 	FString TextID;
+	/// Metadata associated with text, for translator comments
+	TMap<FName, FString> TextMetadata;
 	/// Expression, for nodes that use it (e.g. set)
 	FSUDSExpression Expression;
 	/// Event arguments, for event nodes
