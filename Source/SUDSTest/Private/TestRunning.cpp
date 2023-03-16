@@ -416,4 +416,46 @@ bool FTestFallthroughEdgeCase::RunTest(const FString& Parameters)
 	return true;
 }
 
+
+const FString LinesBetweenTextAndChoiceInput = R"RAWSUD(
+NPC: Hello
+NPC: Here's some choices
+[event SomeEvent]
+  * Option 1
+	NPC: This is option 1
+  * Option 2
+	NPC: This is option 2
+)RAWSUD";
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestLinesBetweenTextAndChoice,
+								 "SUDSTest.TestLinesBetweenTextAndChoiceInput",
+								 EAutomationTestFlags::EditorContext |
+								 EAutomationTestFlags::ClientContext |
+								 EAutomationTestFlags::ProductFilter)
+
+
+
+bool FTestLinesBetweenTextAndChoice::RunTest(const FString& Parameters)
+{
+	FSUDSMessageLogger Logger(false);
+	FSUDSScriptImporter Importer;
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(LinesBetweenTextAndChoiceInput), LinesBetweenTextAndChoiceInput.Len(), "LinesBetweenTextAndChoiceInput", &Logger, true));
+
+	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
+	const ScopedStringTableHolder StringTableHolder;
+	Importer.PopulateAsset(Script, StringTableHolder.StringTable);
+
+	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
+	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
+	Dlg->Start();
+
+	TestDialogueText(this, "Initial text", Dlg, "NPC", "Hello");
+	TestTrue("Continue", Dlg->Continue());
+	TestDialogueText(this, "Initial text", Dlg, "NPC", "Here's some choices");
+	TestEqual("Initial num choices", Dlg->GetNumberOfChoices(), 2);
+	
+	
+	return true;
+}
+
 PRAGMA_ENABLE_OPTIMIZATION

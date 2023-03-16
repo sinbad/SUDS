@@ -470,10 +470,10 @@ void FSUDSScriptImporter::EnsureChoiceNodeExistsAboveSelect(ParsedTree& Tree, in
 		// Connect top select to choice under last text
 		if (Tree.Nodes.IsValidIndex(TopSelectIdx) && Tree.Nodes.IsValidIndex(Ctx.LastTextNodeIdx))
 		{
-			const auto& TextNode = Tree.Nodes[Ctx.LastTextNodeIdx];
-			if (TextNode.Edges.Num() == 1 && Tree.Nodes.IsValidIndex(TextNode.Edges[0].TargetNodeIdx))
+			// Choice node might not be directly underneath
+			const int ChoiceIdx = FindChoiceAfterTextNode(Tree, Ctx.LastTextNodeIdx);
+			if (ChoiceIdx != -1)
 			{
-				int ChoiceIdx = TextNode.Edges[0].TargetNodeIdx;
 				auto& SelNode = Tree.Nodes[TopSelectIdx];
 				auto& ChoiceNode = Tree.Nodes[ChoiceIdx];
 				FSUDSParsedEdge NewEdge(LineNo);

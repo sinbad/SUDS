@@ -261,6 +261,7 @@ private:
 	float VarColumnWidth = 120;
 	float PrefixColumnWidth = 100;
 	FName StartLabel = NAME_None;
+	FDelegateHandle ReimportDelegateHandle;
 	// FSUDSEditorDialogueRow needs to held by a TSharedPtr for SListView
 	TSharedPtr<SListView<TSharedPtr<FSUDSEditorOutputRow>>> OutputListView;
 	TArray<TSharedPtr<FSUDSEditorOutputRow>> OutputRows;

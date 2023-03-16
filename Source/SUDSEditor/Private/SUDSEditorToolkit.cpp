@@ -25,7 +25,7 @@ void FSUDSEditorToolkit::InitEditor(const TArray<UObject*>& InObjects)
 	{
 		Script = Cast<USUDSScript>(InObjects[0]);
 
-		FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FSUDSEditorToolkit::OnPostReimport);		
+		ReimportDelegateHandle = FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FSUDSEditorToolkit::OnPostReimport);		
 
 		const TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout("SUDSEditorLayout")
 			->AddArea
@@ -353,6 +353,9 @@ void FSUDSEditorToolkit::DeleteVariable(const FName& Name)
 void FSUDSEditorToolkit::OnClose()
 {
 	FAssetEditorToolkit::OnClose();
+	FReimportManager::Instance()->OnPostReimport().Remove(ReimportDelegateHandle);
+	ReimportDelegateHandle.Reset();
+
 	DestroyDialogue();
 
 }
