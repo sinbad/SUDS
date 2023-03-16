@@ -26,12 +26,21 @@ public:
 
 	FSUDSParsedEdge(int LineNo) : SourceLineNo(LineNo){}
 
-	FSUDSParsedEdge(int FromNodeIdx, int ToNodeIdx, int LineNo, const FString& InText = "", const FString& InTextID = "")
+	FSUDSParsedEdge(int FromNodeIdx, int ToNodeIdx, int LineNo, const FString& InText, const FString& InTextID, const TMap<FName, FString>& Metadata)
 		: Text(InText),
 		  TextID(InTextID),
+		  TextMetadata(Metadata),
 		  SourceLineNo(LineNo),
 		  SourceNodeIdx(FromNodeIdx),
 		  TargetNodeIdx(ToNodeIdx)
+	{
+	}
+
+	FSUDSParsedEdge(int FromNodeIdx, int ToNodeIdx, int LineNo)
+	: SourceLineNo(LineNo),
+	  SourceNodeIdx(FromNodeIdx),
+	  TargetNodeIdx(ToNodeIdx)
+	
 	{
 	}
 	
@@ -119,12 +128,13 @@ public:
 	{
 	}
 
-	FSUDSParsedNode(const FString& InSpeaker, const FString& InText, const FString& InTextID, int Indent, int LineNo)
+	FSUDSParsedNode(const FString& InSpeaker, const FString& InText, const FString& InTextID, const TMap<FName, FString>& Metadata, int Indent, int LineNo)
 		: NodeType(ESUDSParsedNodeType::Text),
 		  OriginalIndent(Indent),
 		  Identifier(InSpeaker),
 		  Text(InText),
 		  TextID(InTextID),
+		  TextMetadata(Metadata),
 		  SourceLineNo(LineNo)
 	{
 	}
@@ -275,6 +285,25 @@ protected:
 	ParsedTree HeaderTree;
 	ParsedTree BodyTree;
 
+	struct ParsedMetadata
+	{
+	public:
+		FName Key;
+		FString Value;
+		int IndentLevel;
+
+		ParsedMetadata(const FName& InKey, const FString& InValue, int InIndentLevel)
+			: Key(InKey),
+			  Value(InValue),
+			  IndentLevel(InIndentLevel)
+		{
+		}
+	};
+
+	/// Metadata applied to speaker lines / choices until reset
+	TMap<FName, ParsedMetadata> PersistentMetadata;
+	/// Metadata applied just to the next speaker line or choice
+	TMap<FName, ParsedMetadata> TransientMetadata;
 	
 	/// List of speakers, detected during parsing of lines of text 
 	TArray<FString> ReferencedSpeakers;
@@ -293,6 +322,7 @@ protected:
 	bool ParseLine(const FStringView& Line, int LineNo, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent);
 	bool ParseHeaderLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent);
 	bool ParseBodyLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent);
+	bool ParseCommentMetadataLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent);
 	bool IsLastNodeOfType(const ParsedTree& Tree, ESUDSParsedNodeType Type);
 	bool ParseChoiceLine(const FStringView& Line, ParsedTree& Tree, int IndentLevel, int LineNo, const FString& NameForErrors, FSUDSMessageLogger*
 	                     Logger,
@@ -382,6 +412,7 @@ protected:
 	                   const FString& NameForErrors,
 	                   FSUDSMessageLogger* Logger,
 	                   bool bSilent);
+	TMap<FName, FString> GetTextMetadataForNextEntry(int CurrentLineIndent);
 	bool IsCommentLine(const FStringView& TrimmedLine);
 	FStringView TrimLine(const FStringView& Line, int& OutIndentLevel) const;
 	int FindChoiceAfterTextNode(const FSUDSScriptImporter::ParsedTree& Tree, int TextNodeIdx);

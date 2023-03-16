@@ -32,6 +32,8 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 	int LineNumber = 1;
 	HeaderTree.Reset();
 	BodyTree.Reset();
+	PersistentMetadata.Empty();
+	TransientMetadata.Empty();
 	bHeaderDone = false;
 	bHeaderInProgress = false;
 	bTooLateForHeader = false;
@@ -116,6 +118,10 @@ bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const F
 		// Skip over comment lines
 		if (!bSilent)
 			UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: COMMENT %s"), LineNo, IndentLevel, *FString(Line));
+
+		// May be metadata in the comment though
+		ParseCommentMetadataLine(TrimmedLine, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
+		
 		return true;
 	}
 
@@ -157,6 +163,83 @@ bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const F
 	return ParseBodyLine(TrimmedLine, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 	
 }
+
+bool FSUDSScriptImporter::ParseCommentMetadataLine(const FStringView& Line,
+	int IndentLevel,
+	int LineNo,
+	const FString& NameForErrors,
+	FSUDSMessageLogger* Logger,
+	bool bSilent)
+{
+	// Comment metadata starts with:
+	// #= [Key:] Single Use Metadata (next line only)
+	// #+ [Key:] Persistent Metadata (apply to all lines until reset)
+	// [Key:] is optional; if omitted the key is "Comment"
+	// Persistent Metadata is reset when:
+	//   - The same key is set again (can be set to blank to reset to empty)
+	//   - A line that is more outdented than the source of the key is encountered
+
+	FString LineStr(Line);
+	const FRegexPattern MetaPattern(TEXT("^#([\\=\\+])\\s*(\\S*:\\s*)?(.*)$"));
+	FRegexMatcher MetaRegex(MetaPattern, LineStr);
+	if (MetaRegex.FindNext())
+	{
+		if (!bSilent)
+			UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: META  : %s"), LineNo, IndentLevel, *FString(Line));
+		
+		auto& TargetMeta = MetaRegex.GetCaptureGroup(1) == "+" ? PersistentMetadata : TransientMetadata;
+		// There is no "count" of capture groups, test highest to detect if key used
+		FName Key("Comment");
+		int ValueIdx = 2;
+		if (MetaRegex.GetCaptureGroupBeginning(3) != INDEX_NONE)
+		{
+			// Includes key
+			Key = FName(MetaRegex.GetCaptureGroup(2));
+			ValueIdx = 3;
+		}
+		FString Value = MetaRegex.GetCaptureGroup(ValueIdx).TrimStartAndEnd();
+		if (Value.IsEmpty())
+		{
+			// Reset
+			TargetMeta.Remove(Key);
+		}
+		else
+		{
+			TargetMeta.Add(Key, ParsedMetadata(Key, Value, IndentLevel));
+		}
+		return true;
+	}
+
+	return false;
+	
+}
+
+TMap<FName, FString> FSUDSScriptImporter::GetTextMetadataForNextEntry(int CurrentLineIndent)
+{
+	TMap<FName, FString> Ret;
+	for (auto& Pair: TransientMetadata)
+	{
+		// Always apply transient ones to next case, don't check indent
+		Ret.Add(Pair.Key, Pair.Value.Value);
+	}
+	TransientMetadata.Empty();
+
+	for (auto It = PersistentMetadata.CreateIterator(); It; ++It)
+	{
+		if (CurrentLineIndent < It->Value.IndentLevel)
+		{
+			// Remove persistent entries if we hit a smaller intent level
+			It.RemoveCurrent();
+		}
+		else
+		{
+			Ret.Add(It->Key, It->Value.Value);
+		}
+	}
+
+	return Ret;
+}
+
 
 bool FSUDSScriptImporter::ParseHeaderLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent)
 {
@@ -409,7 +492,7 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line,
 		FString ChoiceTextID;
 		auto ChoiceTextView = Line.SubStr(1, Line.Len() - 1).TrimStart();
 		RetrieveAndRemoveOrGenerateTextID(ChoiceTextView, ChoiceTextID);
-		const int EdgeIdx = ChoiceNode.Edges.Add(FSUDSParsedEdge(ChoiceNodeIdx, -1, LineNo, FString(ChoiceTextView), ChoiceTextID));
+		const int EdgeIdx = ChoiceNode.Edges.Add(FSUDSParsedEdge(ChoiceNodeIdx, -1, LineNo, FString(ChoiceTextView), ChoiceTextID, GetTextMetadataForNextEntry(IndentLevel)));
 		Tree.EdgeInProgressNodeIdx = ChoiceNodeIdx;
 		Tree.EdgeInProgressEdgeIdx = EdgeIdx;
 		
@@ -1066,7 +1149,7 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine,
 		{
 			TextID = GenerateTextID(Line);
 		}
-		Ctx.LastTextNodeIdx = AppendNode(Tree, FSUDSParsedNode(Speaker, Text, TextID, IndentLevel, LineNo));
+		Ctx.LastTextNodeIdx = AppendNode(Tree, FSUDSParsedNode(Speaker, Text, TextID, GetTextMetadataForNextEntry(IndentLevel), IndentLevel, LineNo));
 
 		ReferencedSpeakers.AddUnique(Speaker);
 		
