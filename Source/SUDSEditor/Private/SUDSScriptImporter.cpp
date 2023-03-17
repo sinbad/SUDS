@@ -32,6 +32,8 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 	int LineNumber = 1;
 	HeaderTree.Reset();
 	BodyTree.Reset();
+	PersistentMetadata.Empty();
+	TransientMetadata.Empty();
 	bHeaderDone = false;
 	bHeaderInProgress = false;
 	bTooLateForHeader = false;
@@ -116,6 +118,10 @@ bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const F
 		// Skip over comment lines
 		if (!bSilent)
 			UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: COMMENT %s"), LineNo, IndentLevel, *FString(Line));
+
+		// May be metadata in the comment though
+		ParseCommentMetadataLine(TrimmedLine, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
+		
 		return true;
 	}
 
@@ -157,6 +163,114 @@ bool FSUDSScriptImporter::ParseLine(const FStringView& Line, int LineNo, const F
 	return ParseBodyLine(TrimmedLine, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 	
 }
+
+bool FSUDSScriptImporter::ParseCommentMetadataLine(const FStringView& Line,
+	int IndentLevel,
+	int LineNo,
+	const FString& NameForErrors,
+	FSUDSMessageLogger* Logger,
+	bool bSilent)
+{
+	// Comment metadata starts with:
+	// #= [Key:] Single Use Metadata (next line only)
+	// #+ [Key:] Persistent Metadata (apply to all lines until reset)
+	// [Key:] is optional; if omitted the key is "Comment"
+	// Persistent Metadata is reset when:
+	//   - The same key is set again (can be set to blank to reset to empty)
+	//   - A line that is more outdented than the source of the key is encountered
+
+	FString LineStr(Line);
+	const FRegexPattern MetaPattern(TEXT("^#([\\=\\+])\\s*(?:(\\S*)\\s*:\\s*)?(.*)$"));
+	FRegexMatcher MetaRegex(MetaPattern, LineStr);
+	if (MetaRegex.FindNext())
+	{
+		if (!bSilent)
+			UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: META  : %s"), LineNo, IndentLevel, *FString(Line));
+
+		const bool bIsPersistent = MetaRegex.GetCaptureGroup(1) == "+";
+		// There is no "count" of capture groups, test highest to detect if key used
+		FString KeyStr = MetaRegex.GetCaptureGroup(2);
+		const FName Key = FName(KeyStr.IsEmpty() ? "Comment" :KeyStr);
+		const FString Value = MetaRegex.GetCaptureGroup(3).TrimStartAndEnd();
+
+		if (bIsPersistent)
+		{
+			TArray<ParsedMetadata>* pStack = PersistentMetadata.Find(Key);
+			if (!pStack)
+			{
+				// Only bother creating if non-empty
+				// If we find a blank and there's a stack there already, we do add an entry since blank overrides others in scope
+				if (!Value.IsEmpty())
+				{
+					pStack = &PersistentMetadata.Add(Key);
+				}
+			}
+
+			if (pStack)
+			{
+				// First we need to check if this line is less or equal indented; if so we have to strip out existing stack items
+				while (!pStack->IsEmpty() && IndentLevel <= pStack->Top().IndentLevel)
+				{
+					pStack->Pop();
+				}
+				pStack->Push(ParsedMetadata(Key, Value, IndentLevel));
+			}
+		}
+		else
+		{
+			if (Value.IsEmpty())
+			{
+				// Reset
+				TransientMetadata.Remove(Key);
+			}
+			else
+			{
+				TransientMetadata.Add(Key, ParsedMetadata(Key, Value, IndentLevel));
+			}
+			
+		}
+		return true;
+	}
+
+	return false;
+	
+}
+
+TMap<FName, FString> FSUDSScriptImporter::GetTextMetadataForNextEntry(int CurrentLineIndent)
+{
+	TMap<FName, FString> Ret;
+
+	// For each key
+	for (auto It = PersistentMetadata.CreateIterator(); It; ++It)
+	{
+		auto& Stack = It->Value;
+		// Use top of stack, so long as equally or less indented than current line
+		while (!Stack.IsEmpty() && CurrentLineIndent < Stack.Top().IndentLevel)
+		{
+			Stack.Pop();
+		}
+		if (Stack.IsEmpty())
+		{
+			// Remove key entry if there's no values left on the stack
+			It.RemoveCurrent();
+		}
+		else
+		{
+			Ret.Add(It->Key, Stack.Top().Value);
+		}
+	}
+
+	// Add transient after so they override persistent
+	for (auto& Pair: TransientMetadata)
+	{
+		// Always apply transient ones to next case, don't check indent
+		Ret.Add(Pair.Key, Pair.Value.Value);
+	}
+	TransientMetadata.Empty();
+
+	return Ret;
+}
+
 
 bool FSUDSScriptImporter::ParseHeaderLine(const FStringView& Line, int IndentLevel, int LineNo, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent)
 {
@@ -409,7 +523,7 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line,
 		FString ChoiceTextID;
 		auto ChoiceTextView = Line.SubStr(1, Line.Len() - 1).TrimStart();
 		RetrieveAndRemoveOrGenerateTextID(ChoiceTextView, ChoiceTextID);
-		const int EdgeIdx = ChoiceNode.Edges.Add(FSUDSParsedEdge(ChoiceNodeIdx, -1, LineNo, FString(ChoiceTextView), ChoiceTextID));
+		const int EdgeIdx = ChoiceNode.Edges.Add(FSUDSParsedEdge(ChoiceNodeIdx, -1, LineNo, FString(ChoiceTextView), ChoiceTextID, GetTextMetadataForNextEntry(IndentLevel)));
 		Tree.EdgeInProgressNodeIdx = ChoiceNodeIdx;
 		Tree.EdgeInProgressEdgeIdx = EdgeIdx;
 		
@@ -1066,7 +1180,7 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine,
 		{
 			TextID = GenerateTextID(Line);
 		}
-		Ctx.LastTextNodeIdx = AppendNode(Tree, FSUDSParsedNode(Speaker, Text, TextID, IndentLevel, LineNo));
+		Ctx.LastTextNodeIdx = AppendNode(Tree, FSUDSParsedNode(Speaker, Text, TextID, GetTextMetadataForNextEntry(IndentLevel), IndentLevel, LineNo));
 
 		ReferencedSpeakers.AddUnique(Speaker);
 		
@@ -1655,6 +1769,14 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 				case ESUDSParsedNodeType::Text:
 					{
 						StringTable->GetMutableStringTable()->SetSourceString(InNode.TextID, InNode.Text);
+						// Always include speaker metadata
+						StringTable->GetMutableStringTable()->SetMetaData(InNode.TextID, FName("Speaker"), InNode.Identifier);
+						// Other metadata
+						for (auto Pair : InNode.TextMetadata)
+						{
+							StringTable->GetMutableStringTable()->SetMetaData(InNode.TextID, Pair.Key, Pair.Value);	
+						}
+						
 						auto TextNode = NewObject<USUDSScriptNodeText>(Asset);
 						TextNode->Init(InNode.Identifier, FText::FromStringTable (StringTable->GetStringTableId(), InNode.TextID), InNode.SourceLineNo);
 						Node = TextNode;
@@ -1811,6 +1933,14 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 						{
 							StringTable->GetMutableStringTable()->SetSourceString(InEdge.TextID, InEdge.Text);
 							NewEdge.SetText(FText::FromStringTable(StringTable->GetStringTableId(), InEdge.TextID));
+							// Always include speaker metadata, always the player in a choice
+							// Identify that it's a choice so translators know that there may be more limited space
+							StringTable->GetMutableStringTable()->SetMetaData(InEdge.TextID, FName("Speaker"), "Player (Choice)");
+							// Other metadata
+							for (auto Pair : InEdge.TextMetadata)
+							{
+								StringTable->GetMutableStringTable()->SetMetaData(InEdge.TextID, Pair.Key, Pair.Value);	
+							}
 						}
 
 						Node->AddEdge(NewEdge);
