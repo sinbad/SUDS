@@ -180,7 +180,7 @@ bool FSUDSScriptImporter::ParseCommentMetadataLine(const FStringView& Line,
 	//   - A line that is more outdented than the source of the key is encountered
 
 	FString LineStr(Line);
-	const FRegexPattern MetaPattern(TEXT("^#([\\=\\+])\\s*(\\S*:\\s*)?(.*)$"));
+	const FRegexPattern MetaPattern(TEXT("^#([\\=\\+])\\s*(?:(\\S*)\\s*:\\s*)?(.*)$"));
 	FRegexMatcher MetaRegex(MetaPattern, LineStr);
 	if (MetaRegex.FindNext())
 	{
@@ -189,15 +189,9 @@ bool FSUDSScriptImporter::ParseCommentMetadataLine(const FStringView& Line,
 
 		const bool bIsPersistent = MetaRegex.GetCaptureGroup(1) == "+";
 		// There is no "count" of capture groups, test highest to detect if key used
-		FName Key("Comment");
-		int ValueIdx = 2;
-		if (MetaRegex.GetCaptureGroupBeginning(3) != INDEX_NONE)
-		{
-			// Includes key
-			Key = FName(MetaRegex.GetCaptureGroup(2));
-			ValueIdx = 3;
-		}
-		FString Value = MetaRegex.GetCaptureGroup(ValueIdx).TrimStartAndEnd();
+		FString KeyStr = MetaRegex.GetCaptureGroup(2);
+		const FName Key = FName(KeyStr.IsEmpty() ? "Comment" :KeyStr);
+		const FString Value = MetaRegex.GetCaptureGroup(3).TrimStartAndEnd();
 
 		if (bIsPersistent)
 		{
