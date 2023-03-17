@@ -215,7 +215,7 @@ bool FSUDSScriptImporter::ParseCommentMetadataLine(const FStringView& Line,
 			if (pStack)
 			{
 				// First we need to check if this line is less or equal indented; if so we have to strip out existing stack items
-				while (pStack->Top().IndentLevel <= IndentLevel)
+				while (!pStack->IsEmpty() && pStack->Top().IndentLevel <= IndentLevel)
 				{
 					pStack->Pop();
 				}
@@ -251,7 +251,7 @@ TMap<FName, FString> FSUDSScriptImporter::GetTextMetadataForNextEntry(int Curren
 	{
 		auto& Stack = It->Value;
 		// Use top of stack, so long as equally or less indented than current line
-		while (CurrentLineIndent < Stack.Top().IndentLevel)
+		while (!Stack.IsEmpty() && CurrentLineIndent < Stack.Top().IndentLevel)
 		{
 			Stack.Pop();
 		}
