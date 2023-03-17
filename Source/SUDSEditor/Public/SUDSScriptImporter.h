@@ -301,7 +301,8 @@ protected:
 	};
 
 	/// Metadata applied to speaker lines / choices until reset
-	TMap<FName, ParsedMetadata> PersistentMetadata;
+	/// For each key there's a stack of metadata, with most indented at the top
+	TMap<FName, TArray<ParsedMetadata>> PersistentMetadata;
 	/// Metadata applied just to the next speaker line or choice
 	TMap<FName, ParsedMetadata> TransientMetadata;
 	

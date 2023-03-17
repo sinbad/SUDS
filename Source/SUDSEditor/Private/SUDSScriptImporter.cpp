@@ -186,8 +186,8 @@ bool FSUDSScriptImporter::ParseCommentMetadataLine(const FStringView& Line,
 	{
 		if (!bSilent)
 			UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: META  : %s"), LineNo, IndentLevel, *FString(Line));
-		
-		auto& TargetMeta = MetaRegex.GetCaptureGroup(1) == "+" ? PersistentMetadata : TransientMetadata;
+
+		const bool bIsPersistent = MetaRegex.GetCaptureGroup(1) == "+";
 		// There is no "count" of capture groups, test highest to detect if key used
 		FName Key("Comment");
 		int ValueIdx = 2;
@@ -198,14 +198,42 @@ bool FSUDSScriptImporter::ParseCommentMetadataLine(const FStringView& Line,
 			ValueIdx = 3;
 		}
 		FString Value = MetaRegex.GetCaptureGroup(ValueIdx).TrimStartAndEnd();
-		if (Value.IsEmpty())
+
+		if (bIsPersistent)
 		{
-			// Reset
-			TargetMeta.Remove(Key);
+			TArray<ParsedMetadata>* pStack = PersistentMetadata.Find(Key);
+			if (!pStack)
+			{
+				// Only bother creating if non-empty
+				// If we find a blank and there's a stack there already, we do add an entry since blank overrides others in scope
+				if (!Value.IsEmpty())
+				{
+					pStack = &PersistentMetadata.Add(Key);
+				}
+			}
+
+			if (pStack)
+			{
+				// First we need to check if this line is less or equal indented; if so we have to strip out existing stack items
+				while (pStack->Top().IndentLevel <= IndentLevel)
+				{
+					pStack->Pop();
+				}
+				pStack->Push(ParsedMetadata(Key, Value, IndentLevel));
+			}
 		}
 		else
 		{
-			TargetMeta.Add(Key, ParsedMetadata(Key, Value, IndentLevel));
+			if (Value.IsEmpty())
+			{
+				// Reset
+				TransientMetadata.Remove(Key);
+			}
+			else
+			{
+				TransientMetadata.Add(Key, ParsedMetadata(Key, Value, IndentLevel));
+			}
+			
 		}
 		return true;
 	}
@@ -217,25 +245,34 @@ bool FSUDSScriptImporter::ParseCommentMetadataLine(const FStringView& Line,
 TMap<FName, FString> FSUDSScriptImporter::GetTextMetadataForNextEntry(int CurrentLineIndent)
 {
 	TMap<FName, FString> Ret;
+
+	// For each key
+	for (auto It = PersistentMetadata.CreateIterator(); It; ++It)
+	{
+		auto& Stack = It->Value;
+		// Use top of stack, so long as equally or less indented than current line
+		while (CurrentLineIndent < Stack.Top().IndentLevel)
+		{
+			Stack.Pop();
+		}
+		if (Stack.IsEmpty())
+		{
+			// Remove key entry if there's no values left on the stack
+			It.RemoveCurrent();
+		}
+		else
+		{
+			Ret.Add(It->Key, Stack.Top().Value);
+		}
+	}
+
+	// Add transient after so they override persistent
 	for (auto& Pair: TransientMetadata)
 	{
 		// Always apply transient ones to next case, don't check indent
 		Ret.Add(Pair.Key, Pair.Value.Value);
 	}
 	TransientMetadata.Empty();
-
-	for (auto It = PersistentMetadata.CreateIterator(); It; ++It)
-	{
-		if (CurrentLineIndent < It->Value.IndentLevel)
-		{
-			// Remove persistent entries if we hit a smaller intent level
-			It.RemoveCurrent();
-		}
-		else
-		{
-			Ret.Add(It->Key, It->Value.Value);
-		}
-	}
 
 	return Ret;
 }
