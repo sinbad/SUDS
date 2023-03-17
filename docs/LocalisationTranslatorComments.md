@@ -108,7 +108,7 @@ Player: This line gets comment A
         #+ NestedKey: This is only set in this nested scope
         NPC: This line will get comment C and NestedKey
     * Final choice gets comment B and NOT NestedKey, since it and C are out of scope
-    NPC: This is getting comment B too
+        NPC: This is getting comment B too
 Player: This gets comment A
 #+
 Player: This gets no comment at all since reset above
