@@ -100,15 +100,15 @@ higher than this are used. For example:
 ```yaml
 #+ This is comment A
 Player: This line gets comment A
-	* A choice, which also gets comment A
-		NPC: As does this line
-	#+ Indented comment B
-	* This choice gets comment B
-		#+ Even more indented comment C
+    * A choice, which also gets comment A
+        NPC: As does this line
+    #+ Indented comment B
+    * This choice gets comment B
+        #+ Even more indented comment C
         #+ NestedKey: This is only set in this nested scope
-		NPC: This line will get comment C and NestedKey
-	* Final choice gets comment B and NOT NestedKey, since it and C are out of scope
-		NPC: This is getting comment B too
+        NPC: This line will get comment C and NestedKey
+    * Final choice gets comment B and NOT NestedKey, since it and C are out of scope
+    NPC: This is getting comment B too
 Player: This gets comment A
 #+
 Player: This gets no comment at all since reset above
