@@ -25,7 +25,7 @@ SUDS has many features, including:
 * Send [events](docs/EventLines.md) back to code/blueprints with any number of arguments
 * Supports all the [variable substitution and formatting features](docs/TextMarkup.md) in the same way Unreal does
 * A convenient [in-editor testing tool](docs/Testing.md)
-* [Localisation](docs/Localisation.md) support
+* [Localisation](docs/Localisation.md) support, including adding [translator comments](docs/LocalisationTranslatorComments.md)
 * Easy integration with save games ([SPUD](https://github.com/sinbad/SPUD) or otherwise)
 
 > SUDS was inspired by [Ink](https://www.inklestudios.com/ink/) and

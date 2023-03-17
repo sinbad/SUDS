@@ -27,7 +27,14 @@ Although other languages support this, SUDS does not right now.
 > [localisation](Localisation.md) tags, and supporting both trailing line
 > comments and these would over-complicate things. 
 
+## Translator Comments
+
+SUDS also supports using a specialised comment syntax to communicate information
+to translators. Take a look at the [Translator Comments](LocalisationTranslatorComments.md)
+section for more information.
+
 ### See Also:
+* [Translator Comments](LocalisationTranslatorComments.md)
 * [Speaker Lines](SpeakerLines.md)
 * [Choices](ChoiceLines.md)
 * [Variables](Variables.md)
