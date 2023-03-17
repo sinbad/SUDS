@@ -209,7 +209,7 @@ bool FSUDSScriptImporter::ParseCommentMetadataLine(const FStringView& Line,
 			if (pStack)
 			{
 				// First we need to check if this line is less or equal indented; if so we have to strip out existing stack items
-				while (!pStack->IsEmpty() && pStack->Top().IndentLevel <= IndentLevel)
+				while (!pStack->IsEmpty() && IndentLevel <= pStack->Top().IndentLevel)
 				{
 					pStack->Pop();
 				}
