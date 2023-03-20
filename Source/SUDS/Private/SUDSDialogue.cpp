@@ -79,7 +79,7 @@ void USUDSDialogue::SetParticipants(const TArray<UObject*>& InParticipants)
 
 void USUDSDialogue::AddParticipant(UObject* Participant)
 {
-	Participants.Add(Participant);
+	Participants.AddUnique(Participant);
 	SortParticipants();
 }
 
