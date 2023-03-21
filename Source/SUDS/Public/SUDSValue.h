@@ -105,9 +105,14 @@ public:
 	FORCEINLINE float GetFloatValue() const
 	{
 		// We don't warn for unset variables, use the defaults
-		if (!IsEmpty() && Type != ESUDSValueType::Float && Type != ESUDSValueType::Variable)
+		if (!IsEmpty() && !IsNumeric() && Type != ESUDSValueType::Variable)
 			UE_LOG(LogSUDS, Warning, TEXT("Getting value as float but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))
-		
+
+		if (Type == ESUDSValueType::Int)
+		{
+			// Allow int widening to float
+			return GetIntValue();
+		}
 		return FloatValue;
 	}
 
