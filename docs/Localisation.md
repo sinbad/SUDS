@@ -14,7 +14,10 @@ String tables are simple key/value stores, and you can use the
 [Unreal Localisation Dashboard](https://docs.unrealengine.com/5.1/en-US/localization-tools-in-unreal-engine/)
 to include those in your localisation effort. 
 
-The caveat is that the keys used for those string tables have, so far, not been
+> Often you'll want to give your translators extra information about the context
+> of the lines they're translating. See [Translator Comments](LocalisationTranslatorComments.md) for more info.
+
+The keys used for those string tables have, so far, not been
 something you've concerned yourself with. This is where [String Keys](#string-keys)
 come in.
 
@@ -111,6 +114,7 @@ maintain full flexibility and you can de-duplicate later in the translation stag
 if you want.
 
 ### See Also:
+* [Translator Comments](LocalisationTranslatorComments.md)
 * [Script Reference](ScriptReference.md)
 * [Running Dialogue](RunningDialogue.md)
 * [Full Documentation Index](../Index.md)

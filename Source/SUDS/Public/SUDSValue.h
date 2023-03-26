@@ -105,9 +105,14 @@ public:
 	FORCEINLINE float GetFloatValue() const
 	{
 		// We don't warn for unset variables, use the defaults
-		if (!IsEmpty() && Type != ESUDSValueType::Float && Type != ESUDSValueType::Variable)
+		if (!IsEmpty() && !IsNumeric() && Type != ESUDSValueType::Variable)
 			UE_LOG(LogSUDS, Warning, TEXT("Getting value as float but was type %s"), *StaticEnum<ESUDSValueType>()->GetValueAsString(Type))
-		
+
+		if (Type == ESUDSValueType::Int)
+		{
+			// Allow int widening to float
+			return GetIntValue();
+		}
 		return FloatValue;
 	}
 
@@ -376,6 +381,8 @@ public:
 	}
 	
 	FString ToString() const;
+
+	bool ExportTextItem(FString& ValueStr, FSUDSValue const& DefaultValue, UObject* Parent, int32 PortFlags, UObject* ExportRootScope) const;
 };
 template<>
 struct TStructOpsTypeTraits<FSUDSValue> : public TStructOpsTypeTraitsBase2<FSUDSValue>
@@ -383,6 +390,7 @@ struct TStructOpsTypeTraits<FSUDSValue> : public TStructOpsTypeTraitsBase2<FSUDS
 	enum
 	{
 		WithSerializer = true,
+		WithExportTextItem = true
 	};
 };
 

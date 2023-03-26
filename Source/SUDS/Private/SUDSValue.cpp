@@ -70,3 +70,22 @@ FString FSUDSValue::ToString() const
 		return "Empty";
 	}
 }
+
+bool FSUDSValue::ExportTextItem(FString& ValueStr,
+	FSUDSValue const& DefaultValue,
+	UObject* Parent,
+	int32 PortFlags,
+	UObject* ExportRootScope) const
+{
+	// This is used to generate the blueprint debugger, but also used in serialisation
+	// We need to only implement it for debugging to avoid breaking anything else
+	if (0 != (PortFlags & EPropertyPortFlags::PPF_BlueprintDebugView))
+	{
+		ValueStr.Appendf(TEXT("Type=%s Value=%s"), *StaticEnum<ESUDSValueType>()->GetDisplayValueAsText(Type).ToString(), *ToString());
+		return true;
+	}
+
+	// Use the default for everything else
+	return false;
+	
+}

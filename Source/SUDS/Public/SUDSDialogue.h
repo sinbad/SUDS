@@ -172,6 +172,7 @@ protected:
 	static const FText DummyText;
 	static const FString DummyString;
 
+	void InitVariables();
 	void RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* FromNode, bool bRaiseAtEnd);
 	const USUDSScriptNode* WalkToNextChoiceNode(USUDSScriptNode* FromNode, bool bExecute);
 	const USUDSScriptNode* RecurseWalkToNextChoiceOrTextNode(USUDSScriptNode* Node, bool bExecute, int GosubReturnSearchDepth);
@@ -221,8 +222,11 @@ public:
 	//		UE_LOG(LogTemp, Warning, TEXT("*********** Destroyed Dialogue!"));
 	// }
 	void Initialise(const USUDSScript* Script);
-	void InitVariables();
 
+	/// Get the script asset this dialogue is based on
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	const USUDSScript* GetScript() const { return BaseScript; }
+	
 	/**
 	 * Begin the dialogue. Make sure you've added all participants before calling this.
 	 * This may not be the first time you've started this dialogue. All previous state is maintained to enable you
