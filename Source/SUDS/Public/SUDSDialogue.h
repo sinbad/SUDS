@@ -169,6 +169,7 @@ protected:
 	mutable FText CurrentSpeakerDisplayName;
 	/// All valid choices
 	TArray<FSUDSScriptEdge> CurrentChoices;
+	int CurrentSourceLineNo;
 	static const FText DummyText;
 	static const FString DummyString;
 

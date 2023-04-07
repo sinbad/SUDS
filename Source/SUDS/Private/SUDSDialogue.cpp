@@ -140,6 +140,7 @@ void USUDSDialogue::RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* NextNode, bool
 
 USUDSScriptNode* USUDSDialogue::RunNode(USUDSScriptNode* Node)
 {
+	CurrentSourceLineNo = Node->GetSourceLineNo();
 	switch (Node->GetNodeType())
 	{
 	case ESUDSScriptNodeType::Select:
@@ -334,7 +335,14 @@ void USUDSDialogue::SetCurrentSpeakerNode(USUDSScriptNodeText* Node, bool bQuiet
 
 	CurrentSpeakerDisplayName = FText::GetEmpty();
 	bParamNamesExtracted = false;
-
+	if (Node)
+	{
+		CurrentSourceLineNo = Node->GetSourceLineNo();
+	}
+	else
+	{
+		CurrentSourceLineNo = 0;
+	}
 	UpdateChoices();
 
 	if (!bQuietly)
@@ -727,11 +735,7 @@ void USUDSDialogue::End(bool bQuietly)
 
 int USUDSDialogue::GetCurrentSourceLine() const
 {
-	if (CurrentSpeakerNode)
-	{
-		return CurrentSpeakerNode->GetSourceLineNo();
-	}
-	return 0;
+	return CurrentSourceLineNo;
 }
 
 void USUDSDialogue::ResetState(bool bResetVariables, bool bResetPosition, bool bResetVisited)
@@ -803,7 +807,7 @@ void USUDSDialogue::Restart(bool bResetState, FName StartLabel, bool bReRunHeade
 	}
 	// Always reset return stack
 	GosubReturnStack.Empty();
-
+	CurrentSourceLineNo = 0;
 	RaiseStarting(StartLabel);
 
 	if (!bResetState && bReRunHeader)
