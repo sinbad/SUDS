@@ -463,7 +463,14 @@ const USUDSScriptNode* USUDSDialogue::WalkToNextChoiceNode(USUDSScriptNode* From
 	if (FromNode && FromNode->GetEdgeCount() == 1)
 	{
 		const auto NextNode = GetNextNode(FromNode);
-		const auto ResultNode = RecurseWalkToNextChoiceOrTextNode(NextNode, bExecute, 0);
+		TArray<USUDSScriptNodeGosub*> TempGosubStack;
+		if (!bExecute)
+		{
+			// Make a copy of the gosub stack so we can safely explore gosubs
+			TempGosubStack.Append(GosubReturnStack);
+		}
+		
+		const auto ResultNode = RecurseWalkToNextChoiceOrTextNode(NextNode, bExecute, bExecute ? GosubReturnStack : TempGosubStack);
 		if (ResultNode && ResultNode->GetNodeType() == ESUDSScriptNodeType::Choice)
 		{
 			return ResultNode;
@@ -472,7 +479,7 @@ const USUDSScriptNode* USUDSDialogue::WalkToNextChoiceNode(USUDSScriptNode* From
 	return nullptr;
 }
 
-const USUDSScriptNode* USUDSDialogue::RecurseWalkToNextChoiceOrTextNode(USUDSScriptNode* Node, bool bExecute, int GosubReturnSearchDepth)
+const USUDSScriptNode* USUDSDialogue::RecurseWalkToNextChoiceOrTextNode(USUDSScriptNode* Node, bool bExecute, TArray<USUDSScriptNodeGosub*>& LocalGosubStack)
 {
 	auto NextNode = Node;
 	while (NextNode && !IsChoiceOrTextNode(NextNode->GetNodeType()))
@@ -483,11 +490,12 @@ const USUDSScriptNode* USUDSDialogue::RecurseWalkToNextChoiceOrTextNode(USUDSScr
 			if (NextNode->GetNodeType() == ESUDSScriptNodeType::Gosub)
 			{
 				// We need to special case Gosubs, since to find the choice we have to go into them and potentially out again
-				if (const USUDSScriptNodeGosub* GosubNode = Cast<USUDSScriptNodeGosub>(NextNode))
+				if (USUDSScriptNodeGosub* GosubNode = Cast<USUDSScriptNodeGosub>(NextNode))
 				{
 					if (auto SubNode = BaseScript->GetNodeByLabel(GosubNode->GetLabelName()))
 					{
-						if (auto Result = RecurseWalkToNextChoiceOrTextNode(SubNode, bExecute, GosubReturnSearchDepth + 1))
+						LocalGosubStack.Add(GosubNode);
+						if (auto Result = RecurseWalkToNextChoiceOrTextNode(SubNode, bExecute, LocalGosubStack))
 						{
 							// We hit a choice or text inside the sub
 							return Result;
@@ -500,25 +508,15 @@ const USUDSScriptNode* USUDSDialogue::RecurseWalkToNextChoiceOrTextNode(USUDSScr
 			}
 			else if (NextNode->GetNodeType() == ESUDSScriptNodeType::Return)
 			{
-				// A return can occur in 2 scenarios:
-				// 1. We recursed here, above, in which case we can just return to come back out
-				// 2. The current dialogue state is inside a gosub, in which case we have to use the gosub stack
-
-				if (GosubReturnSearchDepth > 0)
+				if (LocalGosubStack.Num() > 0)
 				{
-					// This was exploratory recursion in this function, so just return as not finding
-					return nullptr;
+					// We try to find the next choice node after the gosub, which temporarily redirected
+					const auto GoSubNode = LocalGosubStack.Pop();
+					return RecurseWalkToNextChoiceOrTextNode(GetNextNode(GoSubNode), bExecute, LocalGosubStack);
 				}
 				else
 				{
-					// If we're at depth 0 then we must be returning from a current dialogue state inside a gosub
-					// The GosubReturnSearchDepth goes negative if we return multiple times from this site (nested gosub)
-					if (GosubReturnStack.Num() > -GosubReturnSearchDepth)
-					{
-						// We try to find the next choice node after the gosub, which temporarily redirected
-						const auto GoSubNode = GosubReturnStack.Last(-GosubReturnSearchDepth);
-						return RecurseWalkToNextChoiceOrTextNode(GetNextNode(GoSubNode), bExecute, GosubReturnSearchDepth - 1);
-					}
+					return nullptr;
 				}
 			}
 		}
@@ -781,7 +779,7 @@ void USUDSDialogue::RestoreSavedState(const FSUDSDialogueState& State)
 		USUDSScriptNodeGosub* Node = BaseScript->GetNodeByGosubID(ID);
 		if (!Node)
 		{
-			UE_LOG(LogSUDSDialogue, Error, TEXT("Restore: Can't find Gosub with ID %s, returns referencing it will go to end"))
+			UE_LOG(LogSUDSDialogue, Error, TEXT("Restore: Can't find Gosub with ID %s, returns referencing it will go to end"), *ID);
 		}
 		// Add anyway, will just go to end
 		GosubReturnStack.Add(Node);
