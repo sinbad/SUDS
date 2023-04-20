@@ -265,7 +265,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestGotoBetweenSpeakerAndChoice2,
 
 
 
-	bool FTestGotoBetweenSpeakerAndChoice2::RunTest(const FString& Parameters)
+bool FTestGotoBetweenSpeakerAndChoice2::RunTest(const FString& Parameters)
 {
 	FSUDSMessageLogger Logger(false);
 	FSUDSScriptImporter Importer;
