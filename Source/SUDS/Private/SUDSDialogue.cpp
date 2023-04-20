@@ -479,7 +479,7 @@ const USUDSScriptNode* USUDSDialogue::WalkToNextChoiceNode(USUDSScriptNode* From
 	return nullptr;
 }
 
-const USUDSScriptNode* USUDSDialogue::RecurseWalkToNextChoiceOrTextNode(USUDSScriptNode* Node, bool bExecute, TArray<USUDSScriptNodeGosub*>& LocalGosubStack)
+USUDSScriptNode* USUDSDialogue::RecurseWalkToNextChoiceOrTextNode(USUDSScriptNode* Node, bool bExecute, TArray<USUDSScriptNodeGosub*>& LocalGosubStack)
 {
 	auto NextNode = Node;
 	while (NextNode && !IsChoiceOrTextNode(NextNode->GetNodeType()))
@@ -495,13 +495,8 @@ const USUDSScriptNode* USUDSDialogue::RecurseWalkToNextChoiceOrTextNode(USUDSScr
 					if (auto SubNode = BaseScript->GetNodeByLabel(GosubNode->GetLabelName()))
 					{
 						LocalGosubStack.Add(GosubNode);
-						if (auto Result = RecurseWalkToNextChoiceOrTextNode(SubNode, bExecute, LocalGosubStack))
-						{
-							// We hit a choice or text inside the sub
-							return Result;
-						}
-						// We exited the sub without finding anything, so continue after
-						// Fall through to GetNextNode below
+						NextNode = RecurseWalkToNextChoiceOrTextNode(SubNode, bExecute, LocalGosubStack);
+						continue;
 					}
 				}
 						
@@ -512,7 +507,8 @@ const USUDSScriptNode* USUDSDialogue::RecurseWalkToNextChoiceOrTextNode(USUDSScr
 				{
 					// We try to find the next choice node after the gosub, which temporarily redirected
 					const auto GoSubNode = LocalGosubStack.Pop();
-					return RecurseWalkToNextChoiceOrTextNode(GetNextNode(GoSubNode), bExecute, LocalGosubStack);
+					NextNode = RecurseWalkToNextChoiceOrTextNode(GetNextNode(GoSubNode), bExecute, LocalGosubStack);
+					continue;
 				}
 				else
 				{

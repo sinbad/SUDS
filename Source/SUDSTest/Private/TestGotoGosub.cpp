@@ -279,6 +279,12 @@ bool FTestGosubBetweenSpeakerAndChoice1::RunTest(const FString& Parameters)
 		TestEqual("Choice 2", Dlg->GetChoiceText(1).ToString(), "Option B");
 	}
 
+	// Now test the true case
+	Dlg->SetVariableBoolean("SkipChoices", true);
+	Dlg->Restart(false);
+	TestDialogueText(this, "Start node", Dlg, "Player", "Hello there");
+	TestTrue("Plain continue", Dlg->IsSimpleContinue());	
+
 	Script->MarkAsGarbage();
 	return true;
 }
@@ -319,6 +325,15 @@ bool FTestGosubBetweenSpeakerAndChoice2::RunTest(const FString& Parameters)
 		TestEqual("Choice 1", Dlg->GetChoiceText(0).ToString(), "Option A");
 		TestEqual("Choice 2", Dlg->GetChoiceText(1).ToString(), "Option B");
 	}
+
+	// Now test the true case
+	Dlg->SetVariableBoolean("SkipChoices", true);
+	Dlg->Restart(false);
+	TestDialogueText(this, "Start node", Dlg, "Player", "Hello there");
+	TestTrue("Plain continue", Dlg->Continue());
+	TestDialogueText(this, "Gosub 1 speaker node", Dlg, "Debug", "SkipChoices is 1");
+	TestTrue("Plain continue", Dlg->IsSimpleContinue());	
+	
 
 	Script->MarkAsGarbage();
 	return true;
