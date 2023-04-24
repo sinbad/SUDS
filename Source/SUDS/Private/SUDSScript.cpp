@@ -216,6 +216,20 @@ USUDSScriptNodeGosub* USUDSScript::GetNodeByGosubID(const FString& ID) const
 	return nullptr;
 }
 
+UDialogueVoice* USUDSScript::GetSpeakerVoice(const FString& SpeakerID)
+{
+	if (UDialogueVoice** pVoice = SpeakerVoices.Find(SpeakerID))
+	{
+		return *pVoice;
+	}
+	return nullptr;
+}
+
+void USUDSScript::SetSpeakerVoice(const FString& SpeakerID, UDialogueVoice* Voice)
+{
+	SpeakerVoices.Add(SpeakerID, Voice);
+}
+
 #if WITH_EDITORONLY_DATA
 
 void USUDSScript::PostInitProperties()

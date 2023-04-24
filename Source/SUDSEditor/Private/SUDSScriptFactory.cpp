@@ -1,13 +1,12 @@
 ﻿#include "SUDSScriptFactory.h"
 
-#include <string>
-
 #include "SUDSMessageLogger.h"
 #include "SUDSScript.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Internationalization/StringTable.h"
-#include "Misc/FeedbackContext.h"
+
+PRAGMA_DISABLE_OPTIMIZATION
 
 USUDSScriptFactory::USUDSScriptFactory()
 {
@@ -68,3 +67,4 @@ UObject* USUDSScriptFactory::FactoryCreateText(UClass* InClass,
 
 	return Result;
 }
+PRAGMA_ENABLE_OPTIMIZATION

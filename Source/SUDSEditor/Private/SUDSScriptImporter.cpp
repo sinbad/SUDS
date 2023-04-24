@@ -1,5 +1,8 @@
 ﻿#include "SUDSScriptImporter.h"
 
+#include "ObjectTools.h"
+#include "PackageTools.h"
+#include "SUDSEditorSettings.h"
 #include "SUDSExpression.h"
 #include "SUDSMessageLogger.h"
 #include "SUDSScript.h"
@@ -8,9 +11,11 @@
 #include "SUDSScriptNodeGosub.h"
 #include "SUDSScriptNodeSet.h"
 #include "SUDSScriptNodeText.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "Internationalization/Regex.h"
 #include "Internationalization/StringTable.h"
 #include "Internationalization/StringTableCore.h"
+#include "Sound/DialogueVoice.h"
 
 const FString FSUDSScriptImporter::EndGotoLabel = "end";
 const FString FSUDSScriptImporter::TreePathSeparator = "/";
@@ -1960,6 +1965,71 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 
 	}
 	
+}
+
+void FSUDSScriptImporter::GenerateVoices(USUDSScript* Script, const FString& ParentDir, FSUDSMessageLogger* Logger)
+{
+	auto Registry = &FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryConstants::ModuleName).Get();
+
+	FString Prefix;
+	if (auto Settings = GetDefault<USUDSEditorSettings>())
+	{
+		Prefix = Settings->DialogueVoiceAssetPrefix;
+	}
+	
+	for (auto Speaker : Script->GetSpeakers())
+	{
+		// All Dialogue Voice assets will be created in their own package
+		FString AssetName = FString::Printf(TEXT("%s%s"), *Prefix, *ObjectTools::SanitizeObjectName(Speaker));
+		FString AssetPackagePath = UPackageTools::SanitizePackageName(ParentDir / AssetName);
+
+		UDialogueVoice* Voice = nullptr;
+		if (FPackageName::DoesPackageExist(*AssetPackagePath))
+		{
+			// Package already exists, so try and import over the top of it, if it doesn't already have a source file path
+			TArray<FAssetData> Assets;
+			if (Registry->GetAssetsByPackageName(*AssetPackagePath, Assets))
+			{
+				if (Assets.Num() > 0)
+				{
+					if (!Assets[0].GetAsset()->IsA(UDialogueVoice::StaticClass()))
+					{
+						Logger->Logf(ELogVerbosity::Error, TEXT("Asset %s already exists but is not a Dialogue Voice! Cannot replace, please move aside and re-import script."), *AssetPackagePath);
+					}
+					// Either way nothing to do
+					continue;
+				}
+			}
+		}
+
+		// If we got here then Dialogue Voice didn't exist (although package might have)
+		// It's safe to call CreatePackage either way, it'll return the existing one if needed
+		UPackage* Package = CreatePackage(*AssetPackagePath);
+		if (!ensure(Package))
+		{
+			Logger->Logf(ELogVerbosity::Error, TEXT("Failed to create/retrieve package for voice asset %s"), *AssetPackagePath);
+		}
+		else
+		{
+			Logger->Logf(ELogVerbosity::Display, TEXT("Creating voice asset %s"), *AssetPackagePath);
+
+			// Make sure the destination package is loaded
+			Package->FullyLoad();
+			
+			UDialogueVoice* NewVoiceAsset = NewObject<UDialogueVoice>(Package, FName(AssetName));
+			// there's nothing else to create here, voice is mostly a placeholder with the rest set up later by user
+			FAssetRegistryModule::AssetCreated(NewVoiceAsset);
+			GEditor->BroadcastObjectReimported(NewVoiceAsset);
+
+			Script->SetSpeakerVoice(Speaker, NewVoiceAsset);
+		}
+		
+	}
+	
+}
+
+void FSUDSScriptImporter::GenerateWaves(USUDSScript* Script, const FString& ParentDir, FSUDSMessageLogger* Logger)
+{
 }
 
 PRAGMA_ENABLE_OPTIMIZATION

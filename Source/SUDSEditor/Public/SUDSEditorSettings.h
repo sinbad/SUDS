@@ -43,6 +43,11 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Shared directory for Dialogue Wave assets, if using a shared directory", RelativeToGameContentDir, LongPackageName))
 	FDirectoryPath DialogueWaveAssetSharedDir;
 	
+	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Prefix to give Dialogue Voice assets in front of their SpeakerID", RelativeToGameContentDir, LongPackageName))
+	FString DialogueVoiceAssetPrefix = "DV_";
+	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Prefix to give Dialogue Wave assets in front of their SpeakerID", RelativeToGameContentDir, LongPackageName))
+	FString DialogueWaveAssetPrefix = "DW_";
+
 	USUDSEditorSettings() {}
 	
 };
