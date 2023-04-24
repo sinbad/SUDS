@@ -1,4 +1,8 @@
 ﻿#include "SUDSEditor.h"
+
+#include "ISettingsModule.h"
+#include "ISettingsSection.h"
+#include "SUDSEditorSettings.h"
 #include "SUDSScriptActions.h"
 #include "Interfaces/IPluginManager.h"
 #include "Styling/SlateStyle.h"
@@ -24,6 +28,18 @@ void FSUDSEditorModule::StartupModule()
 
 		FSlateStyleRegistry::RegisterSlateStyle(*StyleSet.Get());
 	}
+
+	// register settings
+	ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings");
+	if (SettingsModule)
+	{
+		ISettingsSectionPtr SettingsSection = SettingsModule->RegisterSettings("Project", "Plugins", "SUDS Editor",
+			LOCTEXT("SUDSEditorSettingsName", "SUDS Editor"),
+			LOCTEXT("SUDSEditorSettingsDescription", "Configure the editor parts of SUDS."),
+			GetMutableDefault<USUDSEditorSettings>()
+		);
+	}
+
 	UE_LOG(LogSUDSEditor, Log, TEXT("SUDS Editor Module Started"))
 
 }
