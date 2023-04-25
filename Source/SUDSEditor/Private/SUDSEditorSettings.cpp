@@ -47,18 +47,6 @@ FString USUDSEditorSettings::GetOutputDir(ESUDSAssetLocation Location,
                                           const FString& PackagePath,
                                           const FString& ScriptName)
 {
-	// Deal with invalid SharedPath, final fallback
-	if (Location == ESUDSAssetLocation::SharedDirectory &&
-		!FPaths::DirectoryExists(SharedPath))
-	{
-		Location = ESUDSAssetLocation::ScriptDirectory;
-	}
-	else if (Location == ESUDSAssetLocation::SharedDirectorySubdir &&
-		!FPaths::DirectoryExists(SharedPath))
-	{
-		Location = ESUDSAssetLocation::ScriptDirectorySubdir;
-	}
-	
 	switch(Location)
 	{
 	default:
