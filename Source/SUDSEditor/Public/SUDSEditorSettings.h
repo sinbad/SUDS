@@ -25,11 +25,11 @@ class SUDSEDITOR_API USUDSEditorSettings : public UObject
 {
 	GENERATED_BODY()
 public:
-	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Whether to generate VO assets for ALL dialogue scripts (ignores all other VO generation options"))
-	bool AlwaysGenerateVOAssets = false;
+	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Whether to generate Dialogue Voice/Wave assets for ALL dialogue scripts (ignores all other VO generation options"))
+	bool AlwaysGenerateVoiceOverAssets = false;
 
-	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Generate VO assets for scripts in these directories (and subdirectories)", RelativeToGameContentDir, LongPackageName))
-	TArray<FDirectoryPath> DirectoriesToGenerateVOAssets;
+	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Generate Dialogue Voice/Wave assets for scripts in these directories (and subdirectories)", RelativeToGameContentDir, LongPackageName))
+	TArray<FDirectoryPath> DirectoriesToGenerateVoiceOverAssets;
 
 	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Where to place Dialogue Voice assets for speakers in scripts", RelativeToGameContentDir, LongPackageName))
 	ESUDSAssetLocation DialogueVoiceAssetLocation = ESUDSAssetLocation::SharedDirectory;
@@ -49,5 +49,9 @@ public:
 	FString DialogueWaveAssetPrefix = "DW_";
 
 	USUDSEditorSettings() {}
-	
+
+	bool ShouldGenerateVoiceAssets(const FString& PackagePath) const;
+	FString GetVoiceOutputDir(const FString& PackagePath, const FString& ScriptName) const;
+	FString GetWaveOutputDir(const FString& PackagePath, const FString& ScriptName) const;
+	static FString GetOutputDir(ESUDSAssetLocation Location, const FString& SharedPath, const FString& PackagePath, const FString& ScriptName);
 };
