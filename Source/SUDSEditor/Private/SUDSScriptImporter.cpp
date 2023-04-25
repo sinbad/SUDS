@@ -2012,7 +2012,7 @@ void FSUDSScriptImporter::GenerateVoices(USUDSScript* Script, const FString& Par
 		}
 		else
 		{
-			Logger->Logf(ELogVerbosity::Display, TEXT("Creating voice asset %s"), *PackageName);
+			//Logger->Logf(ELogVerbosity::Display, TEXT("Creating voice asset %s"), *PackageName);
 
 			UDialogueVoice* NewVoiceAsset = NewObject<UDialogueVoice>(Package, FName(SanitizedName), Flags);
 			// there's nothing else to create here, voice is mostly a placeholder with the rest set up later by user
