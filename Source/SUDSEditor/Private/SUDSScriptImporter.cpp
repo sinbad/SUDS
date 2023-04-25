@@ -2018,7 +2018,7 @@ void FSUDSScriptImporter::GenerateVoices(USUDSScript* Script, const FString& Par
 		{
 			Logger->Logf(ELogVerbosity::Display, TEXT("Creating voice asset %s"), *PackageName);
 
-			UDialogueVoice* NewVoiceAsset = NewObject<UDialogueVoice>(Package, FName(AssetName), RF_Public);
+			UDialogueVoice* NewVoiceAsset = NewObject<UDialogueVoice>(Package, FName(AssetName), Flags);
 			// there's nothing else to create here, voice is mostly a placeholder with the rest set up later by user
 			FAssetRegistryModule::AssetCreated(NewVoiceAsset);
 
