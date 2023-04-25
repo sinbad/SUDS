@@ -1983,11 +1983,7 @@ void FSUDSScriptImporter::GenerateVoices(USUDSScript* Script, const FString& Par
 	{
 		// All Dialogue Voice assets will be created in their own package
 		const FString SanitizedName = FString::Printf(TEXT("%s%s"), *Prefix, *ObjectTools::SanitizeObjectName(Speaker));
-		const FString TentativePackagePath = UPackageTools::SanitizePackageName(ParentDir / SanitizedName);
-		FString DefaultSuffix;
-		FString AssetName;
-		FString PackageName;
-		AssetTools.Get().CreateUniqueAssetName(TentativePackagePath, DefaultSuffix, /*out*/ PackageName, /*out*/ AssetName);		
+		const FString PackageName = UPackageTools::SanitizePackageName(ParentDir / SanitizedName);
 
 		if (FPackageName::DoesPackageExist(*PackageName))
 		{
@@ -2018,7 +2014,7 @@ void FSUDSScriptImporter::GenerateVoices(USUDSScript* Script, const FString& Par
 		{
 			Logger->Logf(ELogVerbosity::Display, TEXT("Creating voice asset %s"), *PackageName);
 
-			UDialogueVoice* NewVoiceAsset = NewObject<UDialogueVoice>(Package, FName(AssetName), Flags);
+			UDialogueVoice* NewVoiceAsset = NewObject<UDialogueVoice>(Package, FName(SanitizedName), Flags);
 			// there's nothing else to create here, voice is mostly a placeholder with the rest set up later by user
 			FAssetRegistryModule::AssetCreated(NewVoiceAsset);
 
