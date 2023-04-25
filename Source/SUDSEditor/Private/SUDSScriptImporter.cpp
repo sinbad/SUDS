@@ -1,6 +1,5 @@
 ﻿#include "SUDSScriptImporter.h"
 
-#include "AssetToolsModule.h"
 #include "ObjectTools.h"
 #include "PackageTools.h"
 #include "SUDSEditorSettings.h"
@@ -1971,7 +1970,6 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 void FSUDSScriptImporter::GenerateVoices(USUDSScript* Script, const FString& ParentDir, EObjectFlags Flags, FSUDSMessageLogger* Logger)
 {
 	auto Registry = &FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryConstants::ModuleName).Get();
-	FAssetToolsModule& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
 
 	FString Prefix;
 	if (auto Settings = GetDefault<USUDSEditorSettings>())
