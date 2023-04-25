@@ -34,5 +34,7 @@ protected:
 	bool WriteBackTextID(const FText& AssetText, int LineNo, TArray<FString>& Lines, const FString& NameForErrors, FSUDSMessageLogger& Logger);
 	bool WriteBackGosubID(const FString& GosubID, int LineNo, TArray<FString>& Lines, const FString& NameForErrors, FSUDSMessageLogger& Logger);
 	bool TextIDCheckMatch(const FText& AssetText, const FString& SourceLine);
+
+	void GenerateVOAssets(TArray<TWeakObjectPtr<USUDSScript>> Scripts);
 		
 };

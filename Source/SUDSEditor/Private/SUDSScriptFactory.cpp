@@ -1,7 +1,7 @@
 ﻿#include "SUDSScriptFactory.h"
 
-#include "FileHelpers.h"
 #include "SUDSEditorSettings.h"
+#include "SUDSEditorVoiceOverTools.h"
 #include "SUDSMessageLogger.h"
 #include "SUDSScript.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -63,12 +63,10 @@ UObject* USUDSScriptFactory::FactoryCreateText(UClass* InClass,
 		const FMD5Hash Hash = FSUDSScriptImporter::CalculateHash(Buffer, BufferEnd - Buffer);
 		Result->AssetImportData->Update(FactoryCurrentFilename, Hash);
 
-		// VO assets
-		FString VoiceDir;
-		FString WaveDir;
-		if (ShouldGenerateVoiceAssets(LongPackagePath, FilenameNoExtension, VoiceDir, WaveDir))
+		// VO assets at import time?
+		if (ShouldGenerateVoiceAssets(LongPackagePath))
 		{
-			Importer.GenerateVoices(Result, VoiceDir, Flags, &Logger);
+			FSUDSEditorVoiceOverTools::GenerateAssets(Result, Flags, &Logger);
 		}
 
 	}
@@ -78,16 +76,11 @@ UObject* USUDSScriptFactory::FactoryCreateText(UClass* InClass,
 	return Result;
 }
 
-bool USUDSScriptFactory::ShouldGenerateVoiceAssets(const FString& PackagePath, const FString& ScriptName, FString& OutVoiceDir, FString& OutWaveDir) const
+bool USUDSScriptFactory::ShouldGenerateVoiceAssets(const FString& PackagePath) const
 {
 	if (auto Settings = GetDefault<USUDSEditorSettings>())
 	{
-		if (Settings->ShouldGenerateVoiceAssets(PackagePath))
-		{
-			OutVoiceDir = Settings->GetVoiceOutputDir(PackagePath, ScriptName);
-			OutWaveDir = Settings->GetWaveOutputDir(PackagePath, ScriptName);
-			return true;
-		}
+		return Settings->ShouldGenerateVoiceAssets(PackagePath);
 	}
 	return false;
 }

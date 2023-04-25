@@ -27,6 +27,6 @@ protected:
 	                                   const TCHAR* BufferEnd,
 	                                   FFeedbackContext* Warn) override;
 
-	bool ShouldGenerateVoiceAssets(const FString& PackagePath, const FString& ScriptName, FString& OutVoiceDir, FString& OutWaveDir) const;
+	bool ShouldGenerateVoiceAssets(const FString& PackagePath) const;
 	FSUDSScriptImporter Importer;
 };

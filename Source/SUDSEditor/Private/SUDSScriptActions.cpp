@@ -1,6 +1,8 @@
 ﻿#include "SUDSScriptActions.h"
 
+#include "SUDSEditorSettings.h"
 #include "SUDSEditorToolkit.h"
+#include "SUDSEditorVoiceOverTools.h"
 #include "SUDSMessageLogger.h"
 #include "SUDSScript.h"
 #include "SUDSScriptImporter.h"
@@ -77,6 +79,19 @@ void FSUDSScriptActions::GetActions(const TArray<UObject*>& InObjects, FToolMenu
 			FCanExecuteAction()
 		)
 	);
+	Section.AddMenuEntry(
+		"GenerateVOAssets",
+		NSLOCTEXT("SUDS", "GenerateVOAssets", "Generate Voice Over Assets"),
+		NSLOCTEXT("SUDS",
+				  "GenerateVOAssetsTooltip",
+				  "Generate Dialogue Voice / Dialogue Wave assets for this script"),
+		FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Edit"),
+		FUIAction(
+			FExecuteAction::CreateSP(this, &FSUDSScriptActions::GenerateVOAssets, Scripts),
+			FCanExecuteAction()
+		)
+	);
+
 }
 
 void FSUDSScriptActions::WriteBackTextIDs(TArray<TWeakObjectPtr<USUDSScript>> Scripts)
@@ -353,4 +368,21 @@ bool FSUDSScriptActions::WriteBackGosubID(const FString& GosubID,
 	// Same, no need to change
 	return false;
 		
+}
+
+void FSUDSScriptActions::GenerateVOAssets(TArray<TWeakObjectPtr<USUDSScript>> Scripts)
+{
+	if (auto Settings = GetDefault<USUDSEditorSettings>())
+	{
+		EObjectFlags Flags = RF_Public | RF_Standalone | RF_Transactional;
+		FSUDSMessageLogger Logger;
+		for (auto WeakScript : Scripts)
+		{
+			if (auto Script = WeakScript.Get())
+			{
+				FSUDSEditorVoiceOverTools::GenerateAssets(Script, Flags, &Logger);
+			}
+		}
+	}
+
 }
