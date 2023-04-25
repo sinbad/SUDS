@@ -8,6 +8,8 @@ USUDSScriptReimportFactory::USUDSScriptReimportFactory()
 {
 	SupportedClass = USUDSScript::StaticClass();
 	bCreateNew = false;
+	// We need to have a unique priority vs the original factory, so go after
+	ImportPriority = DefaultImportPriority - 1;
 }
 
 bool USUDSScriptReimportFactory::CanReimport(UObject* Obj, TArray<FString>& OutFilenames)

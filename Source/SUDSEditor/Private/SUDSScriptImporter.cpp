@@ -1,5 +1,6 @@
 ﻿#include "SUDSScriptImporter.h"
 
+#include "AssetToolsModule.h"
 #include "ObjectTools.h"
 #include "PackageTools.h"
 #include "SUDSEditorSettings.h"
@@ -1967,9 +1968,10 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 	
 }
 
-void FSUDSScriptImporter::GenerateVoices(USUDSScript* Script, const FString& ParentDir, FSUDSMessageLogger* Logger)
+void FSUDSScriptImporter::GenerateVoices(USUDSScript* Script, const FString& ParentDir, EObjectFlags Flags, TArray<UPackage*>& PackagesToSave, FSUDSMessageLogger* Logger)
 {
 	auto Registry = &FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryConstants::ModuleName).Get();
+	FAssetToolsModule& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
 
 	FString Prefix;
 	if (auto Settings = GetDefault<USUDSEditorSettings>())
@@ -1980,21 +1982,24 @@ void FSUDSScriptImporter::GenerateVoices(USUDSScript* Script, const FString& Par
 	for (auto Speaker : Script->GetSpeakers())
 	{
 		// All Dialogue Voice assets will be created in their own package
-		FString AssetName = FString::Printf(TEXT("%s%s"), *Prefix, *ObjectTools::SanitizeObjectName(Speaker));
-		FString AssetPackagePath = UPackageTools::SanitizePackageName(ParentDir / AssetName);
+		const FString SanitizedName = FString::Printf(TEXT("%s%s"), *Prefix, *ObjectTools::SanitizeObjectName(Speaker));
+		const FString TentativePackagePath = UPackageTools::SanitizePackageName(ParentDir / SanitizedName);
+		FString DefaultSuffix;
+		FString AssetName;
+		FString PackageName;
+		AssetTools.Get().CreateUniqueAssetName(TentativePackagePath, DefaultSuffix, /*out*/ PackageName, /*out*/ AssetName);		
 
-		UDialogueVoice* Voice = nullptr;
-		if (FPackageName::DoesPackageExist(*AssetPackagePath))
+		if (FPackageName::DoesPackageExist(*PackageName))
 		{
 			// Package already exists, so try and import over the top of it, if it doesn't already have a source file path
 			TArray<FAssetData> Assets;
-			if (Registry->GetAssetsByPackageName(*AssetPackagePath, Assets))
+			if (Registry->GetAssetsByPackageName(*PackageName, Assets))
 			{
 				if (Assets.Num() > 0)
 				{
 					if (!Assets[0].GetAsset()->IsA(UDialogueVoice::StaticClass()))
 					{
-						Logger->Logf(ELogVerbosity::Error, TEXT("Asset %s already exists but is not a Dialogue Voice! Cannot replace, please move aside and re-import script."), *AssetPackagePath);
+						Logger->Logf(ELogVerbosity::Error, TEXT("Asset %s already exists but is not a Dialogue Voice! Cannot replace, please move aside and re-import script."), *PackageName);
 					}
 					// Either way nothing to do
 					continue;
@@ -2004,24 +2009,22 @@ void FSUDSScriptImporter::GenerateVoices(USUDSScript* Script, const FString& Par
 
 		// If we got here then Dialogue Voice didn't exist (although package might have)
 		// It's safe to call CreatePackage either way, it'll return the existing one if needed
-		UPackage* Package = CreatePackage(*AssetPackagePath);
+		UPackage* Package = CreatePackage(*PackageName);
 		if (!ensure(Package))
 		{
-			Logger->Logf(ELogVerbosity::Error, TEXT("Failed to create/retrieve package for voice asset %s"), *AssetPackagePath);
+			Logger->Logf(ELogVerbosity::Error, TEXT("Failed to create/retrieve package for voice asset %s"), *PackageName);
 		}
 		else
 		{
-			Logger->Logf(ELogVerbosity::Display, TEXT("Creating voice asset %s"), *AssetPackagePath);
+			Logger->Logf(ELogVerbosity::Display, TEXT("Creating voice asset %s"), *PackageName);
 
-			// Make sure the destination package is loaded
-			Package->FullyLoad();
-			
-			UDialogueVoice* NewVoiceAsset = NewObject<UDialogueVoice>(Package, FName(AssetName));
+			UDialogueVoice* NewVoiceAsset = NewObject<UDialogueVoice>(Package, FName(AssetName), RF_Public);
 			// there's nothing else to create here, voice is mostly a placeholder with the rest set up later by user
 			FAssetRegistryModule::AssetCreated(NewVoiceAsset);
-			GEditor->BroadcastObjectReimported(NewVoiceAsset);
 
 			Script->SetSpeakerVoice(Speaker, NewVoiceAsset);
+
+			PackagesToSave.Add(Package);
 		}
 		
 	}
