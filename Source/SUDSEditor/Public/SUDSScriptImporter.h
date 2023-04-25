@@ -172,7 +172,10 @@ class SUDSEDITOR_API FSUDSScriptImporter
 public:
 	bool ImportFromBuffer(const TCHAR* Buffer, int32 Len, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent);
 	void PopulateAsset(USUDSScript* Asset, UStringTable* StringTable);
-	void GenerateVoices(USUDSScript* Script, const FString& ParentDir, EObjectFlags Flags, TArray<UPackage*>& PackagesToSave, FSUDSMessageLogger
+	void GenerateVoices(USUDSScript* Script,
+	                    const FString& ParentDir,
+	                    EObjectFlags Flags,
+	                    FSUDSMessageLogger
 	                    * Logger);
 	void GenerateWaves(USUDSScript* Script, const FString& ParentDir, FSUDSMessageLogger* Logger);
 	static FMD5Hash CalculateHash(const TCHAR* Buffer, int32 Len);

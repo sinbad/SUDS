@@ -68,14 +68,7 @@ UObject* USUDSScriptFactory::FactoryCreateText(UClass* InClass,
 		FString WaveDir;
 		if (ShouldGenerateVoiceAssets(LongPackagePath, FilenameNoExtension, VoiceDir, WaveDir))
 		{
-			TArray<UPackage*> PackagesToSave;
-			
-			Importer.GenerateVoices(Result, VoiceDir, Flags, PackagesToSave, &Logger);
-
-			if (PackagesToSave.Num() > 0)
-			{
-				FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, false, false);
-			}
+			Importer.GenerateVoices(Result, VoiceDir, Flags, &Logger);
 		}
 
 	}

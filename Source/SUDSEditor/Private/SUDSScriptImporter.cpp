@@ -1968,7 +1968,7 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 	
 }
 
-void FSUDSScriptImporter::GenerateVoices(USUDSScript* Script, const FString& ParentDir, EObjectFlags Flags, TArray<UPackage*>& PackagesToSave, FSUDSMessageLogger* Logger)
+void FSUDSScriptImporter::GenerateVoices(USUDSScript* Script, const FString& ParentDir, EObjectFlags Flags, FSUDSMessageLogger* Logger)
 {
 	auto Registry = &FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryConstants::ModuleName).Get();
 	FAssetToolsModule& AssetTools = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
@@ -2024,7 +2024,8 @@ void FSUDSScriptImporter::GenerateVoices(USUDSScript* Script, const FString& Par
 
 			Script->SetSpeakerVoice(Speaker, NewVoiceAsset);
 
-			PackagesToSave.Add(Package);
+			Package->FullyLoad();
+			NewVoiceAsset->MarkPackageDirty();
 		}
 		
 	}
