@@ -96,12 +96,18 @@ void FSUDSScriptActions::GetActions(const TArray<UObject*>& InObjects, FToolMenu
 
 void FSUDSScriptActions::WriteBackTextIDs(TArray<TWeakObjectPtr<USUDSScript>> Scripts)
 {
-	FSUDSMessageLogger Logger;
-	for (auto Script : Scripts)
+	if (FMessageDialog::Open(EAppMsgType::YesNo,
+						 FText::FromString(
+							 "Are you sure you want to write string keys back to the selected scripts?"))
+	== EAppReturnType::Yes)
 	{
-		if (Script.IsValid())
+		FSUDSMessageLogger Logger;
+		for (auto Script : Scripts)
 		{
-			WriteBackTextIDs(Script.Get(), Logger);
+			if (Script.IsValid())
+			{
+				WriteBackTextIDs(Script.Get(), Logger);
+			}
 		}
 	}
 }
@@ -372,17 +378,22 @@ bool FSUDSScriptActions::WriteBackGosubID(const FString& GosubID,
 
 void FSUDSScriptActions::GenerateVOAssets(TArray<TWeakObjectPtr<USUDSScript>> Scripts)
 {
-	if (auto Settings = GetDefault<USUDSEditorSettings>())
+	if (FMessageDialog::Open(EAppMsgType::YesNo,
+	                         FText::FromString(
+		                         "Are you sure you want to generate Dialogue Voice / Dialogue Wave assets for the selected scripts?"))
+		== EAppReturnType::Yes)
 	{
-		EObjectFlags Flags = RF_Public | RF_Standalone | RF_Transactional;
-		FSUDSMessageLogger Logger;
-		for (auto WeakScript : Scripts)
+		if (auto Settings = GetDefault<USUDSEditorSettings>())
 		{
-			if (auto Script = WeakScript.Get())
+			EObjectFlags Flags = RF_Public | RF_Standalone | RF_Transactional;
+			FSUDSMessageLogger Logger;
+			for (auto WeakScript : Scripts)
 			{
-				FSUDSEditorVoiceOverTools::GenerateAssets(Script, Flags, &Logger);
+				if (auto Script = WeakScript.Get())
+				{
+					FSUDSEditorVoiceOverTools::GenerateAssets(Script, Flags, &Logger);
+				}
 			}
 		}
 	}
-
 }
