@@ -20,6 +20,7 @@
 1. [Variables](docs/Variables.md)
 1. [Expressions](docs/Expressions.md)
 1. [Text Markup](docs/TextMarkup.md)
+1. [Voiced Dialogue](docs/VoicedDialogue.md)
 1. [Localisation](docs/Localisation.md)
 1. [Visual Studio Code Extension](docs/vscode.md)
 1. [Frequently Asked Questions](docs/FAQ.md)

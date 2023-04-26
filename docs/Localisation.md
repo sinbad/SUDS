@@ -113,8 +113,30 @@ may change over time. I consider it better to keep the duplication at source to
 maintain full flexibility and you can de-duplicate later in the translation stage 
 if you want.
 
+## Localising Voiced Dialogue
+
+Unreal localises voiced dialogue via the Dialogue Wave asset. See the
+[Asset Localisation](https://docs.unrealengine.com/5.1/en-US/asset-localization-in-unreal-engine/)
+documentation for more details.
+
+SUDS can [generate](VoicedDialogue.md) the base language Dialogue Voice and Dialogue Wave assets 
+for you, which you then complete for the primary language, then use the Localisation
+Dashboard tools to translate the assets.
+
+Note, however, that when using voiced dialogue, there's a bit of duplication in 
+the text, since Dialogue Wave assets have a `SpokenText` string which is used
+to generate subtitles if you have them enabled. This is unfortunately not linked
+to the String Table (it's an `FString`, not `FText`), so translation of this is
+done entirely via Dialogue Wave assets. So if you include both the string table
+and the Dialogue Wave assets in Localisation Dashboard you'll have those strings
+twice if you include both the wave assets and the string tables. So you probably want
+to exclude the string tables of voiced scripts from your Localisation Dashboard
+collection step, e.g. by putting voiced scripts in a different folder to non-voiced
+scripts.
+
 ### See Also:
 * [Translator Comments](LocalisationTranslatorComments.md)
+* [Voiced Dialogue](VoicedDialogue.md)
 * [Script Reference](ScriptReference.md)
 * [Running Dialogue](RunningDialogue.md)
 * [Full Documentation Index](../Index.md)

@@ -8,12 +8,13 @@
 #include "SUDSScriptNodeText.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Sound/DialogueVoice.h"
+#include "Sound/DialogueWave.h"
+#include "Sound/SoundWave.h"
 
 PRAGMA_DISABLE_OPTIMIZATION
 
 void FSUDSEditorVoiceOverTools::GenerateAssets(USUDSScript* Script, EObjectFlags Flags, FSUDSMessageLogger* Logger)
 {
-
 	// First check for problems
 	if (auto Settings = GetDefault<USUDSEditorSettings>())
 	{
@@ -23,7 +24,10 @@ void FSUDSEditorVoiceOverTools::GenerateAssets(USUDSScript* Script, EObjectFlags
 			(Settings->DialogueVoiceAssetSharedDir.Path.IsEmpty() ||
 				!FPackageName::IsValidPath(Settings->DialogueVoiceAssetSharedDir.Path)))
 		{
-			Logger->Logf(ELogVerbosity::Error, TEXT("Dialogue Voice assets are set to generate to a shared dir, but the dir '%s' is not valid."), *Settings->DialogueVoiceAssetSharedDir.Path);
+			Logger->Logf(ELogVerbosity::Error,
+			             TEXT(
+				             "Dialogue Voice assets are set to generate to a shared dir, but the dir '%s' is not valid."),
+			             *Settings->DialogueVoiceAssetSharedDir.Path);
 			bError = true;
 		}
 		if ((Settings->DialogueWaveAssetLocation == ESUDSAssetLocation::SharedDirectory || Settings->
@@ -31,13 +35,13 @@ void FSUDSEditorVoiceOverTools::GenerateAssets(USUDSScript* Script, EObjectFlags
 			(Settings->DialogueWaveAssetSharedDir.Path.IsEmpty() ||
 				!FPackageName::IsValidPath(Settings->DialogueWaveAssetSharedDir.Path)))
 		{
-			Logger->Logf(ELogVerbosity::Error, TEXT("Dialogue Wave assets are set to generate to a shared dir, but the dir '%s' is not valid."), *Settings->DialogueWaveAssetSharedDir.Path);
+			Logger->Logf(ELogVerbosity::Error,
+			             TEXT(
+				             "Dialogue Wave assets are set to generate to a shared dir, but the dir '%s' is not valid."),
+			             *Settings->DialogueWaveAssetSharedDir.Path);
 			bError = true;
 		}
-		if (bError)
-		{
-			return;
-		}
+		if (bError) { return; }
 	}
 	else
 	{
@@ -45,11 +49,12 @@ void FSUDSEditorVoiceOverTools::GenerateAssets(USUDSScript* Script, EObjectFlags
 		return;
 	}
 
-	GenerateVoiceAssets(Script, Flags, Logger);
-	GenerateWaveAssets(Script, Flags, Logger);
+	TMap<FString, UDialogueVoice*> UnsavedVoices;
+	GenerateVoiceAssets(Script, Flags, Logger, UnsavedVoices);
+	GenerateWaveAssets(Script, Flags, UnsavedVoices, Logger);
 }
 
-void FSUDSEditorVoiceOverTools::GenerateVoiceAssets(USUDSScript* Script, EObjectFlags Flags, FSUDSMessageLogger* Logger)
+void FSUDSEditorVoiceOverTools::GenerateVoiceAssets(USUDSScript* Script, EObjectFlags Flags, FSUDSMessageLogger* Logger, TMap<FString, UDialogueVoice*> &OutCreatedVoices)
 {
 	auto Registry = &FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryConstants::ModuleName).Get();
 
@@ -65,12 +70,97 @@ void FSUDSEditorVoiceOverTools::GenerateVoiceAssets(USUDSScript* Script, EObject
 		Logger->Logf(ELogVerbosity::Error, TEXT("Unable to generate voice assets, settings not found"));
 		return;
 	}
-	
+
 	for (auto Speaker : Script->GetSpeakers())
 	{
 		// All Dialogue Voice assets will be created in their own package
-		const FString SanitizedName = FString::Printf(TEXT("%s%s"), *Prefix, *ObjectTools::SanitizeObjectName(Speaker));
-		const FString PackageName = UPackageTools::SanitizePackageName(ParentDir / SanitizedName);
+		FString PackageName;
+		FString  AssetName;
+		if (GetSpeakerVoiceAssetNames(Script, Speaker, PackageName, AssetName))
+		{
+			if (FPackageName::DoesPackageExist(*PackageName))
+			{
+				// Package already exists, so try and import over the top of it, if it doesn't already have a source file path
+				TArray<FAssetData> Assets;
+				if (Registry->GetAssetsByPackageName(*PackageName, Assets))
+				{
+					if (Assets.Num() > 0)
+					{
+						if (!Assets[0].GetAsset()->IsA(UDialogueVoice::StaticClass()))
+						{
+							Logger->Logf(ELogVerbosity::Error,
+										 TEXT(
+											 "Asset %s already exists but is not a Dialogue Voice! Cannot replace, please move aside and re-import script."),
+										 *PackageName);
+						}
+						// Either way nothing to do
+						continue;
+					}
+				}
+			}
+		
+
+			// If we got here then Dialogue Voice didn't exist (although package might have)
+			// It's safe to call CreatePackage either way, it'll return the existing one if needed
+			UPackage* Package = CreatePackage(*PackageName);
+			if (!ensure(Package))
+			{
+				Logger->Logf(ELogVerbosity::Error,
+							 TEXT("Failed to create/retrieve package for voice asset %s"),
+							 *PackageName);
+			}
+			else
+			{
+				//Logger->Logf(ELogVerbosity::Display, TEXT("Creating voice asset %s"), *PackageName);
+
+				UDialogueVoice* NewVoiceAsset = NewObject<UDialogueVoice>(Package, FName(AssetName), Flags);
+				OutCreatedVoices.Add(Speaker, NewVoiceAsset);
+				// there's nothing else to create here, voice is mostly a placeholder with the rest set up later by user
+				FAssetRegistryModule::AssetCreated(NewVoiceAsset);
+
+				Script->SetSpeakerVoice(Speaker, NewVoiceAsset);
+				Script->MarkPackageDirty();
+
+				Package->FullyLoad();
+				NewVoiceAsset->MarkPackageDirty();
+			}
+		}
+	}
+}
+
+bool FSUDSEditorVoiceOverTools::GetSpeakerVoicePackageName(USUDSScript* Script,
+	const FString& SpeakerID,
+	FString& OutPackageName)
+{
+	FString NotUsed;
+	return GetSpeakerVoiceAssetNames(Script, SpeakerID, OutPackageName, NotUsed);
+}
+
+bool FSUDSEditorVoiceOverTools::GetSpeakerVoiceAssetNames(USUDSScript* Script,
+	const FString& SpeakerID,
+	FString& OutPackageName,
+	FString& OutAssetName)
+{
+	if (auto Settings = GetDefault<USUDSEditorSettings>())
+	{
+		FString Prefix = Settings->DialogueVoiceAssetPrefix;
+		FString ParentDir = Settings->GetVoiceOutputDir(Script);
+
+		OutAssetName = FString::Printf(TEXT("%s%s"), *Prefix, *ObjectTools::SanitizeObjectName(SpeakerID));
+		OutPackageName = UPackageTools::SanitizePackageName(ParentDir / OutAssetName);
+		return true;
+	}
+	return false;
+}
+
+UDialogueVoice* FSUDSEditorVoiceOverTools::FindSpeakerVoice(USUDSScript* Script,
+                                                            const FString& SpeakerID)
+{
+	FString PackageName;
+	if (GetSpeakerVoicePackageName(Script, SpeakerID, PackageName))
+	{
+		
+		auto Registry = &FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryConstants::ModuleName).Get();
 
 		if (FPackageName::DoesPackageExist(*PackageName))
 		{
@@ -80,52 +170,22 @@ void FSUDSEditorVoiceOverTools::GenerateVoiceAssets(USUDSScript* Script, EObject
 			{
 				if (Assets.Num() > 0)
 				{
-					if (!Assets[0].GetAsset()->IsA(UDialogueVoice::StaticClass()))
+					if (Assets[0].GetAsset()->IsA(UDialogueVoice::StaticClass()))
 					{
-						Logger->Logf(ELogVerbosity::Error, TEXT("Asset %s already exists but is not a Dialogue Voice! Cannot replace, please move aside and re-import script."), *PackageName);
+						return Cast<UDialogueVoice>(Assets[0].GetAsset());
 					}
-					// Either way nothing to do
-					continue;
 				}
 			}
 		}
-
-		// If we got here then Dialogue Voice didn't exist (although package might have)
-		// It's safe to call CreatePackage either way, it'll return the existing one if needed
-		UPackage* Package = CreatePackage(*PackageName);
-		if (!ensure(Package))
-		{
-			Logger->Logf(ELogVerbosity::Error, TEXT("Failed to create/retrieve package for voice asset %s"), *PackageName);
-		}
-		else
-		{
-			//Logger->Logf(ELogVerbosity::Display, TEXT("Creating voice asset %s"), *PackageName);
-
-			UDialogueVoice* NewVoiceAsset = NewObject<UDialogueVoice>(Package, FName(SanitizedName), Flags);
-			// there's nothing else to create here, voice is mostly a placeholder with the rest set up later by user
-			FAssetRegistryModule::AssetCreated(NewVoiceAsset);
-
-			Script->SetSpeakerVoice(Speaker, NewVoiceAsset);
-			Script->MarkPackageDirty();
-
-			Package->FullyLoad();
-			NewVoiceAsset->MarkPackageDirty();
-		}
-		
 	}
-	
+	return nullptr;
 }
 
-void FSUDSEditorVoiceOverTools::GenerateWaveAssets(USUDSScript* Script, EObjectFlags Flags, FSUDSMessageLogger* Logger)
+void FSUDSEditorVoiceOverTools::GenerateWaveAssets(USUDSScript* Script, EObjectFlags Flags, TMap<FString, UDialogueVoice*> UnsavedVoices, FSUDSMessageLogger* Logger)
 {
 	// We need to identify specific lines of dialogue to specify a wave asset to go with them, which means we
 	// need to use the Text ID, just like we do for translations. This means that really, you shouldn't start to
-	// assign sounds to wave assets until you've written the text IDs back to the script, which is also when you're
-	// update the text on the wave assets if different, and
-	// if there's been a sound asset linked, throw a warning that you'll have to update the sound link. We should document
-	// that you should write back IDs to the script before linking any sound assets, since the IDs can change otherwise,
-	// just like for translation.
-
+	// assign sounds to wave assets until you've written the text IDs back to the script
 	auto Registry = &FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryConstants::ModuleName).Get();
 
 	FString Prefix;
@@ -147,11 +207,116 @@ void FSUDSEditorVoiceOverTools::GenerateWaveAssets(USUDSScript* Script, EObjectF
 		{
 			// We use the TextID to identify a specific line, just like for translation
 			FString TextID = Line->GetTextID();
+
+			// All Dialogue Voice assets will be created in their own package
+			const FString SanitizedName = FString::Printf(TEXT("%s%s"),
+			                                              *Prefix,
+			                                              *ObjectTools::SanitizeObjectName(TextID));
+			const FString PackageName = UPackageTools::SanitizePackageName(ParentDir / SanitizedName);
+
+			UDialogueWave* WaveAsset = nullptr;
+			if (FPackageName::DoesPackageExist(*PackageName))
+			{
+				// Package already exists, so try and import over the top of it, if it doesn't already have a source file path
+				TArray<FAssetData> Assets;
+				if (Registry->GetAssetsByPackageName(*PackageName, Assets))
+				{
+					if (Assets.Num() > 0)
+					{
+						if (!Assets[0].GetAsset()->IsA(UDialogueWave::StaticClass()))
+						{
+							Logger->Logf(ELogVerbosity::Error,
+							             TEXT(
+								             "Asset %s already exists but is not a Dialogue Wave! Cannot replace, please move aside and re-import script."),
+							             *PackageName);
+						}
+						else { WaveAsset = Cast<UDialogueWave>(Assets[0].GetAsset()); }
+						// Either way nothing to do
+						continue;
+					}
+				}
+			}
+
+			UDialogueVoice* SpeakerVoice = nullptr;
+			// Finding speaker assets via FAssetRegistryModule does not work on unsaved assets, so we need to check
+			// the unsaved voices that have been created in the previous step first
+			if (auto pSV = UnsavedVoices.Find(Line->GetSpeakerID()))
+			{
+				SpeakerVoice = *pSV;
+			}
+			if (!SpeakerVoice)
+			{
+				// Now try assets
+				SpeakerVoice = FindSpeakerVoice(Script, Line->GetSpeakerID());
+			}
+			if (!SpeakerVoice)
+			{
+				FString SpeakerPackageName;
+				GetSpeakerVoicePackageName(Script, Line->GetSpeakerID(), SpeakerPackageName);
+				Logger->Logf(ELogVerbosity::Error, TEXT("Error: speaker voice asset for %s is missing, expected to be at %s"), *Line->GetSpeakerID(), *SpeakerPackageName);
+				continue;
+			}
+
+			UPackage* Package = CreatePackage(*PackageName);
+			if (!ensure(Package))
+			{
+				Logger->Logf(ELogVerbosity::Error,
+				             TEXT("Failed to create/retrieve package for wave asset %s"),
+				             *PackageName);
+			}
+			else
+			{
+				FString NativeLangText = Line->GetText().ToString();
+				if (!WaveAsset)
+				{
+					//Logger->Logf(ELogVerbosity::Display, TEXT("Creating wave asset %s"), *PackageName);
+					WaveAsset = NewObject<UDialogueWave>(Package, FName(SanitizedName), Flags);
+					FAssetRegistryModule::AssetCreated(WaveAsset);
+				}
+				else
+				{
+					// We need to check whether we can / want to update the existing asset
+					// It's fine to replace any placeholders we generated (even changing lines / speaker if IDs changed)
+					// It's not OK if the asset has been edited to add more information.
+					if (WaveAsset->ContextMappings.Num() > 0)
+					{
+						auto Mapping = WaveAsset->ContextMappings[0];
+						if (IsValid(Mapping.SoundWave))
+						{
+							// This is OK if the context is what we were going to create anyway, we'll just leave it alone
+							if (Mapping.Context.Speaker != SpeakerVoice ||
+								WaveAsset->SpokenText != NativeLangText)
+							{
+								// No good, user has assigned sound to this dialogue wave, but we need to change it to
+								// a different speaker / line
+								Logger->Logf(ELogVerbosity::Error,
+								             TEXT(
+									             "Cannot replace Dialogue Wave at %s because it has an assigned Sound Wave but the speaker or text has changed."),
+								             *PackageName);
+							}
+							// Either way we do nothing with this wave asset
+							continue;
+						}
+					}
+				}
+
+
+				// Set spoken text - native language only. Dialogue Wave handles the localisation of this separately,
+				// we can't link it to our String Table unfortunately.
+				WaveAsset->SpokenText = NativeLangText;
+				// Set dialogue context
+				// We need a Speaker Voice, we'll leave the sound and targets blank
+				WaveAsset->UpdateContext(WaveAsset->ContextMappings[0], nullptr, SpeakerVoice, TArray<UDialogueVoice*>());
+
+				// Now assign the wave to the line
+				Line->SetWave(WaveAsset);
+				Script->MarkPackageDirty();
+
+				Package->FullyLoad();
+				WaveAsset->MarkPackageDirty();
+			}
 		}
 	}
-
-
-	
 }
 
 PRAGMA_ENABLE_OPTIMIZATION
