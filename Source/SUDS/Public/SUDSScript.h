@@ -38,7 +38,7 @@ protected:
 	TArray<FString> Speakers;
 
 	/// When using VO, Dialogue Voice assets are associated with speaker IDs
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
 	TMap<FString, UDialogueVoice*> SpeakerVoices;
 
 	bool DoesAnyPathAfterLeadToChoice(USUDSScriptNode* FromNode);

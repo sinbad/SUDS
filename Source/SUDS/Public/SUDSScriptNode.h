@@ -48,7 +48,7 @@ protected:
 	UPROPERTY(BlueprintReadOnly)
 	TArray<FSUDSScriptEdge> Edges;
 	/// The line number in the script that this node came from
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, VisibleDefaultsOnly)
 	int SourceLineNo;
 
 

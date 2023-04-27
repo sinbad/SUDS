@@ -16,14 +16,14 @@ class SUDS_API USUDSScriptNodeText : public USUDSScriptNode
 
 protected:
 	/// Identifier of the speaker for text nodes
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, VisibleDefaultsOnly)
 	FString SpeakerID;
 	/// Text, always references a string table. Parameters will not have been completed.
 	/// Note: if you're using voiced dialogue, see the Wave property and its subtitle functionality
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, VisibleDefaultsOnly)
 	FText Text;
 	/// DialogueWave asset link for voiced dialogue
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
 	UDialogueWave* Wave;
 
 	/// Convenience flag to let you know whether this text node MAY HAVE choices attached

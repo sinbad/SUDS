@@ -1,9 +1,11 @@
 ﻿#include "SUDSEditorToolkit.h"
 
 #include "EditorReimportHandler.h"
+#include "ISinglePropertyView.h"
 #include "SUDSDialogue.h"
 #include "SUDSLibrary.h"
 #include "SUDSScript.h"
+#include "SUDSScriptNodeText.h"
 #include "Framework/Text/SlateTextRun.h"
 #include "Styling/StyleColors.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
@@ -27,33 +29,53 @@ void FSUDSEditorToolkit::InitEditor(const TArray<UObject*>& InObjects)
 
 		ReimportDelegateHandle = FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FSUDSEditorToolkit::OnPostReimport);		
 
-		const TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout("SUDSEditorLayout")
+		const TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout("SUDSEditorLayout_v3")
 			->AddArea
 			(
-				FTabManager::NewPrimaryArea()->SetOrientation(Orient_Vertical)
+				FTabManager::NewPrimaryArea()->SetOrientation(Orient_Horizontal)
 				->Split
 				(
 					FTabManager::NewSplitter()
-					->SetSizeCoefficient(0.6f)
+					->SetSizeCoefficient(0.75f)
 					->SetOrientation(Orient_Horizontal)
 					->Split
 					(
-						FTabManager::NewStack()
-						->SetSizeCoefficient(0.8f)
-						->AddTab("SUDSDialogueTab", ETabState::OpenedTab)
+						FTabManager::NewSplitter()
+						->SetSizeCoefficient(0.6f)
+						->SetOrientation(Orient_Vertical)
+						->Split
+						(
+
+						
+							FTabManager::NewStack()
+							->SetSizeCoefficient(0.8f)
+							->AddTab("SUDSDialogueTab", ETabState::OpenedTab)
+						)
+						->Split
+						(
+							FTabManager::NewStack()
+							->SetSizeCoefficient(0.4f)
+							->AddTab("SUDSLogTab", ETabState::OpenedTab)
+						)
 					)
 					->Split
 					(
-						FTabManager::NewStack()
-						->SetSizeCoefficient(0.2f)
-						->AddTab("SUDSVariablesTab", ETabState::OpenedTab)
+						FTabManager::NewSplitter()
+						->SetSizeCoefficient(0.25f)
+						->SetOrientation(Orient_Vertical)
+						->Split
+						(
+							FTabManager::NewStack()
+							->SetSizeCoefficient(0.6f)
+							->AddTab("SUDSVariablesTab", ETabState::OpenedTab)
+						)
+						->Split
+						(
+							FTabManager::NewStack()
+							->SetSizeCoefficient(0.4f)
+							->AddTab("SUDSDetailsTab", ETabState::OpenedTab)
+						)
 					)
-				)
-				->Split
-				(
-					FTabManager::NewStack()
-					->SetSizeCoefficient(0.4f)
-					->AddTab("SUDSLogTab", ETabState::OpenedTab)
 				)
 			);
 		FAssetEditorToolkit::InitAssetEditor(EToolkitMode::Standalone, {}, "SUDSEditor", Layout, true, true, InObjects);
@@ -192,6 +214,41 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 	.SetDisplayName(INVTEXT("Variables"))
 	.SetGroup(WorkspaceMenuCategory.ToSharedRef());
 
+	InTabManager->RegisterTabSpawner("SUDSDetailsTab", FOnSpawnTab::CreateLambda([=](const FSpawnTabArgs&)
+	{
+		FPropertyEditorModule& PropertyEditorModule = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		FDetailsViewArgs DetailsViewArgs;
+		DetailsViewArgs.bShowOptions = false;
+		DetailsViewArgs.bUpdatesFromSelection = false;
+		DetailsViewArgs.bShowPropertyMatrixButton = false;
+		DetailsViewArgs.bAllowSearch = false;
+		DetailsViewArgs.bAllowMultipleTopLevelObjects = true;
+		DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::ENameAreaSettings::HideNameArea;
+		auto DetailView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
+		TArray<UObject*> ObjectsInDetailView;
+		ObjectsInDetailView.Add(Script);
+		for (auto Node : Script->GetNodes())
+		{
+			if (auto TNode = Cast<USUDSScriptNodeText>(Node))
+			{
+				ObjectsInDetailView.Add(TNode);
+			}
+		}
+		DetailView->SetObjects(ObjectsInDetailView, true, true);
+		// Possibly use a SPropertyTable with a custom IPropertyTable to implement variable binding
+		return SNew(SDockTab)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.VAlign(VAlign_Top)
+			[
+				DetailView
+			]
+		];
+	}))
+	.SetDisplayName(INVTEXT("Details"))
+	.SetGroup(WorkspaceMenuCategory.ToSharedRef());
+	
 
 	InTabManager->RegisterTabSpawner("SUDSLogTab", FOnSpawnTab::CreateLambda([=](const FSpawnTabArgs&)
 	{
