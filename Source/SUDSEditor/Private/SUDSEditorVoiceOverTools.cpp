@@ -7,6 +7,7 @@
 #include "SUDSScript.h"
 #include "SUDSScriptNodeText.h"
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "Internationalization/Regex.h"
 #include "Sound/DialogueVoice.h"
 #include "Sound/DialogueWave.h"
 #include "Sound/SoundWave.h"
@@ -207,6 +208,14 @@ void FSUDSEditorVoiceOverTools::GenerateWaveAssets(USUDSScript* Script, EObjectF
 		{
 			// We use the TextID to identify a specific line, just like for translation
 			FString TextID = Line->GetTextID();
+
+			// Remove the '@' characters from the text ID for creating the asset name, they just turn into excessive '_'s
+			const FRegexPattern TextIDPattern(TEXT("\\@([0-9a-fA-F]+)\\@"));
+			FRegexMatcher TextIDRegex(TextIDPattern, TextID);
+			if (TextIDRegex.FindNext())
+			{
+				TextID = TextIDRegex.GetCaptureGroup(1);
+			}
 
 			// All Dialogue Voice assets will be created in their own package
 			const FString SanitizedName = FString::Printf(TEXT("%s%s"),
