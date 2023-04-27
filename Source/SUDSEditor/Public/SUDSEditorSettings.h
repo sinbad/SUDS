@@ -44,6 +44,8 @@ public:
 	FString DialogueVoiceAssetPrefix = "DV_";
 	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Prefix to give Dialogue Wave assets in front of their SpeakerID", RelativeToGameContentDir, LongPackageName))
 	FString DialogueWaveAssetPrefix = "DW_";
+	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "When generating subdirectories and wave asset names from script names, whether to strip characters before the first '_' to avoid including script prefix", RelativeToGameContentDir, LongPackageName))
+	bool StripScriptPrefixesWhenGeneratingNames = true;
 
 	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Whether to auto-generate Dialogue Voice/Wave assets for ALL dialogue scripts on import. Note: you can always generate VO assets manually."))
 	bool AlwaysAutoGenerateVoiceOverAssetsOnImport = false;
@@ -54,9 +56,7 @@ public:
 	USUDSEditorSettings() {}
 
 	bool ShouldGenerateVoiceAssets(const FString& PackagePath) const;
-	FString GetVoiceOutputDir(USUDSScript* Script) const;
 	FString GetVoiceOutputDir(const FString& PackagePath, const FString& ScriptName) const;
-	FString GetWaveOutputDir(USUDSScript* Script) const;
 	FString GetWaveOutputDir(const FString& PackagePath, const FString& ScriptName) const;
 	static FString GetOutputDir(ESUDSAssetLocation Location, const FString& SharedPath, const FString& PackagePath, const FString& ScriptName);
 };

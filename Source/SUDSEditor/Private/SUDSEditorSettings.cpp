@@ -1,7 +1,5 @@
 #include "SUDSEditorSettings.h"
 
-#include "SUDSScript.h"
-
 bool USUDSEditorSettings::ShouldGenerateVoiceAssets(const FString& PackagePath) const
 {
 	if (AlwaysAutoGenerateVoiceOverAssetsOnImport)
@@ -17,24 +15,9 @@ bool USUDSEditorSettings::ShouldGenerateVoiceAssets(const FString& PackagePath) 
 	return false;
 }
 
-FString USUDSEditorSettings::GetVoiceOutputDir(USUDSScript* Script) const
-{
-	const FString PackagePath = FPackageName::GetLongPackagePath(Script->GetOuter()->GetOutermost()->GetPathName());
-	const FString ScriptName = Script->GetName();
-	return GetVoiceOutputDir(PackagePath, ScriptName);
-}
-
 FString USUDSEditorSettings::GetVoiceOutputDir(const FString& PackagePath, const FString& ScriptName) const
 {
 	return GetOutputDir(DialogueVoiceAssetLocation, DialogueVoiceAssetSharedDir.Path, PackagePath, ScriptName);
-}
-
-FString USUDSEditorSettings::GetWaveOutputDir(USUDSScript* Script) const
-{
-	const FString PackagePath = FPackageName::GetLongPackagePath(Script->GetOuter()->GetOutermost()->GetPathName());
-	const FString ScriptName = Script->GetName();
-	return GetWaveOutputDir(PackagePath, ScriptName);
-	
 }
 
 FString USUDSEditorSettings::GetWaveOutputDir(const FString& PackagePath, const FString& ScriptName) const

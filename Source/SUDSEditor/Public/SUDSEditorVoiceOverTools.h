@@ -24,4 +24,9 @@ protected:
 	                               FString& OutPackageName,
 	                               FString& OutAssetName);
 	static UDialogueVoice* FindSpeakerVoice(USUDSScript* Script, const FString& SpeakerID);
+	static FString GetScriptNameAsPrefix(USUDSScript* Script);
+
+	static FString GetVoiceOutputDir(USUDSScript* Script);
+	static FString GetWaveOutputDir(USUDSScript* Script);
+
 };

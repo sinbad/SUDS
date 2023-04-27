@@ -64,7 +64,7 @@ void FSUDSEditorVoiceOverTools::GenerateVoiceAssets(USUDSScript* Script, EObject
 	if (auto Settings = GetDefault<USUDSEditorSettings>())
 	{
 		Prefix = Settings->DialogueVoiceAssetPrefix;
-		ParentDir = Settings->GetVoiceOutputDir(Script);
+		ParentDir = GetVoiceOutputDir(Script);
 	}
 	else
 	{
@@ -145,7 +145,7 @@ bool FSUDSEditorVoiceOverTools::GetSpeakerVoiceAssetNames(USUDSScript* Script,
 	if (auto Settings = GetDefault<USUDSEditorSettings>())
 	{
 		FString Prefix = Settings->DialogueVoiceAssetPrefix;
-		FString ParentDir = Settings->GetVoiceOutputDir(Script);
+		FString ParentDir = GetVoiceOutputDir(Script);
 
 		OutAssetName = FString::Printf(TEXT("%s%s"), *Prefix, *ObjectTools::SanitizeObjectName(SpeakerID));
 		OutPackageName = UPackageTools::SanitizePackageName(ParentDir / OutAssetName);
@@ -193,8 +193,8 @@ void FSUDSEditorVoiceOverTools::GenerateWaveAssets(USUDSScript* Script, EObjectF
 	FString ParentDir;
 	if (auto Settings = GetDefault<USUDSEditorSettings>())
 	{
-		Prefix = FString::Printf(TEXT("%s%s_"), *Settings->DialogueWaveAssetPrefix, *Script->GetName());
-		ParentDir = Settings->GetWaveOutputDir(Script);
+		Prefix = FString::Printf(TEXT("%s%s_"), *Settings->DialogueWaveAssetPrefix, *GetScriptNameAsPrefix(Script));
+		ParentDir = GetWaveOutputDir(Script);
 	}
 	else
 	{
@@ -326,6 +326,51 @@ void FSUDSEditorVoiceOverTools::GenerateWaveAssets(USUDSScript* Script, EObjectF
 			}
 		}
 	}
+}
+
+FString FSUDSEditorVoiceOverTools::GetVoiceOutputDir(USUDSScript* Script)
+{
+	if (auto Settings = GetDefault<USUDSEditorSettings>())
+	{
+		const FString PackagePath = FPackageName::GetLongPackagePath(Script->GetOuter()->GetOutermost()->GetPathName());
+		const FString ScriptPrefix = GetScriptNameAsPrefix(Script);
+		return Settings->GetVoiceOutputDir(PackagePath, ScriptPrefix);
+	}
+	return FString();
+}
+
+FString FSUDSEditorVoiceOverTools::GetWaveOutputDir(USUDSScript* Script)
+{
+	if (auto Settings = GetDefault<USUDSEditorSettings>())
+	{
+		const FString PackagePath = FPackageName::GetLongPackagePath(Script->GetOuter()->GetOutermost()->GetPathName());
+		const FString ScriptPrefix = GetScriptNameAsPrefix(Script);
+		return Settings->GetWaveOutputDir(PackagePath, ScriptPrefix);
+	}
+	return FString();
+}
+
+
+
+FString FSUDSEditorVoiceOverTools::GetScriptNameAsPrefix(USUDSScript* Script)
+{
+	FString Name = Script->GetName();
+
+	if (auto Settings = GetDefault<USUDSEditorSettings>())
+	{
+		if (Settings->StripScriptPrefixesWhenGeneratingNames)
+		{
+			int32 Index = INDEX_NONE;
+			if (Name.FindChar('_', Index))
+			{
+				if (Index < Name.Len() - 1)
+				{
+					Name = Name.RightChop(Index + 1);
+				}
+			}
+		}
+	}	
+	return Name;
 }
 
 PRAGMA_ENABLE_OPTIMIZATION
