@@ -37,11 +37,15 @@ public:
 	virtual void RegisterCommands() override
 	{
 		UI_COMMAND(StartDialogue, "Start Dialogue", "Start/restart dialogue", EUserInterfaceActionType::Button, FInputChord());
+		UI_COMMAND(WriteBackTextIDs, "Write String Keys", "Write string keys back to script source to stabilise for localisation / voice asset links", EUserInterfaceActionType::Button, FInputChord());
+		UI_COMMAND(GenerateVOAssets, "Generate Voice Assets", "Generate DialogueVoice and DialogueWave assets for VO", EUserInterfaceActionType::Button, FInputChord());
 	}
 
 public:
 
 	TSharedPtr<FUICommandInfo> StartDialogue;
+	TSharedPtr<FUICommandInfo> WriteBackTextIDs;
+	TSharedPtr<FUICommandInfo> GenerateVOAssets;
 };
 
 
@@ -315,6 +319,8 @@ private:
 	FSlateColor GetColourForCategory(const FName& Category);
 	void OnPostReimport(UObject* Object, bool bSuccess);
 	void Clear();
+	void WriteBackTextIDs();
+	void GenerateVOAssets();
 
 };
 

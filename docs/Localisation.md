@@ -66,6 +66,11 @@ Right-click on one or more SUDS script assets in the Content Browser and select
 
 ![Write Keys](img/WriteBackStringKeys.png)
 
+You can also access this function for a single script in the toolbar for the
+script asset:
+
+![Write Keys](img/WriteBackStringKeysToolbar.png)
+
 Provided the `.sud` file you used to create the asset can be found in the same 
 location you previously imported it from, this will write back all the string
 keys from the string table on the end of each line it came from (it validates 

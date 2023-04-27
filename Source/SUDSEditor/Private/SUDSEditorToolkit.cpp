@@ -3,7 +3,10 @@
 #include "EditorReimportHandler.h"
 #include "ISinglePropertyView.h"
 #include "SUDSDialogue.h"
+#include "SUDSEditorScriptTools.h"
+#include "SUDSEditorVoiceOverTools.h"
 #include "SUDSLibrary.h"
+#include "SUDSMessageLogger.h"
 #include "SUDSScript.h"
 #include "SUDSScriptNodeText.h"
 #include "Framework/Text/SlateTextRun.h"
@@ -280,6 +283,12 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 	GetToolkitCommands()->MapAction(FSUDSToolbarCommands::Get().StartDialogue,
 		FExecuteAction::CreateSP(this, &FSUDSEditorToolkit::StartDialogue),
 		FCanExecuteAction());
+	GetToolkitCommands()->MapAction(FSUDSToolbarCommands::Get().WriteBackTextIDs,
+		FExecuteAction::CreateSP(this, &FSUDSEditorToolkit::WriteBackTextIDs),
+		FCanExecuteAction());
+	GetToolkitCommands()->MapAction(FSUDSToolbarCommands::Get().GenerateVOAssets,
+		FExecuteAction::CreateSP(this, &FSUDSEditorToolkit::GenerateVOAssets),
+		FCanExecuteAction());
 
 	//RegenerateMenusAndToolbars();
 		
@@ -303,7 +312,7 @@ void FSUDSEditorToolkit::ExtendToolbar(FToolBarBuilder& ToolbarBuilder, TWeakPtr
 #else
 				FEditorStyle::GetStyleSetName(),
 #endif
-				TEXT("BlueprintMerge.NextDiff")));
+				TEXT("Icons.Toolbar.Play")));
 
 		TSharedRef<SWidget> LabelSelectionBox = SNew(SComboButton)
 			.OnGetMenuContent(this, &FSUDSEditorToolkit::GetStartLabelMenu)
@@ -315,6 +324,33 @@ void FSUDSEditorToolkit::ExtendToolbar(FToolBarBuilder& ToolbarBuilder, TWeakPtr
 			];
 
 		ToolbarBuilder.AddWidget(LabelSelectionBox);
+		
+	}
+	ToolbarBuilder.EndSection();
+	
+	ToolbarBuilder.AddSeparator();
+
+	ToolbarBuilder.BeginSection("CachedState");
+	{
+		ToolbarBuilder.AddToolBarButton(FSUDSToolbarCommands::Get().WriteBackTextIDs,
+			NAME_None, TAttribute<FText>(), TAttribute<FText>(),
+			FSlateIcon(
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
+				FAppStyle::GetAppStyleSetName(),
+#else
+				FEditorStyle::GetStyleSetName(),
+#endif
+				TEXT("Icons.Toolbar.Details")));
+
+		ToolbarBuilder.AddToolBarButton(FSUDSToolbarCommands::Get().GenerateVOAssets,
+			NAME_None, TAttribute<FText>(), TAttribute<FText>(),
+			FSlateIcon(
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
+				FAppStyle::GetAppStyleSetName(),
+#else
+				FEditorStyle::GetStyleSetName(),
+#endif
+				TEXT("Icons.Toolbar.Export")));
 		
 	}
 	ToolbarBuilder.EndSection();
@@ -973,6 +1009,33 @@ TSharedRef<ITableRow> FSUDSEditorToolkit::OnGenerateRowForVariable(TSharedPtr<FS
 		.Parent(this)
 		.InitialWidth( VarColumnWidth );
 		
+	
+}
+
+void FSUDSEditorToolkit::WriteBackTextIDs()
+{
+	if (FMessageDialog::Open(EAppMsgType::YesNo,
+	                         FText::FromString(
+		                         "Are you sure you want to write string keys back to this script?"))
+		== EAppReturnType::Yes)
+	{
+		FSUDSMessageLogger Logger;
+		FSUDSEditorScriptTools::WriteBackTextIDs(Script, Logger);
+	}
+
+}
+
+void FSUDSEditorToolkit::GenerateVOAssets()
+{
+	if (FMessageDialog::Open(EAppMsgType::YesNo,
+	                         FText::FromString(
+		                         "Are you sure you want to generate Dialogue Voice / Dialogue Wave assets for this script?"))
+		== EAppReturnType::Yes)
+	{
+		EObjectFlags Flags = RF_Public | RF_Standalone | RF_Transactional;
+		FSUDSMessageLogger Logger;
+		FSUDSEditorVoiceOverTools::GenerateAssets(Script, Flags, &Logger);
+	}
 	
 }
 
