@@ -410,7 +410,7 @@ UDialogueWave* USUDSDialogue::GetWave() const
 	return nullptr;
 }
 
-bool USUDSDialogue::HasWave() const
+bool USUDSDialogue::IsCurrentLineVoiced() const
 {
 	if (CurrentSpeakerNode)
 	{

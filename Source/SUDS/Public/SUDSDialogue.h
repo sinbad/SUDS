@@ -281,7 +281,7 @@ public:
 
 	/// Return whether the current dialogue node has a Dialogue Wave associated with it
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	bool HasWave() const;
+	bool IsCurrentLineVoiced() const;
 
 	/// Get the ID of the current speaker
 	UFUNCTION(BlueprintCallable, BlueprintPure)

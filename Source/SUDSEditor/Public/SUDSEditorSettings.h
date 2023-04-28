@@ -47,10 +47,10 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "When generating subdirectories and wave asset names from script names, whether to strip characters before the first '_' to avoid including script prefix", RelativeToGameContentDir, LongPackageName))
 	bool StripScriptPrefixesWhenGeneratingNames = true;
 
-	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Whether to auto-generate Dialogue Voice/Wave assets for ALL dialogue scripts on import. Note: you can always generate VO assets manually."))
+	UPROPERTY(config, EditAnywhere, Category = SUDS, AdvancedDisplay, meta = (Tooltip = "Whether to auto-generate Dialogue Voice/Wave assets for ALL dialogue scripts on import. Note: you can always generate VO assets manually."))
 	bool AlwaysAutoGenerateVoiceOverAssetsOnImport = false;
 
-	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Auto-generate Dialogue Voice/Wave assets for scripts in these directories (and subdirectories) on import. Note: you can always generate VO assets manually.", RelativeToGameContentDir, LongPackageName))
+	UPROPERTY(config, EditAnywhere, Category = SUDS, AdvancedDisplay, meta = (Tooltip = "Auto-generate Dialogue Voice/Wave assets for scripts in these directories (and subdirectories) on import. Note: you can always generate VO assets manually.", RelativeToGameContentDir, LongPackageName))
 	TArray<FDirectoryPath> DirectoriesToAutoGenerateVoiceOverAssetsOnImport;
 	
 	USUDSEditorSettings() {}

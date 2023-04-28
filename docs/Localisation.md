@@ -129,13 +129,19 @@ for you, which you then complete for the primary language, then use the Localisa
 Dashboard tools to translate the assets.
 
 Note, however, that when using voiced dialogue, there's a bit of duplication in 
-the text, since Dialogue Wave assets have a `SpokenText` string which is used
+the text, since Dialogue Wave assets have their own `SpokenText` string which is used
 to generate subtitles if you have them enabled. This is unfortunately not linked
-to the String Table (it's an `FString`, not `FText`), so translation of this is
-done entirely via Dialogue Wave assets. So if you include both the string table
-and the Dialogue Wave assets in Localisation Dashboard you'll have those strings
-twice if you include both the wave assets and the string tables. So you probably want
-to exclude the string tables of voiced scripts from your Localisation Dashboard
+to the String Table (it's an `FString`, not `FText`), so translation of this text
+done entirely via Dialogue Wave assets. SUDS automatically fills in the SpokenText
+property in the base language for you when [generating voice assets](VoicedDialogue.md).
+
+For subtitles, it's up to you whether you use the string table text directly from the dialogue, 
+or the subtitles from DialogueWave, depending on how you prefer to localise.
+If you localise using the string tables, use the regular `GetText()` method on 
+the dialogue. If you localise via the SpokenText/subtitle values on Dialogue Wave, use
+the `GetLocalizedSubtitle()` method on DialogueWave instead. You should only localise
+one of these to avoid duplication, so if you localise subtitles via Dialogue Wave, 
+you should exclude the string tables of voiced scripts from your Localisation Dashboard
 collection step, e.g. by putting voiced scripts in a different folder to non-voiced
 scripts.
 
