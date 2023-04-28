@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "CoreMinimal.h"
+#include "Sound/DialogueVoice.h"
 #include "UObject/Object.h"
 #include "SUDSScript.generated.h"
 
@@ -35,6 +36,10 @@ protected:
 	/// Array of all speaker IDs found in this script
 	UPROPERTY(BlueprintReadOnly, VisibleDefaultsOnly)
 	TArray<FString> Speakers;
+
+	/// When using VO, Dialogue Voice assets are associated with speaker IDs
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
+	TMap<FString, UDialogueVoice*> SpeakerVoices;
 
 	bool DoesAnyPathAfterLeadToChoice(USUDSScriptNode* FromNode);
 	int RecurseLookForChoice(USUDSScriptNode* CurrNode);
@@ -79,6 +84,13 @@ public:
 
 	/// Get the list of speakers
 	const TArray<FString>& GetSpeakers() const { return Speakers; }
+
+	UFUNCTION(BlueprintCallable)
+	UDialogueVoice* GetSpeakerVoice(const FString& SpeakerID) const;
+
+	/// Set up the speaker voice association
+	void SetSpeakerVoice(const FString& SpeakerID, UDialogueVoice* Voice);
+	const TMap<FString, UDialogueVoice*> GetSpeakerVoices() const  { return SpeakerVoices; }
 
 #if WITH_EDITORONLY_DATA
 	// Import data for this 

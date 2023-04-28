@@ -18,14 +18,15 @@ public:
 	USUDSScriptFactory();
 protected:
 	virtual UObject* FactoryCreateText(UClass* InClass,
-		UObject* InParent,
-		FName InName,
-		EObjectFlags Flags,
-		UObject* Context,
-		const TCHAR* Type,
-		const TCHAR*& Buffer,
-		const TCHAR* BufferEnd,
-		FFeedbackContext* Warn) override;
+	                                   UObject* InParent,
+	                                   FName InName,
+	                                   EObjectFlags Flags,
+	                                   UObject* Context,
+	                                   const TCHAR* Type,
+	                                   const TCHAR*& Buffer,
+	                                   const TCHAR* BufferEnd,
+	                                   FFeedbackContext* Warn) override;
 
+	bool ShouldGenerateVoiceAssets(const FString& PackagePath) const;
 	FSUDSScriptImporter Importer;
 };

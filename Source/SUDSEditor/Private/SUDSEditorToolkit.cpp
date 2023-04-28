@@ -1,11 +1,15 @@
 ﻿#include "SUDSEditorToolkit.h"
 
 #include "EditorReimportHandler.h"
+#include "IDetailRootObjectCustomization.h"
 #include "SUDSDialogue.h"
+#include "SUDSEditorScriptTools.h"
+#include "SUDSEditorVoiceOverTools.h"
 #include "SUDSLibrary.h"
+#include "SUDSMessageLogger.h"
 #include "SUDSScript.h"
+#include "SUDSScriptNodeText.h"
 #include "Framework/Text/SlateTextRun.h"
-#include "Styling/StyleColors.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
 #include "Widgets/Input/SNumericEntryBox.h"
 
@@ -19,6 +23,28 @@ const FName NAME_Start("Start");
 const FName NAME_Finish("Finish");
 
 
+class FSUDSDetailRootObjectCustomization : public  IDetailRootObjectCustomization
+{
+public:
+	virtual TSharedPtr<SWidget> CustomizeObjectHeader(const FDetailsObjectSet& InRootObjectSet,
+		const TSharedPtr<ITableRow>& InTableRow) override
+	{
+		auto Ret = SNew(STextBlock)
+		.Margin(FMargin(10,5))
+		.TextStyle(&FAppStyle::Get().GetWidgetStyle<FTextBlockStyle>("SmallText"));
+		if (auto TN = Cast<USUDSScriptNodeText>(InRootObjectSet.RootObjects[0]))
+		{
+			Ret->SetText(FText::FromString(FString::Printf(TEXT("Speaker Line - ID: %s  Source Line: %d"), *TN->GetTextID(), TN->GetSourceLineNo())));
+		}
+		return Ret;
+	}
+
+	virtual bool ShouldDisplayHeader(const FDetailsObjectSet& InRootObjectSet) const override
+	{
+		return InRootObjectSet.RootObjects[0]->IsA(USUDSScriptNodeText::StaticClass());
+	}
+};
+
 void FSUDSEditorToolkit::InitEditor(const TArray<UObject*>& InObjects)
 {
 	if (InObjects.Num() > 0)
@@ -27,33 +53,53 @@ void FSUDSEditorToolkit::InitEditor(const TArray<UObject*>& InObjects)
 
 		ReimportDelegateHandle = FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FSUDSEditorToolkit::OnPostReimport);		
 
-		const TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout("SUDSEditorLayout")
+		const TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout("SUDSEditorLayout_v3")
 			->AddArea
 			(
-				FTabManager::NewPrimaryArea()->SetOrientation(Orient_Vertical)
+				FTabManager::NewPrimaryArea()->SetOrientation(Orient_Horizontal)
 				->Split
 				(
 					FTabManager::NewSplitter()
-					->SetSizeCoefficient(0.6f)
+					->SetSizeCoefficient(0.75f)
 					->SetOrientation(Orient_Horizontal)
 					->Split
 					(
-						FTabManager::NewStack()
-						->SetSizeCoefficient(0.8f)
-						->AddTab("SUDSDialogueTab", ETabState::OpenedTab)
+						FTabManager::NewSplitter()
+						->SetSizeCoefficient(0.6f)
+						->SetOrientation(Orient_Vertical)
+						->Split
+						(
+
+						
+							FTabManager::NewStack()
+							->SetSizeCoefficient(0.8f)
+							->AddTab("SUDSDialogueTab", ETabState::OpenedTab)
+						)
+						->Split
+						(
+							FTabManager::NewStack()
+							->SetSizeCoefficient(0.4f)
+							->AddTab("SUDSLogTab", ETabState::OpenedTab)
+						)
 					)
 					->Split
 					(
-						FTabManager::NewStack()
-						->SetSizeCoefficient(0.2f)
-						->AddTab("SUDSVariablesTab", ETabState::OpenedTab)
+						FTabManager::NewSplitter()
+						->SetSizeCoefficient(0.25f)
+						->SetOrientation(Orient_Vertical)
+						->Split
+						(
+							FTabManager::NewStack()
+							->SetSizeCoefficient(0.6f)
+							->AddTab("SUDSVariablesTab", ETabState::OpenedTab)
+						)
+						->Split
+						(
+							FTabManager::NewStack()
+							->SetSizeCoefficient(0.4f)
+							->AddTab("SUDSDetailsTab", ETabState::OpenedTab)
+						)
 					)
-				)
-				->Split
-				(
-					FTabManager::NewStack()
-					->SetSizeCoefficient(0.4f)
-					->AddTab("SUDSLogTab", ETabState::OpenedTab)
 				)
 			);
 		FAssetEditorToolkit::InitAssetEditor(EToolkitMode::Standalone, {}, "SUDSEditor", Layout, true, true, InObjects);
@@ -192,6 +238,43 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 	.SetDisplayName(INVTEXT("Variables"))
 	.SetGroup(WorkspaceMenuCategory.ToSharedRef());
 
+	InTabManager->RegisterTabSpawner("SUDSDetailsTab", FOnSpawnTab::CreateLambda([=](const FSpawnTabArgs&)
+	{
+		FPropertyEditorModule& PropertyEditorModule = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		FDetailsViewArgs DetailsViewArgs;
+		DetailsViewArgs.bShowOptions = false;
+		DetailsViewArgs.bUpdatesFromSelection = false;
+		DetailsViewArgs.bShowPropertyMatrixButton = false;
+		DetailsViewArgs.bAllowSearch = false;
+		DetailsViewArgs.bAllowMultipleTopLevelObjects = true;
+		DetailsViewArgs.bShowObjectLabel = false;
+		DetailsViewArgs.bHideSelectionTip = true;
+		auto DetailView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
+		DetailView->SetRootObjectCustomizationInstance(MakeShareable(new FSUDSDetailRootObjectCustomization()));
+		TArray<UObject*> ObjectsInDetailView;
+		ObjectsInDetailView.Add(Script);
+		for (auto Node : Script->GetNodes())
+		{
+			if (auto TNode = Cast<USUDSScriptNodeText>(Node))
+			{
+				ObjectsInDetailView.Add(TNode);
+			}
+		}
+		DetailView->SetObjects(ObjectsInDetailView, true, true);
+		// Possibly use a SPropertyTable with a custom IPropertyTable to implement variable binding
+		return SNew(SDockTab)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.VAlign(VAlign_Top)
+			[
+				DetailView
+			]
+		];
+	}))
+	.SetDisplayName(INVTEXT("Details"))
+	.SetGroup(WorkspaceMenuCategory.ToSharedRef());
+	
 
 	InTabManager->RegisterTabSpawner("SUDSLogTab", FOnSpawnTab::CreateLambda([=](const FSpawnTabArgs&)
 	{
@@ -223,6 +306,12 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 	GetToolkitCommands()->MapAction(FSUDSToolbarCommands::Get().StartDialogue,
 		FExecuteAction::CreateSP(this, &FSUDSEditorToolkit::StartDialogue),
 		FCanExecuteAction());
+	GetToolkitCommands()->MapAction(FSUDSToolbarCommands::Get().WriteBackTextIDs,
+		FExecuteAction::CreateSP(this, &FSUDSEditorToolkit::WriteBackTextIDs),
+		FCanExecuteAction());
+	GetToolkitCommands()->MapAction(FSUDSToolbarCommands::Get().GenerateVOAssets,
+		FExecuteAction::CreateSP(this, &FSUDSEditorToolkit::GenerateVOAssets),
+		FCanExecuteAction());
 
 	//RegenerateMenusAndToolbars();
 		
@@ -246,7 +335,7 @@ void FSUDSEditorToolkit::ExtendToolbar(FToolBarBuilder& ToolbarBuilder, TWeakPtr
 #else
 				FEditorStyle::GetStyleSetName(),
 #endif
-				TEXT("BlueprintMerge.NextDiff")));
+				TEXT("Icons.Toolbar.Play")));
 
 		TSharedRef<SWidget> LabelSelectionBox = SNew(SComboButton)
 			.OnGetMenuContent(this, &FSUDSEditorToolkit::GetStartLabelMenu)
@@ -258,6 +347,33 @@ void FSUDSEditorToolkit::ExtendToolbar(FToolBarBuilder& ToolbarBuilder, TWeakPtr
 			];
 
 		ToolbarBuilder.AddWidget(LabelSelectionBox);
+		
+	}
+	ToolbarBuilder.EndSection();
+	
+	ToolbarBuilder.AddSeparator();
+
+	ToolbarBuilder.BeginSection("CachedState");
+	{
+		ToolbarBuilder.AddToolBarButton(FSUDSToolbarCommands::Get().WriteBackTextIDs,
+			NAME_None, TAttribute<FText>(), TAttribute<FText>(),
+			FSlateIcon(
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
+				FAppStyle::GetAppStyleSetName(),
+#else
+				FEditorStyle::GetStyleSetName(),
+#endif
+				TEXT("Icons.Toolbar.Details")));
+
+		ToolbarBuilder.AddToolBarButton(FSUDSToolbarCommands::Get().GenerateVOAssets,
+			NAME_None, TAttribute<FText>(), TAttribute<FText>(),
+			FSlateIcon(
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION > 0
+				FAppStyle::GetAppStyleSetName(),
+#else
+				FEditorStyle::GetStyleSetName(),
+#endif
+				TEXT("Icons.Toolbar.Export")));
 		
 	}
 	ToolbarBuilder.EndSection();
@@ -916,6 +1032,33 @@ TSharedRef<ITableRow> FSUDSEditorToolkit::OnGenerateRowForVariable(TSharedPtr<FS
 		.Parent(this)
 		.InitialWidth( VarColumnWidth );
 		
+	
+}
+
+void FSUDSEditorToolkit::WriteBackTextIDs()
+{
+	if (FMessageDialog::Open(EAppMsgType::YesNo,
+	                         FText::FromString(
+		                         "Are you sure you want to write string keys back to this script?"))
+		== EAppReturnType::Yes)
+	{
+		FSUDSMessageLogger Logger;
+		FSUDSEditorScriptTools::WriteBackTextIDs(Script, Logger);
+	}
+
+}
+
+void FSUDSEditorToolkit::GenerateVOAssets()
+{
+	if (FMessageDialog::Open(EAppMsgType::YesNo,
+	                         FText::FromString(
+		                         "Are you sure you want to generate Dialogue Voice / Dialogue Wave assets for this script?"))
+		== EAppReturnType::Yes)
+	{
+		EObjectFlags Flags = RF_Public | RF_Standalone | RF_Transactional;
+		FSUDSMessageLogger Logger;
+		FSUDSEditorVoiceOverTools::GenerateAssets(Script, Flags, &Logger);
+	}
 	
 }
 

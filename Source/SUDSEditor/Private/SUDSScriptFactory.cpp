@@ -1,13 +1,14 @@
 ﻿#include "SUDSScriptFactory.h"
 
-#include <string>
-
+#include "SUDSEditorSettings.h"
+#include "SUDSEditorVoiceOverTools.h"
 #include "SUDSMessageLogger.h"
 #include "SUDSScript.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Internationalization/StringTable.h"
-#include "Misc/FeedbackContext.h"
+
+PRAGMA_DISABLE_OPTIMIZATION
 
 USUDSScriptFactory::USUDSScriptFactory()
 {
@@ -62,9 +63,26 @@ UObject* USUDSScriptFactory::FactoryCreateText(UClass* InClass,
 		const FMD5Hash Hash = FSUDSScriptImporter::CalculateHash(Buffer, BufferEnd - Buffer);
 		Result->AssetImportData->Update(FactoryCurrentFilename, Hash);
 
+		// VO assets at import time?
+		if (ShouldGenerateVoiceAssets(LongPackagePath))
+		{
+			FSUDSEditorVoiceOverTools::GenerateAssets(Result, Flags, &Logger);
+		}
+
 	}
 
 	GEditor->GetEditorSubsystem<UImportSubsystem>()->BroadcastAssetPostImport(this, Result);
 
 	return Result;
 }
+
+bool USUDSScriptFactory::ShouldGenerateVoiceAssets(const FString& PackagePath) const
+{
+	if (auto Settings = GetDefault<USUDSEditorSettings>())
+	{
+		return Settings->ShouldGenerateVoiceAssets(PackagePath);
+	}
+	return false;
+}
+
+PRAGMA_ENABLE_OPTIMIZATION

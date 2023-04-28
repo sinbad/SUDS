@@ -66,6 +66,11 @@ Right-click on one or more SUDS script assets in the Content Browser and select
 
 ![Write Keys](img/WriteBackStringKeys.png)
 
+You can also access this function for a single script in the toolbar for the
+script asset:
+
+![Write Keys](img/WriteBackStringKeysToolbar.png)
+
 Provided the `.sud` file you used to create the asset can be found in the same 
 location you previously imported it from, this will write back all the string
 keys from the string table on the end of each line it came from (it validates 
@@ -113,8 +118,36 @@ may change over time. I consider it better to keep the duplication at source to
 maintain full flexibility and you can de-duplicate later in the translation stage 
 if you want.
 
+## Localising Voiced Dialogue
+
+Unreal localises voiced dialogue via the Dialogue Wave asset. See the
+[Asset Localisation](https://docs.unrealengine.com/5.1/en-US/asset-localization-in-unreal-engine/)
+documentation for more details.
+
+SUDS can [generate](VoicedDialogue.md) the base language Dialogue Voice and Dialogue Wave assets 
+for you, which you then complete for the primary language, then use the Localisation
+Dashboard tools to translate the assets.
+
+Note, however, that when using voiced dialogue, there's a bit of duplication in 
+the text, since Dialogue Wave assets have their own `SpokenText` string which is used
+to generate subtitles if you have them enabled. This is unfortunately not linked
+to the String Table (it's an `FString`, not `FText`), so translation of this text
+done entirely via Dialogue Wave assets. SUDS automatically fills in the SpokenText
+property in the base language for you when [generating voice assets](VoicedDialogue.md).
+
+For subtitles, it's up to you whether you use the string table text directly from the dialogue, 
+or the subtitles from DialogueWave, depending on how you prefer to localise.
+If you localise using the string tables, use the regular `GetText()` method on 
+the dialogue. If you localise via the SpokenText/subtitle values on Dialogue Wave, use
+the `GetLocalizedSubtitle()` method on DialogueWave instead. You should only localise
+one of these to avoid duplication, so if you localise subtitles via Dialogue Wave, 
+you should exclude the string tables of voiced scripts from your Localisation Dashboard
+collection step, e.g. by putting voiced scripts in a different folder to non-voiced
+scripts.
+
 ### See Also:
 * [Translator Comments](LocalisationTranslatorComments.md)
+* [Voiced Dialogue](VoicedDialogue.md)
 * [Script Reference](ScriptReference.md)
 * [Running Dialogue](RunningDialogue.md)
 * [Full Documentation Index](../Index.md)

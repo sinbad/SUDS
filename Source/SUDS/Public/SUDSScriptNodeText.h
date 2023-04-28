@@ -4,6 +4,8 @@
 #include "SUDSScriptNode.h"
 #include "SUDSScriptNodeText.generated.h"
 
+class UDialogueWave;
+
 /**
 * A node which contains speaker text 
 */
@@ -14,11 +16,15 @@ class SUDS_API USUDSScriptNodeText : public USUDSScriptNode
 
 protected:
 	/// Identifier of the speaker for text nodes
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, VisibleDefaultsOnly)
 	FString SpeakerID;
 	/// Text, always references a string table. Parameters will not have been completed.
-	UPROPERTY(BlueprintReadOnly)
+	/// Note: if you're using voiced dialogue, see the Wave property and its subtitle functionality
+	UPROPERTY(BlueprintReadOnly, VisibleDefaultsOnly)
 	FText Text;
+	/// DialogueWave asset link for voiced dialogue
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
+	UDialogueWave* Wave;
 
 	/// Convenience flag to let you know whether this text node MAY HAVE choices attached
 	/// If false, there's only one way to proceed from here and no text associated with that
@@ -40,11 +46,13 @@ public:
 	const FString& GetSpeakerID() const { return SpeakerID; }
 	const FText& GetText() const { return Text; }
 	FString GetTextID() const;
+	UDialogueWave* GetWave() const { return Wave; }
 	/// Whether on one select path or another a choice was found
 	/// Doesn't help if within a Gosub as call site may be anywhere
 	bool MayHaveChoices() const { return bHasChoices; }
 
 	void Init(const FString& SpeakerID, const FText& Text, int LineNo);
+	void SetWave(UDialogueWave* InWave) { Wave = InWave; }
 	const FTextFormat& GetTextFormat() const;
 	const TArray<FName>& GetParameterNames() const;	
 	bool HasParameters() const;
