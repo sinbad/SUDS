@@ -167,3 +167,13 @@ When deciding how to process the current dialogue line, you can check for
 voiced lines, and play them, like this:
 
 ![Play Dialogue](img/BPPlayDialogue.png)
+
+You can also use "Play Dialogue at Location" if you want to place the voice in
+real space.
+
+### See Also:
+* [Speaker Lines](SpeakerLines.md)
+* [Localisation](Localisation.md)
+* [Script Reference](ScriptReference.md)
+* [Running Dialogue](RunningDialogue.md)
+* [Full Documentation Index](../Index.md)
