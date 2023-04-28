@@ -90,6 +90,7 @@ public:
 
 	/// Set up the speaker voice association
 	void SetSpeakerVoice(const FString& SpeakerID, UDialogueVoice* Voice);
+	const TMap<FString, UDialogueVoice*> GetSpeakerVoices() const  { return SpeakerVoices; }
 
 #if WITH_EDITORONLY_DATA
 	// Import data for this 
