@@ -94,7 +94,13 @@ void FSUDSEditorVoiceOverTools::GenerateVoiceAssets(USUDSScript* Script, EObject
 											 "Asset %s already exists but is not a Dialogue Voice! Cannot replace, please move aside and re-import script."),
 										 *PackageName);
 						}
-						// Either way nothing to do
+						else
+						{
+							// Make sure we still link the existing voice
+							Script->SetSpeakerVoice(Speaker, Cast<UDialogueVoice>(Assets[0].GetAsset()));
+							Script->MarkPackageDirty();
+						}
+						// Either way nothing more to do
 						continue;
 					}
 				}
@@ -238,10 +244,12 @@ void FSUDSEditorVoiceOverTools::GenerateWaveAssets(USUDSScript* Script, EObjectF
 							             TEXT(
 								             "Asset %s already exists but is not a Dialogue Wave! Cannot replace, please move aside and re-import script."),
 							             *PackageName);
+							continue;
 						}
-						else { WaveAsset = Cast<UDialogueWave>(Assets[0].GetAsset()); }
-						// Either way nothing to do
-						continue;
+						else
+						{
+							WaveAsset = Cast<UDialogueWave>(Assets[0].GetAsset());
+						}
 					}
 				}
 			}
