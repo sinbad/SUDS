@@ -76,10 +76,10 @@ void FSUDSScriptActions::GetActions(const TArray<UObject*>& InObjects, FToolMenu
 	);
 	Section.AddMenuEntry(
 		"GenerateVOAssets",
-		NSLOCTEXT("SUDS", "GenerateVOAssets", "Generate Voice Over Assets"),
+		NSLOCTEXT("SUDS", "GenerateVOAssets", "Generate Voice Assets"),
 		NSLOCTEXT("SUDS",
 				  "GenerateVOAssetsTooltip",
-				  "Generate Dialogue Voice / Dialogue Wave assets for this script"),
+				  "Generate Dialogue Voice / Dialogue Wave assets for the selected scripts"),
 		FSlateIcon(FAppStyle::GetAppStyleSetName(), "Icons.Toolbar.Export"),
 		FUIAction(
 			FExecuteAction::CreateSP(this, &FSUDSScriptActions::GenerateVOAssets, Scripts),
