@@ -1,7 +1,7 @@
 ﻿#include "SUDSEditorToolkit.h"
 
 #include "EditorReimportHandler.h"
-#include "ISinglePropertyView.h"
+#include "IDetailRootObjectCustomization.h"
 #include "SUDSDialogue.h"
 #include "SUDSEditorScriptTools.h"
 #include "SUDSEditorVoiceOverTools.h"
@@ -10,7 +10,6 @@
 #include "SUDSScript.h"
 #include "SUDSScriptNodeText.h"
 #include "Framework/Text/SlateTextRun.h"
-#include "Styling/StyleColors.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
 #include "Widgets/Input/SNumericEntryBox.h"
 
@@ -23,6 +22,28 @@ const FName NAME_Event("Event");
 const FName NAME_Start("Start");
 const FName NAME_Finish("Finish");
 
+
+class FSUDSDetailRootObjectCustomization : public  IDetailRootObjectCustomization
+{
+public:
+	virtual TSharedPtr<SWidget> CustomizeObjectHeader(const FDetailsObjectSet& InRootObjectSet,
+		const TSharedPtr<ITableRow>& InTableRow) override
+	{
+		auto Ret = SNew(STextBlock)
+		.Margin(FMargin(10,5))
+		.TextStyle(&FAppStyle::Get().GetWidgetStyle<FTextBlockStyle>("SmallText"));
+		if (auto TN = Cast<USUDSScriptNodeText>(InRootObjectSet.RootObjects[0]))
+		{
+			Ret->SetText(FText::FromString(FString::Printf(TEXT("Speaker Line - ID: %s  Source Line: %d"), *TN->GetTextID(), TN->GetSourceLineNo())));
+		}
+		return Ret;
+	}
+
+	virtual bool ShouldDisplayHeader(const FDetailsObjectSet& InRootObjectSet) const override
+	{
+		return InRootObjectSet.RootObjects[0]->IsA(USUDSScriptNodeText::StaticClass());
+	}
+};
 
 void FSUDSEditorToolkit::InitEditor(const TArray<UObject*>& InObjects)
 {
@@ -226,8 +247,10 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 		DetailsViewArgs.bShowPropertyMatrixButton = false;
 		DetailsViewArgs.bAllowSearch = false;
 		DetailsViewArgs.bAllowMultipleTopLevelObjects = true;
-		DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::ENameAreaSettings::HideNameArea;
+		DetailsViewArgs.bShowObjectLabel = false;
+		DetailsViewArgs.bHideSelectionTip = true;
 		auto DetailView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
+		DetailView->SetRootObjectCustomizationInstance(MakeShareable(new FSUDSDetailRootObjectCustomization()));
 		TArray<UObject*> ObjectsInDetailView;
 		ObjectsInDetailView.Add(Script);
 		for (auto Node : Script->GetNodes())
