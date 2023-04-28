@@ -7,6 +7,7 @@
 #include "SUDSScriptNodeGosub.h"
 #include "SUDSScriptNodeSet.h"
 #include "SUDSScriptNodeText.h"
+#include "Sound/DialogueWave.h"
 
 DEFINE_LOG_CATEGORY(LogSUDSDialogue);
 
@@ -399,6 +400,26 @@ FText USUDSDialogue::GetText()
 	return DummyText;
 }
 
+UDialogueWave* USUDSDialogue::GetWave() const
+{
+	if (CurrentSpeakerNode)
+	{
+		return CurrentSpeakerNode->GetWave();
+	}
+
+	return nullptr;
+}
+
+bool USUDSDialogue::HasWave() const
+{
+	if (CurrentSpeakerNode)
+	{
+		return IsValid(CurrentSpeakerNode->GetWave());
+	}
+
+	return false;
+}
+
 const FString& USUDSDialogue::GetSpeakerID() const
 {
 	if (CurrentSpeakerNode)
@@ -438,6 +459,15 @@ FText USUDSDialogue::GetSpeakerDisplayName() const
 		}
 	}
 	return CurrentSpeakerDisplayName;
+}
+
+UDialogueVoice* USUDSDialogue::GetSpeakerVoice() const
+{
+	if (CurrentSpeakerNode)
+	{
+		return BaseScript->GetSpeakerVoice(CurrentSpeakerNode->GetSpeakerID());
+	}
+	return nullptr;
 }
 
 USUDSScriptNode* USUDSDialogue::GetNextNode(USUDSScriptNode* Node)

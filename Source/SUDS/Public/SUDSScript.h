@@ -86,7 +86,7 @@ public:
 	const TArray<FString>& GetSpeakers() const { return Speakers; }
 
 	UFUNCTION(BlueprintCallable)
-	UDialogueVoice* GetSpeakerVoice(const FString& SpeakerID);
+	UDialogueVoice* GetSpeakerVoice(const FString& SpeakerID) const;
 
 	/// Set up the speaker voice association
 	void SetSpeakerVoice(const FString& SpeakerID, UDialogueVoice* Voice);
