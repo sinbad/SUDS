@@ -214,4 +214,204 @@ bool FTestNestedGosub::RunTest(const FString& Parameters)
 }
 
 
+
+const FString GotoBetweenSpeakerAndChoiceInput = R"RAWSUD(
+Player: Hello there
+[if {SkipChoices}]
+	[goto end]
+[endif]
+* Option A
+* Option B
+)RAWSUD";
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestGotoBetweenSpeakerAndChoice1,
+	"SUDSTest.TestGotoBetweenSpeakerAndChoice1",
+	EAutomationTestFlags::EditorContext |
+	EAutomationTestFlags::ClientContext |
+	EAutomationTestFlags::ProductFilter)
+
+
+
+bool FTestGotoBetweenSpeakerAndChoice1::RunTest(const FString& Parameters)
+{
+	FSUDSMessageLogger Logger(false);
+	FSUDSScriptImporter Importer;
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(GotoBetweenSpeakerAndChoiceInput), GotoBetweenSpeakerAndChoiceInput.Len(), "GotoBetweenSpeakerAndChoiceInput", &Logger, true));
+
+	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
+	const ScopedStringTableHolder StringTableHolder;
+	Importer.PopulateAsset(Script, StringTableHolder.StringTable);
+
+	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
+	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
+	Dlg->Start();
+
+
+	if (TestEqual("Choice Count", Dlg->GetNumberOfChoices(), 2))
+	{
+		TestEqual("Choice 1", Dlg->GetChoiceText(0).ToString(), "Option A");
+		TestEqual("Choice 2", Dlg->GetChoiceText(1).ToString(), "Option B");
+	}
+
+	Script->MarkAsGarbage();
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestGotoBetweenSpeakerAndChoice2,
+	"SUDSTest.TestGotoBetweenSpeakerAndChoice2",
+	EAutomationTestFlags::EditorContext |
+	EAutomationTestFlags::ClientContext |
+	EAutomationTestFlags::ProductFilter)
+
+
+
+bool FTestGotoBetweenSpeakerAndChoice2::RunTest(const FString& Parameters)
+{
+	FSUDSMessageLogger Logger(false);
+	FSUDSScriptImporter Importer;
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(GotoBetweenSpeakerAndChoiceInput), GotoBetweenSpeakerAndChoiceInput.Len(), "GotoBetweenSpeakerAndChoiceInput", &Logger, true));
+
+	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
+	const ScopedStringTableHolder StringTableHolder;
+	Importer.PopulateAsset(Script, StringTableHolder.StringTable);
+
+	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
+	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
+	Dlg->SetVariableBoolean("SkipChoices", true);
+	Dlg->Start();
+
+
+	TestDialogueText(this, "Start node", Dlg, "Player", "Hello there");
+	TestTrue("Plain continue", Dlg->IsSimpleContinue());
+
+	Script->MarkAsGarbage();
+	return true;
+}
+
+
+const FString GosubBetweenSpeakerAndChoiceInput1 = R"RAWSUD(
+Player: Hello there
+[gosub MaybeSkipChoices]
+* Option A
+* Option B
+[goto end]
+
+:MaybeSkipChoices
+[if {SkipChoices}]
+    [goto end]
+[endif]
+[return]
+)RAWSUD";
+
+const FString GosubBetweenSpeakerAndChoiceInput2 = R"RAWSUD(
+Player: Hello there
+[gosub PrintDebug]
+[gosub MaybeSkipChoices]
+* Option A
+* Option B
+[goto end]
+
+:PrintDebug
+Debug: SkipChoices is {SkipChoices}
+[return]
+
+:MaybeSkipChoices
+[if {SkipChoices}]
+    [goto end]
+[endif]
+Speaker: Another sentence.
+[return]
+)RAWSUD";
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestGosubBetweenSpeakerAndChoice1,
+								 "SUDSTest.TestGosubBetweenSpeakerAndChoice1",
+								 EAutomationTestFlags::EditorContext |
+								 EAutomationTestFlags::ClientContext |
+								 EAutomationTestFlags::ProductFilter)
+
+
+
+bool FTestGosubBetweenSpeakerAndChoice1::RunTest(const FString& Parameters)
+{
+	FSUDSMessageLogger Logger(false);
+	FSUDSScriptImporter Importer;
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(GosubBetweenSpeakerAndChoiceInput1), GosubBetweenSpeakerAndChoiceInput1.Len(), "GosubBetweenSpeakerAndChoiceInput1", &Logger, true));
+
+	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
+	const ScopedStringTableHolder StringTableHolder;
+	Importer.PopulateAsset(Script, StringTableHolder.StringTable);
+
+	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
+	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
+	Dlg->Start();
+
+	
+	TestDialogueText(this, "Start node", Dlg, "Player", "Hello there");
+	if (TestEqual("Choice Count", Dlg->GetNumberOfChoices(), 2))
+	{
+		TestEqual("Choice 1", Dlg->GetChoiceText(0).ToString(), "Option A");
+		TestEqual("Choice 2", Dlg->GetChoiceText(1).ToString(), "Option B");
+	}
+
+	// Now test the true case
+	Dlg->SetVariableBoolean("SkipChoices", true);
+	Dlg->Restart(false);
+	TestDialogueText(this, "Start node", Dlg, "Player", "Hello there");
+	TestTrue("Plain continue", Dlg->IsSimpleContinue());	
+
+	Script->MarkAsGarbage();
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestGosubBetweenSpeakerAndChoice2,
+								 "SUDSTest.TestGosubBetweenSpeakerAndChoice2",
+								 EAutomationTestFlags::EditorContext |
+								 EAutomationTestFlags::ClientContext |
+								 EAutomationTestFlags::ProductFilter)
+
+
+
+bool FTestGosubBetweenSpeakerAndChoice2::RunTest(const FString& Parameters)
+{
+	FSUDSMessageLogger Logger(false);
+	FSUDSScriptImporter Importer;
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(GosubBetweenSpeakerAndChoiceInput2), GosubBetweenSpeakerAndChoiceInput2.Len(), "GosubBetweenSpeakerAndChoiceInput2", &Logger, true));
+
+	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
+	const ScopedStringTableHolder StringTableHolder;
+	Importer.PopulateAsset(Script, StringTableHolder.StringTable);
+
+	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
+	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
+	Dlg->Start();
+
+	
+	TestDialogueText(this, "Start node", Dlg, "Player", "Hello there");
+	// in this case, there's another speaker line in both nested gosubs so the choices are actually associated with the
+	// last of those.
+	TestTrue("Plain continue", Dlg->Continue());
+	TestDialogueText(this, "Gosub 1 speaker node", Dlg, "Debug", "SkipChoices is {SkipChoices}");
+	TestTrue("Plain continue", Dlg->Continue());
+	TestDialogueText(this, "Gosub 2 speaker node", Dlg, "Speaker", "Another sentence.");
+	
+	if (TestEqual("Choice Count", Dlg->GetNumberOfChoices(), 2))
+	{
+		TestEqual("Choice 1", Dlg->GetChoiceText(0).ToString(), "Option A");
+		TestEqual("Choice 2", Dlg->GetChoiceText(1).ToString(), "Option B");
+	}
+
+	// Now test the true case
+	Dlg->SetVariableBoolean("SkipChoices", true);
+	Dlg->Restart(false);
+	TestDialogueText(this, "Start node", Dlg, "Player", "Hello there");
+	TestTrue("Plain continue", Dlg->Continue());
+	TestDialogueText(this, "Gosub 1 speaker node", Dlg, "Debug", "SkipChoices is 1");
+	TestTrue("Plain continue", Dlg->IsSimpleContinue());	
+	
+
+	Script->MarkAsGarbage();
+	return true;
+}
+
+
 PRAGMA_ENABLE_OPTIMIZATION

@@ -50,7 +50,7 @@ Dialogue always pauses at [speaker lines](SpeakerLines.md). From here you can
 access:
 
 * The speaker ID / display name
-* The speech text
+* The speech text (or [voiced dialogue](VoicedDialogue.md))
 * Whether there are choices, and if so what those choices are
 
 ![Common data](img/BPCommonDlgData.png)
@@ -114,6 +114,7 @@ the [SUDS Example Project](https://github.com/sinbad/SUDSExample).
 ### See Also:
 * [Variables](Variables.md)
 * [Testing Scripts](Testing.md)
+* [Voiced Dialogue](VoicedDialogue.md)
 * [Script Reference](ScriptReference.md)
 * [Localisation](Localisation.md)
 * [SUDS Example Project](https://github.com/sinbad/SUDSExample)

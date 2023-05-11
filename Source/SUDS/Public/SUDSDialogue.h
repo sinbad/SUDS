@@ -11,6 +11,8 @@ class USUDSScriptNodeText;
 struct FSUDSScriptEdge;
 class USUDSScriptNode;
 class USUDSScript;
+class UDialogueWave;
+class UDialogueVoice;
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogueSpeakerLine, class USUDSDialogue*, Dialogue);
@@ -169,13 +171,14 @@ protected:
 	mutable FText CurrentSpeakerDisplayName;
 	/// All valid choices
 	TArray<FSUDSScriptEdge> CurrentChoices;
+	int CurrentSourceLineNo;
 	static const FText DummyText;
 	static const FString DummyString;
 
 	void InitVariables();
 	void RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* FromNode, bool bRaiseAtEnd);
 	const USUDSScriptNode* WalkToNextChoiceNode(USUDSScriptNode* FromNode, bool bExecute);
-	const USUDSScriptNode* RecurseWalkToNextChoiceOrTextNode(USUDSScriptNode* Node, bool bExecute, int GosubReturnSearchDepth);
+	USUDSScriptNode* RecurseWalkToNextChoiceOrTextNode(USUDSScriptNode* Node, bool bExecute, TArray<USUDSScriptNodeGosub*>& LocalGosubStack);
 	const USUDSScriptNode* RunUntilNextChoiceNode(USUDSScriptNode* FromTextNode);
 	const USUDSScriptNode* FindNextChoiceNode(USUDSScriptNode* FromNode);
 	void SetCurrentSpeakerNode(USUDSScriptNodeText* Node, bool bQuietly);
@@ -222,7 +225,7 @@ public:
 	//		UE_LOG(LogTemp, Warning, TEXT("*********** Destroyed Dialogue!"));
 	// }
 	void Initialise(const USUDSScript* Script);
-
+	
 	/// Get the script asset this dialogue is based on
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	const USUDSScript* GetScript() const { return BaseScript; }
@@ -271,6 +274,15 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	FText GetText();
 
+	/// Get the DialogueWave associated with the current dialogue node
+	/// Returns null if there is no wave for this line
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UDialogueWave* GetWave() const;
+
+	/// Return whether the current dialogue node has a Dialogue Wave associated with it
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool IsCurrentLineVoiced() const;
+
 	/// Get the ID of the current speaker
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	const FString& GetSpeakerID() const;
@@ -278,6 +290,10 @@ public:
 	/// Get the display name of the current speaker
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	FText GetSpeakerDisplayName() const;
+
+	/// Get the Dialogue Voice belonging to the current speaker, if voiced (Null otherwise)
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UDialogueVoice* GetSpeakerVoice() const;
 
 	/**
 	 * Get the number of choices available from this node.
