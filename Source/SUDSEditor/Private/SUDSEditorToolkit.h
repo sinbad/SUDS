@@ -265,6 +265,7 @@ private:
 	float VarColumnWidth = 120;
 	float PrefixColumnWidth = 100;
 	FName StartLabel = NAME_None;
+	bool bResetVarsOnStart = true;
 	FDelegateHandle ReimportDelegateHandle;
 	// FSUDSEditorDialogueRow needs to held by a TSharedPtr for SListView
 	TSharedPtr<SListView<TSharedPtr<FSUDSEditorOutputRow>>> OutputListView;
@@ -290,6 +291,8 @@ private:
 	TSharedRef<class SWidget> GetStartLabelMenu();
 	FText GetSelectedStartLabel() const;
 	void OnStartLabelSelected(FName Label);
+	ECheckBoxState GetResetVarsCheckState() const;
+	void OnResetVarsCheckStateChanged(ECheckBoxState NewState);
 	FReply AddVariableClicked();
 	void UpdateVariables();
 	void StartDialogue();

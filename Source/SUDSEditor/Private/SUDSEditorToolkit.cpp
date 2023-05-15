@@ -2,6 +2,7 @@
 
 #include "EditorReimportHandler.h"
 #include "IDetailRootObjectCustomization.h"
+#include "IDocumentation.h"
 #include "SUDSDialogue.h"
 #include "SUDSEditorScriptTools.h"
 #include "SUDSEditorVoiceOverTools.h"
@@ -347,6 +348,21 @@ void FSUDSEditorToolkit::ExtendToolbar(FToolBarBuilder& ToolbarBuilder, TWeakPtr
 			];
 
 		ToolbarBuilder.AddWidget(LabelSelectionBox);
+
+		ToolbarBuilder.AddWidget(SNew(STextBlock)
+			.Text(FText::FromString(TEXT("Reset Variables:")))
+			.Margin(FMargin(10, 7, 10, 5)));
+		TSharedPtr<SToolTip> ResetTooltip = IDocumentation::Get()->CreateToolTip(
+			FText::FromString(TEXT(
+				"Whether to reset variable state created  by the script (note: vars manually created in this editor are never reset, delete them yourself)")),
+			NULL,
+			"",
+			TEXT("ResetVars"));
+		TSharedRef<SWidget> ResetVarsCheckbox = SNew(SCheckBox)
+			.ToolTip(ResetTooltip)
+			.IsChecked(this, &FSUDSEditorToolkit::GetResetVarsCheckState)
+			.OnCheckStateChanged(this, &FSUDSEditorToolkit::OnResetVarsCheckStateChanged);
+		ToolbarBuilder.AddWidget(ResetVarsCheckbox);
 		
 	}
 	ToolbarBuilder.EndSection();
@@ -410,6 +426,16 @@ FText FSUDSEditorToolkit::GetSelectedStartLabel() const
 {
 	return FText::Format(INVTEXT("From: {0}"),
 		StartLabel.IsNone() ? INVTEXT("Beginning") : FText::FromName(StartLabel));
+}
+
+ECheckBoxState FSUDSEditorToolkit::GetResetVarsCheckState() const
+{
+	return bResetVarsOnStart ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+void FSUDSEditorToolkit::OnResetVarsCheckStateChanged(ECheckBoxState NewState)
+{
+	bResetVarsOnStart = NewState == ECheckBoxState::Checked;
 }
 
 void FSUDSEditorToolkit::UnregisterTabSpawners(const TSharedRef<FTabManager>& InTabManager)
@@ -509,7 +535,8 @@ void FSUDSEditorToolkit::StartDialogue()
 	else
 	{
 		// Reset things manually so we can set manual override vars
-		Dialogue->ResetState();
+		if (bResetVarsOnStart)
+			Dialogue->ResetState();
 	}
 	
 	// Set manual override vars before we start
