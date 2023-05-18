@@ -67,7 +67,7 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 			if (SubstringEndIndex != INDEX_NONE)
 			{
 				const int32 SubstringLength = SubstringEndIndex - SubstringBeginIndex;
-				FStringView Line = MakeStringView(Start + SubstringBeginIndex, SubstringLength);
+				FStringView Line = FStringView(Start + SubstringBeginIndex, SubstringLength);
 				if (!ParseLine(Line, LineNumber++, NameForErrors, Logger, bSilent))
 				{
 					// Abort, error
@@ -88,7 +88,7 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 
 		// Add any remaining characters after the last delimiter.
 		const int32 SubstringLength = Length - SubstringBeginIndex;
-		const FStringView Line = MakeStringView(Start + SubstringBeginIndex, SubstringLength);
+		const FStringView Line = FStringView(Start + SubstringBeginIndex, SubstringLength);
 		bImportedOK = ParseLine(Line, LineNumber++, NameForErrors, Logger, bSilent) && bImportedOK;
 	}
 
