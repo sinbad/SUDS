@@ -135,6 +135,7 @@ Player: Well, that's all for now. This should appear for all paths as a fall-thr
 NPC: Bye!
 )RAWSUD";
 
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestSimpleParsing,
                                  "SUDSTest.TestSimpleParsing",
                                  EAutomationTestFlags::EditorContext |
@@ -909,4 +910,37 @@ bool FTestPartiallyLocalised::RunTest(const FString& Parameters)
 	
 	return true;
 }
+
+const FString ProblemChoiceInput = R"RAWSUD(
+
+NPC: Well, hello there. This is a test.
+:choice
+  * A test?
+		Player: Yes!
+		* This is a mistake; goto goes direct to another choice
+			[goto choice]
+NPC: Bye!
+)RAWSUD";
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestParseChoiceProblem,
+								 "SUDSTest.TestParseChoiceProblem",
+								 EAutomationTestFlags::EditorContext |
+								 EAutomationTestFlags::ClientContext |
+								 EAutomationTestFlags::ProductFilter)
+
+
+bool FTestParseChoiceProblem::RunTest(const FString& Parameters)
+{
+	FSUDSMessageLogger Logger(false);
+	FSUDSScriptImporter Importer;
+	TestFalse("Import should fail", Importer.ImportFromBuffer(GetData(ProblemChoiceInput), ProblemChoiceInput.Len(), "ProblemChoiceInput", &Logger, true));
+
+	if (TestTrue("Logger should have registered errors", Logger.HasErrors()))
+	{
+		FText ErrMsg = Logger.GetErrorMessages()[0]->ToText();
+		TestTrue("Error should contain 'Choices MUST show another speaker line'", ErrMsg.ToString().Contains("Choices MUST show another speaker line"));
+	}
+	return true;
+}
+
 PRAGMA_ENABLE_OPTIMIZATION

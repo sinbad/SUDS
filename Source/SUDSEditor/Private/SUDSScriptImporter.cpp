@@ -95,7 +95,7 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 	ConnectRemainingNodes(HeaderTree, NameForErrors, Logger, bSilent);
 	ConnectRemainingNodes(BodyTree, NameForErrors, Logger, bSilent);
 
-	//bImportedOK = PostImportSanityCheck(NameForErrors, Logger, bSilent) && bImportedOK;
+	bImportedOK = PostImportSanityCheck(NameForErrors, Logger, bSilent) && bImportedOK;
 
 	return bImportedOK;
 	
@@ -1627,23 +1627,32 @@ bool FSUDSScriptImporter::ChoiceNodeCheckPaths(const FSUDSParsedNode& ChoiceNode
                                                FSUDSMessageLogger* Logger,
                                                bool bSilent)
 {
+	return RecurseChoiceNodeCheckPaths(ChoiceNode, ChoiceNode, NameForErrors, Logger, bSilent);
+}
+
+bool FSUDSScriptImporter::RecurseChoiceNodeCheckPaths(const FSUDSParsedNode& OrigChoiceNode,
+	const FSUDSParsedNode& CurrChoiceNode,
+	const FString& NameForErrors,
+	FSUDSMessageLogger* Logger,
+	bool bSilent)
+{
 	bool bOK = true;
-	for (const auto& Edge: ChoiceNode.Edges)
+	for (const auto& Edge: CurrChoiceNode.Edges)
 	{
 		// We want to make sure that every choice path leads to a speaker line, before it leads to another choice
 		// A choice that leads directly to another choice can't be properly represented in dialogue; choices have to
 		// be anchored by speaker lines so proceeding to another choice directly after a choice is made is wrong
 		// Usually this will be caused by a bad goto but could also be just bad nesting
 		// Every path has to lead to a speaker node before a choice
-		bOK = RecurseChoiceNodeCheckPaths(ChoiceNode, Edge, NameForErrors, Logger, bSilent) && bOK;
+		bOK = RecurseChoiceNodeCheckPaths(OrigChoiceNode, Edge, NameForErrors, Logger, bSilent) && bOK;
 	}
 	return bOK;
 }
 
 bool FSUDSScriptImporter::RecurseChoiceNodeCheckPaths(const FSUDSParsedNode& ChoiceNode, const FSUDSParsedEdge& Edge,
-	const FString& NameForErrors,
-	FSUDSMessageLogger* Logger,
-	bool bSilent)
+                                                      const FString& NameForErrors,
+                                                      FSUDSMessageLogger* Logger,
+                                                      bool bSilent)
 {
 	const FSUDSParsedNode* TargetNode = GetNode(Edge.TargetNodeIdx);
 	while (TargetNode)
@@ -1665,11 +1674,23 @@ bool FSUDSScriptImporter::RecurseChoiceNodeCheckPaths(const FSUDSParsedNode& Cho
 			return false;
 		case ESUDSParsedNodeType::Select:
 			{
-				// Recurse
+				// Recurse selects; but in this case we can have nested choices underneath
 				bool bOK = true;
 				for (const auto& SelEdge : TargetNode->Edges)
 				{
-					bOK = RecurseChoiceNodeCheckPaths(ChoiceNode, SelEdge, NameForErrors, Logger, bSilent) && bOK;
+					const auto SelTarget = GetNode(SelEdge.TargetNodeIdx);
+					if (SelTarget)
+					{
+						if (SelTarget->NodeType == ESUDSParsedNodeType::Choice)
+						{
+							// First level of nested choices is OK; they will be combined with the original choice
+							// We don't need to recurse here since this choice will itself
+						}
+						else
+						{
+							bOK = RecurseChoiceNodeCheckPaths(ChoiceNode, SelEdge, NameForErrors, Logger, bSilent);
+						}
+					}
 				}
 				return bOK;
 			}
@@ -1683,16 +1704,13 @@ bool FSUDSScriptImporter::RecurseChoiceNodeCheckPaths(const FSUDSParsedNode& Cho
 			break;
 		case ESUDSParsedNodeType::Gosub:
 		case ESUDSParsedNodeType::Return:
-			// We can't really check the gosub/return statically
+			// We can't really check the gosub/return statically, this will be a runtime error
 			break;
 		case ESUDSParsedNodeType::Goto:
 			{
-				// Follow the goto
+				// Follow the goto (if end, will result in null)
 				const int GotoIdx = GetGotoTargetNodeIndex(BodyTree, TargetNode->Identifier);
-				if (GotoIdx != -1)
-				{
-					TargetNode = GetNode(GotoIdx);
-				}
+				TargetNode = GetNode(GotoIdx);
 				break;
 			}
 		}

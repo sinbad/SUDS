@@ -431,6 +431,7 @@ protected:
 	                          const FString& NameForErrors,
 	                          FSUDSMessageLogger* Logger,
 	                          bool bSilent);
+	bool RecurseChoiceNodeCheckPaths(const FSUDSParsedNode& OrigChoiceNode, const FSUDSParsedNode& CurrChoiceNode, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent);
 	bool RecurseChoiceNodeCheckPaths(const FSUDSParsedNode& ChoiceNode, const FSUDSParsedEdge& Edge, const FString& NameForErrors, FSUDSMessageLogger*
 	                                 Logger,
 	                                 bool bSilent);

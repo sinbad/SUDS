@@ -15,6 +15,7 @@ public:
 	bool HasErrors() const;
 	int NumErrors() const;
 	
+	bool GetWriteToMessageLog() const { return bWriteToMessageLog; }
 	void AddMessage(EMessageSeverity::Type Severity, const FText& Text);
 	template <typename FmtType, typename... Types>
 	FORCEINLINE void Logf(ELogVerbosity::Type Verbosity, const FmtType& Fmt, Types... Args)
@@ -33,4 +34,7 @@ public:
 		}
 		AddMessage(Sev, FText::FromString(FString::Printf(Fmt, Args...)));
 	}
+
+	const TArray<TSharedRef<FTokenizedMessage>>& GetErrorMessages() const { return ErrorMessages; }
+
 };
