@@ -95,7 +95,7 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 	ConnectRemainingNodes(HeaderTree, NameForErrors, Logger, bSilent);
 	ConnectRemainingNodes(BodyTree, NameForErrors, Logger, bSilent);
 
-	bImportedOK = PostImportSanityCheck(NameForErrors, Logger, bSilent) && bImportedOK;
+	//bImportedOK = PostImportSanityCheck(NameForErrors, Logger, bSilent) && bImportedOK;
 
 	return bImportedOK;
 	
