@@ -426,6 +426,14 @@ protected:
 	void SetFallthroughForNewNode(FSUDSScriptImporter::ParsedTree& Tree, FSUDSParsedNode& NewNode);
 	int AppendNode(ParsedTree& Tree, const FSUDSParsedNode& InNode);
 	bool SelectNodeIsMissingElsePath(const FSUDSScriptImporter::ParsedTree& Tree, const FSUDSParsedNode& Node);
+	bool PostImportSanityCheck(const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent);
+	bool ChoiceNodeCheckPaths(const FSUDSParsedNode& ChoiceNode,
+	                          const FString& NameForErrors,
+	                          FSUDSMessageLogger* Logger,
+	                          bool bSilent);
+	bool RecurseChoiceNodeCheckPaths(const FSUDSParsedNode& ChoiceNode, const FSUDSParsedEdge& Edge, const FString& NameForErrors, FSUDSMessageLogger*
+	                                 Logger,
+	                                 bool bSilent);
 	void ConnectRemainingNodes(ParsedTree& Tree, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent);
 	int FindFallthroughNodeIndex(ParsedTree& Tree, int StartNodeIndex, const FString& FromChoicePath, const FString& FromConditionalPath);
 	void RetrieveAndRemoveOrGenerateTextID(FStringView& InOutLine, FString& OutTextID);

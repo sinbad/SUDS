@@ -95,6 +95,8 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 	ConnectRemainingNodes(HeaderTree, NameForErrors, Logger, bSilent);
 	ConnectRemainingNodes(BodyTree, NameForErrors, Logger, bSilent);
 
+	bImportedOK = PostImportSanityCheck(NameForErrors, Logger, bSilent) && bImportedOK;
+
 	return bImportedOK;
 	
 }
@@ -1602,6 +1604,101 @@ void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree&
 			}
 		}
 	}
+}
+
+bool FSUDSScriptImporter::PostImportSanityCheck(const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent)
+{
+	bool bOK = true;
+	for (int i = 0; i < BodyTree.Nodes.Num(); ++i)
+	{
+		auto& Node = BodyTree.Nodes[i];
+
+		if (Node.NodeType == ESUDSParsedNodeType::Choice)
+		{
+			// Check all of them so we can report all errors, rather than early-out
+			bOK = ChoiceNodeCheckPaths(Node, NameForErrors, Logger, bSilent) && bOK;
+		}
+	}
+	return bOK;
+}
+
+bool FSUDSScriptImporter::ChoiceNodeCheckPaths(const FSUDSParsedNode& ChoiceNode,
+                                               const FString& NameForErrors,
+                                               FSUDSMessageLogger* Logger,
+                                               bool bSilent)
+{
+	bool bOK = true;
+	for (const auto& Edge: ChoiceNode.Edges)
+	{
+		// We want to make sure that every choice path leads to a speaker line, before it leads to another choice
+		// A choice that leads directly to another choice can't be properly represented in dialogue; choices have to
+		// be anchored by speaker lines so proceeding to another choice directly after a choice is made is wrong
+		// Usually this will be caused by a bad goto but could also be just bad nesting
+		// Every path has to lead to a speaker node before a choice
+		bOK = RecurseChoiceNodeCheckPaths(ChoiceNode, Edge, NameForErrors, Logger, bSilent) && bOK;
+	}
+	return bOK;
+}
+
+bool FSUDSScriptImporter::RecurseChoiceNodeCheckPaths(const FSUDSParsedNode& ChoiceNode, const FSUDSParsedEdge& Edge,
+	const FString& NameForErrors,
+	FSUDSMessageLogger* Logger,
+	bool bSilent)
+{
+	const FSUDSParsedNode* TargetNode = GetNode(Edge.TargetNodeIdx);
+	while (TargetNode)
+	{
+		switch (TargetNode->NodeType)
+		{
+		case ESUDSParsedNodeType::Text:
+			// We're OK, found a speaker line
+			return true;
+		case ESUDSParsedNodeType::Choice:
+			// Definitely not ok, we found a choice node before a speaker node
+			Logger->Logf(ELogVerbosity::Error,
+			             TEXT(
+				             "%s: Choice '%s' on line %d needs a speaker line between it and the next choice at line %d. Choices MUST show another speaker line before the next choice."),
+			             *NameForErrors,
+			             *Edge.Text,
+			             Edge.SourceLineNo,
+			             TargetNode->SourceLineNo);
+			return false;
+		case ESUDSParsedNodeType::Select:
+			{
+				// Recurse
+				bool bOK = true;
+				for (const auto& SelEdge : TargetNode->Edges)
+				{
+					bOK = RecurseChoiceNodeCheckPaths(ChoiceNode, SelEdge, NameForErrors, Logger, bSilent) && bOK;
+				}
+				return bOK;
+			}
+		case ESUDSParsedNodeType::SetVariable:
+		case ESUDSParsedNodeType::Event:
+			// Continue (linear)
+			if (TargetNode->Edges.Num() > 0)
+			{
+				TargetNode = GetNode(TargetNode->Edges[0].TargetNodeIdx);
+			}
+			break;
+		case ESUDSParsedNodeType::Gosub:
+		case ESUDSParsedNodeType::Return:
+			// We can't really check the gosub/return statically
+			break;
+		case ESUDSParsedNodeType::Goto:
+			{
+				// Follow the goto
+				const int GotoIdx = GetGotoTargetNodeIndex(BodyTree, TargetNode->Identifier);
+				if (GotoIdx != -1)
+				{
+					TargetNode = GetNode(GotoIdx);
+				}
+				break;
+			}
+		}
+	}
+
+	return true;
 }
 
 int FSUDSScriptImporter::FindFallthroughNodeIndex(FSUDSScriptImporter::ParsedTree& Tree,
