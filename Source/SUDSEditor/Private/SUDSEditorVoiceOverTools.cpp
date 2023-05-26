@@ -284,6 +284,7 @@ void FSUDSEditorVoiceOverTools::GenerateWaveAssets(USUDSScript* Script, EObjectF
 			else
 			{
 				FString NativeLangText = Line->GetText().ToString();
+				USoundWave* SoundWave = nullptr;
 				if (!WaveAsset)
 				{
 					//Logger->Logf(ELogVerbosity::Display, TEXT("Creating wave asset %s"), *PackageName);
@@ -292,14 +293,13 @@ void FSUDSEditorVoiceOverTools::GenerateWaveAssets(USUDSScript* Script, EObjectF
 				}
 				else
 				{
-					// We need to check whether we can / want to update the existing asset
-					// It's fine to replace any placeholders we generated (even changing lines / speaker if IDs changed)
-					// It's not OK if the asset has been edited to add more information.
+					// We will always update the existing asset, but will warn if the text is changing
 					if (WaveAsset->ContextMappings.Num() > 0)
 					{
 						auto Mapping = WaveAsset->ContextMappings[0];
 						if (IsValid(Mapping.SoundWave))
 						{
+							SoundWave = Mapping.SoundWave;
 							// This is OK if the context is what we were going to create anyway, we'll just leave it alone
 							if (Mapping.Context.Speaker != SpeakerVoice ||
 								WaveAsset->SpokenText != NativeLangText)
@@ -308,11 +308,9 @@ void FSUDSEditorVoiceOverTools::GenerateWaveAssets(USUDSScript* Script, EObjectF
 								// a different speaker / line
 								Logger->Logf(ELogVerbosity::Error,
 								             TEXT(
-									             "Cannot replace Dialogue Wave at %s because it has an assigned Sound Wave but the speaker or text has changed."),
+									             "Dialogue Wave %s has an assigned Sound Wave but the speaker or text has changed. You should update the sound wave!"),
 								             *PackageName);
 							}
-							// Either way we do nothing with this wave asset
-							continue;
 						}
 					}
 				}
@@ -323,7 +321,7 @@ void FSUDSEditorVoiceOverTools::GenerateWaveAssets(USUDSScript* Script, EObjectF
 				WaveAsset->SpokenText = NativeLangText;
 				// Set dialogue context
 				// We need a Speaker Voice, we'll leave the sound and targets blank
-				WaveAsset->UpdateContext(WaveAsset->ContextMappings[0], nullptr, SpeakerVoice, TArray<UDialogueVoice*>());
+				WaveAsset->UpdateContext(WaveAsset->ContextMappings[0], SoundWave, SpeakerVoice, TArray<UDialogueVoice*>());
 
 				// Now assign the wave to the line
 				Line->SetWave(WaveAsset);
