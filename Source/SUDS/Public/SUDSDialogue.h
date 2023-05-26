@@ -202,6 +202,8 @@ protected:
 	USUDSScriptNode* RunReturnNode(USUDSScriptNode* Node);
 	void UpdateChoices();
 	void RecurseAppendChoices(const USUDSScriptNode* Node, TArray<FSUDSScriptEdge>& OutChoices);
+	USoundBase* GetSoundForCurrentLine(bool bAllowAnyTarget) const;
+	UDialogueVoice* GetTargetVoice() const;
 
 	FText ResolveParameterisedText(const TArray<FName> Params, const FTextFormat& TextFormat, int LineNo);
 	void GetTextFormatArgs(const TArray<FName>& ArgNames, FFormatNamedArguments& OutArgs) const;
@@ -275,7 +277,7 @@ public:
 	FText GetText();
 
 	/// Get the DialogueWave associated with the current dialogue node
-	/// Returns null if there is no wave for this line
+	/// Returns null if there is no wave for this line.
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	UDialogueWave* GetWave() const;
 
@@ -294,6 +296,51 @@ public:
 	/// Get the Dialogue Voice belonging to the current speaker, if voiced (Null otherwise)
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	UDialogueVoice* GetSpeakerVoice() const;
+
+	/// Get the Dialogue Voice belonging to the named participant, if voiced (Null otherwise)
+	UFUNCTION(BlueprintCallable)
+	UDialogueVoice* GetVoice(FString Name) const;
+	
+	/** If the current line is voiced, plays it in 2D.
+	 * @param VolumeMultiplier A linear scalar multiplied with the volume, in order to make the sound louder or softer.
+	 * @param PitchMultiplier A linear scalar multiplied with the pitch.
+	 * @param bLooselyMatchTarget When finding the sound, don't require the target DialogueVoice to match precisely (recommended)
+	 */
+	UFUNCTION(BlueprintCallable, meta=(AdvancedDisplay = "2", UnsafeDuringActorConstruction = "true", Keywords = "play"))
+	void PlayVoicedLine2D(float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, bool bLooselyMatchTarget = true);
+
+	/** If the current line is voiced, plays it at the given location.
+	 * @param Location World position to play dialogue at
+	 * @param Rotation World rotation to play dialogue at
+	 * @param VolumeMultiplier A linear scalar multiplied with the volume, in order to make the sound louder or softer.
+	 * @param PitchMultiplier A linear scalar multiplied with the pitch.
+	 * @param AttenuationSettings Override attenuation settings package to play sound with
+	 * @param bLooselyMatchTarget When finding the sound, don't require the target DialogueVoice to match precisely (recommended)
+     */
+	UFUNCTION(BlueprintCallable, meta=(AdvancedDisplay = "4", UnsafeDuringActorConstruction = "true", Keywords = "play"))
+	void PlayVoicedLineAtLocation(FVector Location,
+	                              FRotator Rotation,
+	                              float VolumeMultiplier = 1.f,
+	                              float PitchMultiplier = 1.f,
+	                              USoundAttenuation* AttenuationSettings = nullptr,
+	                              bool bLooselyMatchTarget = true);
+
+	/** If the current line is voiced, spawn a sound for it at the given location. Unlike PlayVoicedLineAtLocation you can
+	 * attach this sound to a moving object if you want
+	 * @param Location World position to play dialogue at
+	 * @param Rotation World rotation to play dialogue at
+	 * @param VolumeMultiplier A linear scalar multiplied with the volume, in order to make the sound louder or softer.
+	 * @param PitchMultiplier A linear scalar multiplied with the pitch.
+	 * @param AttenuationSettings Override attenuation settings package to play sound with
+	 * @param bLooselyMatchTarget When finding the sound, don't require the target DialogueVoice to match precisely (recommended)
+	 */
+	UFUNCTION(BlueprintCallable, meta=(AdvancedDisplay = "4", UnsafeDuringActorConstruction = "true", Keywords = "play"))
+	UAudioComponent* SpawnVoicedLineAtLocation(FVector Location,
+								  FRotator Rotation,
+								  float VolumeMultiplier = 1.f,
+								  float PitchMultiplier = 1.f,
+								  USoundAttenuation* AttenuationSettings = nullptr,
+								  bool bLooselyMatchTarget = true);
 
 	/**
 	 * Get the number of choices available from this node.

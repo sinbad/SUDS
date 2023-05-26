@@ -164,11 +164,11 @@ you should pick one or the other and use that through your localisation process.
 ## Playing Voice Lines
 
 When deciding how to process the current dialogue line, you can check for
-voiced lines, and play them, like this:
+voiced lines using "Is Current Line Voiced", and if so play the audio, like this:
 
 ![Play Dialogue](img/BPPlayDialogue.png)
 
-You can also use "Play Dialogue at Location" if you want to place the voice in
+You can also use "Play Voiced Line at Location" if you want to place the voice in
 real space.
 
 ### See Also:

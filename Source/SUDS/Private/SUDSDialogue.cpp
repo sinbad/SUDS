@@ -7,6 +7,8 @@
 #include "SUDSScriptNodeGosub.h"
 #include "SUDSScriptNodeSet.h"
 #include "SUDSScriptNodeText.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/DialogueSoundWaveProxy.h"
 #include "Sound/DialogueWave.h"
 
 DEFINE_LOG_CATEGORY(LogSUDSDialogue);
@@ -465,8 +467,104 @@ UDialogueVoice* USUDSDialogue::GetSpeakerVoice() const
 {
 	if (CurrentSpeakerNode)
 	{
-		return BaseScript->GetSpeakerVoice(CurrentSpeakerNode->GetSpeakerID());
+		return GetVoice(CurrentSpeakerNode->GetSpeakerID());
 	}
+	return nullptr;
+}
+
+UDialogueVoice* USUDSDialogue::GetVoice(FString Name) const
+{
+	return BaseScript->GetSpeakerVoice(Name);
+}
+
+UDialogueVoice* USUDSDialogue::GetTargetVoice() const
+{
+	if (CurrentSpeakerNode)
+	{
+		// Assume that target is the first party that's NOT speaking
+		for (auto& Name : BaseScript->GetSpeakers())
+		{
+			if (Name != CurrentSpeakerNode->GetSpeakerID())
+			{
+				return BaseScript->GetSpeakerVoice(Name);
+			}
+		}
+	}
+	return nullptr;
+	
+}
+
+USoundBase* USUDSDialogue::GetSoundForCurrentLine(bool bAllowAnyTarget) const
+{
+	// UDialogueWave's contexts have both speakers and targets, but the GetWaveFromContext method is too restrictive
+	// Instead we'll search the contexts ourselves and be more fuzzy
+	if (auto Wave = GetWave())
+	{
+		auto SpeakerVoice = GetSpeakerVoice();
+		auto TargetVoice = GetTargetVoice();
+		for (auto& Ctx : Wave->ContextMappings)
+		{
+			// Match specific target voice first, and unspecified targets
+			if (Ctx.Context.Speaker == SpeakerVoice)
+			{
+				if (Ctx.Context.Targets.Contains(TargetVoice))
+				{
+					// Need to use the proxy according to DialogueWave
+					return Ctx.Proxy;
+				}
+			}
+		}
+		// If we got here, match more leniently
+		if (bAllowAnyTarget)
+		{
+			for (auto& Ctx : Wave->ContextMappings)
+			{
+				// Match specific target voice first, and unspecified targets
+				if (Ctx.Context.Speaker == SpeakerVoice)
+				{
+					// Need to use the proxy according to DialogueWave
+					return Ctx.Proxy;
+				}
+			}
+			
+		}
+	}
+
+	return nullptr;
+}
+
+void USUDSDialogue::PlayVoicedLine2D(float VolumeMultiplier, float PitchMultiplier, bool bLooselyMatchTarget)
+{
+	if (auto Sound = GetSoundForCurrentLine(bLooselyMatchTarget))
+	{
+		UGameplayStatics::PlaySound2D(this, Sound, VolumeMultiplier, PitchMultiplier);
+	}
+}
+
+void USUDSDialogue::PlayVoicedLineAtLocation(FVector Location,
+	FRotator Rotation,
+	float VolumeMultiplier,
+	float PitchMultiplier,
+	USoundAttenuation* AttenuationSettings, bool bLooselyMatchTarget)
+{
+	if (auto Sound = GetSoundForCurrentLine(bLooselyMatchTarget))
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, Sound, Location, Rotation, VolumeMultiplier, PitchMultiplier, 0, AttenuationSettings);
+	}
+}
+
+UAudioComponent* USUDSDialogue::SpawnVoicedLineAtLocation(FVector Location,
+	FRotator Rotation,
+	float VolumeMultiplier,
+	float PitchMultiplier,
+	USoundAttenuation* AttenuationSettings,
+	bool bLooselyMatchTarget)
+{
+	if (auto Sound = GetSoundForCurrentLine(bLooselyMatchTarget))
+	{
+		return UGameplayStatics::SpawnSoundAtLocation(this, Sound, Location, Rotation, VolumeMultiplier, PitchMultiplier, 0, AttenuationSettings);
+	}
+
 	return nullptr;
 }
 
