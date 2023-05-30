@@ -50,7 +50,7 @@ class SudsLexer(RegexLexer):
         # While in a [] block, highlight operators etc (don't do it elsewhere)
         'squarebrackets' : [
             # Close bracket finishes
-            (r'\]', Operator, '#pop'),
+            (r'\]\s*[\n]?', Operator, '#pop'),
             # Variables      
             (r'(\{)([\w\.]+)(\})', bygroups(Operator, Name.Variable, Operator)),
             (r'\+\/\-\*\!', Operator),
@@ -60,7 +60,7 @@ class SudsLexer(RegexLexer):
             (r'\b([tT]rue|[fF]alse|[mM]asculine|[fF]eminine|[nN]euter)\b', Name.Constant),
             (r'\b(and|or|&&|\|\||not)\b', Operator),
             # Set, event commands so we can highlight variable/event differently
-            (r'\s*(set|event)(\s+)(\S+)', bygroups(Keyword, Text, Name.Variable)),
+            (r'\s*(set|event)(\s+)([^\]]+)', bygroups(Keyword, Text, Name.Variable)),
             (r'\s*(if|else|elseif|endif|event|return|goto|gosub|go to|go sub)\b', Keyword),
             (r'[,]', Punctuation),
             (r'\s+', Text), # whitespace OK
