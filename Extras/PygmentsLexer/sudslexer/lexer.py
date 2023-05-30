@@ -14,20 +14,13 @@ class SudsLexer(RegexLexer):
             (r'\s*#.*\n', Comment),
             # Speaker lines
             (r'\s*\S+\:', Name.Class, 'speakerline'),
-            # Close bracket for all special lines
-            (r'\]', Operator),       
-            (r'\b(and|or|&&|\|\||not)\b', Operator),
-            # Set commands so we can highlight variable differently
-            (r'(\[)\s*(set)(\s+)(\S+)', bygroups(Operator, Keyword, Text, Name.Variable)),
-            (r'(\[)\s*(if|else|elseif|endif|event|return|goto|gosub|go to|go sub)\b', bygroups(Operator, Keyword)),
+            # Open brackets for special functions
+            (r'\[', Operator, 'squarebrackets'),       
+
             # Variables
             (r'(\{)([\w\.]+)(\})', bygroups(Operator, Name.Variable, Operator)),
             (r'(\|)(plural|gender)(\()(.*?)(\))', bygroups(Operator, Keyword, Operator, Keyword, Operator)),
             (r'\b([tT]rue|[fF]alse|[mM]asculine|[fF]eminine|[nN]euter)\b', Name.Constant),
-            (r'\+\/\-\*\!', Operator),
-            (r'\"[^\"]*\"', String.Double),
-            (r'\`[^\`]*\`', String.Escape),
-            (r'\d+(\.\d+)?', Number),
             # Line IDs
             (r'\@[0-9a-fA-F]+\@', Comment.Special),
             # Embedded markup
@@ -52,6 +45,25 @@ class SudsLexer(RegexLexer):
             (r'\<\w+\>', Name.Decorator),
             (r'\<\/\>', Name.Decorator),
             (r'[^\@\n\<\{]+', Text),
+
+        ],
+        # While in a [] block, highlight operators etc (don't do it elsewhere)
+        'squarebrackets' : [
+            # Close bracket finishes
+            (r'\]', Operator, '#pop'),
+            # Variables      
+            (r'(\{)([\w\.]+)(\})', bygroups(Operator, Name.Variable, Operator)),
+            (r'\+\/\-\*\!', Operator),
+            (r'\"[^\"]*\"', String.Double),
+            (r'\`[^\`]*\`', String.Escape),
+            (r'\d+(\.\d+)?', Number),
+            (r'\b([tT]rue|[fF]alse|[mM]asculine|[fF]eminine|[nN]euter)\b', Name.Constant),
+            (r'\b(and|or|&&|\|\||not)\b', Operator),
+            # Set, event commands so we can highlight variable/event differently
+            (r'\s*(set|event)(\s+)(\S+)', bygroups(Keyword, Text, Name.Variable)),
+            (r'\s*(if|else|elseif|endif|event|return|goto|gosub|go to|go sub)\b', Keyword),
+            (r'[,]', Punctuation),
+            (r'\s+', Text), # whitespace OK
 
         ]
     }
