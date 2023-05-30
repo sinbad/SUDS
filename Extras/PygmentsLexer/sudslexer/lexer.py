@@ -10,7 +10,7 @@ class SudsLexer(RegexLexer):
         'root': [
             (r'===\s*\n', Generic.Heading),
             # Choices
-            (r'\s*\*\s+[^\@\n]+[\@\n]', String),
+            (r'\s*\*\s+[^\@\n]+[\@\n]', Generic.Subheading),
             (r'\s*#.*\n', Comment),
             # Speaker lines
             (r'\s*\S+\:', Name.Class, 'speakerline'),
@@ -25,7 +25,7 @@ class SudsLexer(RegexLexer):
             (r'(\|)(plural|gender)(\()(.*?)(\))', bygroups(Operator, Keyword, Operator, Keyword, Operator)),
             (r'\b([tT]rue|[fF]alse|[mM]asculine|[fF]eminine|[nN]euter)\b', Name.Constant),
             (r'\+\/\-\*\!', Operator),
-            (r'\"[^\"]*\"', String.Single),
+            (r'\"[^\"]*\"', String.Double),
             (r'\`[^\`]*\`', String.Escape),
             (r'\d+(\.\d+)?', Number),
             # Line IDs
