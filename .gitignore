@@ -9,3 +9,4 @@ DerivedDataCache/*
 Extras/PygmentsLexer/build/*
 Extras/PygmentsLexer/dist/*
 Extras/PygmentsLexer/sudslexer.egg-info/*
+__pycache__
