@@ -12,7 +12,6 @@
 #include "Sound/DialogueWave.h"
 #include "Sound/SoundWave.h"
 
-PRAGMA_DISABLE_OPTIMIZATION
 
 void FSUDSEditorVoiceOverTools::GenerateAssets(USUDSScript* Script, EObjectFlags Flags, FSUDSMessageLogger* Logger)
 {
@@ -378,5 +377,3 @@ FString FSUDSEditorVoiceOverTools::GetScriptNameAsPrefix(USUDSScript* Script)
 	}	
 	return Name;
 }
-
-PRAGMA_ENABLE_OPTIMIZATION

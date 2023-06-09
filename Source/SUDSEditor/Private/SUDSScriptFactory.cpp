@@ -8,7 +8,6 @@
 #include "EditorFramework/AssetImportData.h"
 #include "Internationalization/StringTable.h"
 
-PRAGMA_DISABLE_OPTIMIZATION
 
 USUDSScriptFactory::USUDSScriptFactory()
 {
@@ -84,5 +83,3 @@ bool USUDSScriptFactory::ShouldGenerateVoiceAssets(const FString& PackagePath) c
 	}
 	return false;
 }
-
-PRAGMA_ENABLE_OPTIMIZATION
