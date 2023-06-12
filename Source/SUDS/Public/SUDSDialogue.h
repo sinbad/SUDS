@@ -45,16 +45,16 @@ struct FSUDSDialogueState
 {
 	GENERATED_BODY()
 protected:
-	UPROPERTY(BlueprintReadOnly, SaveGame)
+	UPROPERTY(BlueprintReadOnly, SaveGame, Category="SUDS|Dialogue")
 	FString TextNodeID;
 
-	UPROPERTY(BlueprintReadOnly, SaveGame)
+	UPROPERTY(BlueprintReadOnly, SaveGame, Category="SUDS|Dialogue")
 	TMap<FName, FSUDSValue> Variables;
 
-	UPROPERTY(BlueprintReadOnly, SaveGame)
+	UPROPERTY(BlueprintReadOnly, SaveGame, Category="SUDS|Dialogue")
 	TArray<FString> ChoicesTaken;
 
-	UPROPERTY(BlueprintReadOnly, SaveGame)
+	UPROPERTY(BlueprintReadOnly, SaveGame, Category="SUDS|Dialogue")
 	TArray<FString> ReturnStack;
 	
 public:
@@ -229,7 +229,7 @@ public:
 	void Initialise(const USUDSScript* Script);
 	
 	/// Get the script asset this dialogue is based on
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="SUDS|Dialogue")
 	const USUDSScript* GetScript() const { return BaseScript; }
 	
 	/**
@@ -240,7 +240,7 @@ public:
 	 * reset some variables then use the header section of the script to set variables to a default starting point.
 	 * @param Label The start point for this dialogue. If None, starts from the beginning.
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void Start(FName Label = NAME_None);
 
 
@@ -252,11 +252,11 @@ public:
 	 * gives you much more control.
 	 * @param Participant The participant object, which must implement ISUDSParticipant
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void AddParticipant(UObject* Participant);
 
 	/// Retrieve participants from this dialogue
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	const TArray<UObject*>& GetParticipants() const { return Participants; }
 	
 	/**
@@ -267,38 +267,38 @@ public:
 	 * gives you much more control.
 	 * @param NewParticipants List of new participants. Each should implement ISUDSParticipant
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void SetParticipants(const TArray<UObject*>& NewParticipants);
 
 
 	/// Get the speech text for the current dialogue node
 	/// Any parameters required will be requested from participants in the dialogue and replaced 
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="SUDS|Dialogue")
 	FText GetText();
 
 	/// Get the DialogueWave associated with the current dialogue node
 	/// Returns null if there is no wave for this line.
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="SUDS|Dialogue")
 	UDialogueWave* GetWave() const;
 
 	/// Return whether the current dialogue node has a Dialogue Wave associated with it
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="SUDS|Dialogue")
 	bool IsCurrentLineVoiced() const;
 
 	/// Get the ID of the current speaker
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="SUDS|Dialogue")
 	const FString& GetSpeakerID() const;
 
 	/// Get the display name of the current speaker
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="SUDS|Dialogue")
 	FText GetSpeakerDisplayName() const;
 
 	/// Get the Dialogue Voice belonging to the current speaker, if voiced (Null otherwise)
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="SUDS|Dialogue")
 	UDialogueVoice* GetSpeakerVoice() const;
 
 	/// Get the Dialogue Voice belonging to the named participant, if voiced (Null otherwise)
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	UDialogueVoice* GetVoice(FString Name) const;
 	
 	/** If the current line is voiced, plays it in 2D.
@@ -306,7 +306,7 @@ public:
 	 * @param PitchMultiplier A linear scalar multiplied with the pitch.
 	 * @param bLooselyMatchTarget When finding the sound, don't require the target DialogueVoice to match precisely (recommended)
 	 */
-	UFUNCTION(BlueprintCallable, meta=(AdvancedDisplay = "2", UnsafeDuringActorConstruction = "true", Keywords = "play"))
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue", meta=(AdvancedDisplay = "2", UnsafeDuringActorConstruction = "true", Keywords = "play"))
 	void PlayVoicedLine2D(float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, bool bLooselyMatchTarget = true);
 
 	/** If the current line is voiced, plays it at the given location.
@@ -317,7 +317,7 @@ public:
 	 * @param AttenuationSettings Override attenuation settings package to play sound with
 	 * @param bLooselyMatchTarget When finding the sound, don't require the target DialogueVoice to match precisely (recommended)
      */
-	UFUNCTION(BlueprintCallable, meta=(AdvancedDisplay = "4", UnsafeDuringActorConstruction = "true", Keywords = "play"))
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue", meta=(AdvancedDisplay = "4", UnsafeDuringActorConstruction = "true", Keywords = "play"))
 	void PlayVoicedLineAtLocation(FVector Location,
 	                              FRotator Rotation,
 	                              float VolumeMultiplier = 1.f,
@@ -334,7 +334,7 @@ public:
 	 * @param AttenuationSettings Override attenuation settings package to play sound with
 	 * @param bLooselyMatchTarget When finding the sound, don't require the target DialogueVoice to match precisely (recommended)
 	 */
-	UFUNCTION(BlueprintCallable, meta=(AdvancedDisplay = "4", UnsafeDuringActorConstruction = "true", Keywords = "play"))
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue", meta=(AdvancedDisplay = "4", UnsafeDuringActorConstruction = "true", Keywords = "play"))
 	UAudioComponent* SpawnVoicedLineAtLocation(FVector Location,
 								  FRotator Rotation,
 								  float VolumeMultiplier = 1.f,
@@ -349,7 +349,7 @@ public:
 	 * See also IsSimpleContinue()
 	 * @return The number of choices available
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="SUDS|Dialogue")
 	int GetNumberOfChoices() const;
 
 	/**
@@ -357,7 +357,7 @@ public:
 	 * to display a simpler prompt to the player.
 	 * This will return false even if there's only one choice, if that choice has text associated with it.
 	 */
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="SUDS|Dialogue")
 	bool IsSimpleContinue() const;
 
 	/**
@@ -367,23 +367,23 @@ public:
 	 *    Note that if you want to have only 1 choice but with associated text, this is fine and should be a choice
 	 *    line just like any other.
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	FText GetChoiceText(int Index);
 
 	/// Get all the current choices available, if you prefer this format
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	const TArray<FSUDSScriptEdge>& GetChoices() const;
 
 	/** Returns whether the choice at the given index has been taken previously.
 	*	This is saved in dialogue state so will be remembered across save/restore.
 	*/
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	bool HasChoiceIndexBeenTakenPreviously(int Index);
 
 	/** Returns whether a choice has been taken previously.
 	*	This is saved in dialogue state so will be remembered across save/restore.
 	*/
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	bool HasChoiceBeenTakenPreviously(const FSUDSScriptEdge& Choice);
 	
 	
@@ -391,7 +391,7 @@ public:
 	 * Continues the dialogue if (and ONLY if) there is only one valid path/choice out of the current node.
 	 * @return True if the dialogue continues after this, false if the dialogue is now at an end.
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	bool Continue();
 
 	/**
@@ -400,19 +400,19 @@ public:
 	 * @param Index The index of the choice to make
 	 * @return True if the dialogue continues, false if it has now reached the end.
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	bool Choose(int Index);
 
 	/// Returns true if the dialogue has reached the end
-	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="SUDS|Dialogue")
 	bool IsEnded() const;
 
 	/// End the dialogue early
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void End(bool bQuietly);
 
 	/// Get the source line number of the current position of the dialogue (returns 0 if not applicable)
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	int GetCurrentSourceLine() const;
 
 	
@@ -425,7 +425,7 @@ public:
 	 * @param bReRunHeader If true (default), re-runs the header nodes before starting. Header nodes let you initialise
 	 *   state that should always be reset when the dialogue is restarted
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void Restart(bool bResetState = false, FName StartLabel = NAME_None, bool bReRunHeader = true);
 
 	/**
@@ -434,7 +434,7 @@ public:
 	 * @param bResetPosition If true, resets the current position in the dialogue (which speaker line is next)
 	 * @param bResetVisited If true, resets the memory of which choices have been made
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void ResetState(bool bResetVariables = true, bool bResetPosition = true, bool bResetVisited = true);
 
 	/** Retrieve a copy of the state of this dialogue.
@@ -445,7 +445,7 @@ public:
 	 *  stay the same between edits, as you do for localisation. If you only save/load after dialogue has ended then
 	 *  you don't need to worry about this since the dialogue will always start from the beginning
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	FSUDSDialogueState GetSavedState() const;
 
 	/** Restore the saved state of this dialogue.
@@ -458,21 +458,21 @@ public:
 	 *  @note After restoring, you'll want to either call Start() or Continue(), depending on whether you restored
 	 *  mid-dialogue or not (see IsEnded() to tell whether you did)
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void RestoreSavedState(const FSUDSDialogueState& State);
 	
 	/// Get the set of text parameters that are actually being asked for in the current state of the dialogue.
 	/// This will include parameters in the text, and parameters in any current choices being displayed.
 	/// Use this if you want to be more specific about what parameters you supply when ISUDSParticipant::UpdateDialogueParameters
 	/// is called.
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	TSet<FName> GetParametersInUse();
 
 
 	/// Set a variable in dialogue state
 	/// This is mostly only useful if you happen to already have a general purpose FSUDSValue.
 	/// See SetDialogueText, SetDialogueInt etc for literal-friendly versions
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void SetVariable(FName Name, FSUDSValue Value)
 	{
 		SetVariableImpl(Name, Value, false, 0);
@@ -481,7 +481,7 @@ public:
 	/// Get a variable in dialogue state as a general value type
 	/// See GetDialogueText, GetDialogueInt etc for more type friendly versions, but if you want to access the state
 	/// as a type-flexible value then you can do so with this function.
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	FSUDSValue GetVariable(FName Name) const
 	{
 		if (const auto Arg = VariableState.Find(Name))
@@ -491,14 +491,14 @@ public:
 		return FSUDSValue();
 	}
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	bool IsVariableSet(FName Name) const
 	{
 		return VariableState.Contains(Name);
 	}
 
 	/// Get all variables
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	const TMap<FName, FSUDSValue>& GetVariables() const { return VariableState; }
 	
 	/**
@@ -506,7 +506,7 @@ public:
 	 * @param Name The name of the variable
 	 * @param Value The value of the variable
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void SetVariableText(FName Name, FText Value)
 	{
 		SetVariable(Name, Value);
@@ -517,7 +517,7 @@ public:
 	 * @param Name The name of the variable
 	 * @returns Value The value of the variable
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	FText GetVariableText(FName Name) const;
 
 	/**
@@ -525,7 +525,7 @@ public:
 	 * @param Name The name of the variable
 	 * @param Value The value of the variable
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void SetVariableInt(FName Name, int32 Value);
 
 	/**
@@ -533,7 +533,7 @@ public:
 	 * @param Name The name of the variable
 	 * @returns Value The value of the variable
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	int GetVariableInt(FName Name) const;
 	
 	/**
@@ -541,7 +541,7 @@ public:
 	 * @param Name The name of the variable
 	 * @param Value The value of the variable
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void SetVariableFloat(FName Name, float Value);
 
 	/**
@@ -549,7 +549,7 @@ public:
 	 * @param Name The name of the variable
 	 * @returns Value The value of the variable
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	float GetVariableFloat(FName Name) const;
 	
 	/**
@@ -557,7 +557,7 @@ public:
 	 * @param Name The name of the variable
 	 * @param Value The value of the variable
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void SetVariableGender(FName Name, ETextGender Value);
 
 	/**
@@ -565,7 +565,7 @@ public:
 	 * @param Name The name of the variable
 	 * @returns Value The value of the variable
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	ETextGender GetVariableGender(FName Name) const;
 
 	/**
@@ -573,7 +573,7 @@ public:
 	 * @param Name The name of the variable
 	 * @param Value The value of the variable
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void SetVariableBoolean(FName Name, bool Value);
 
 	/**
@@ -581,7 +581,7 @@ public:
 	 * @param Name The name of the variable
 	 * @returns Value The value of the variable
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	bool GetVariableBoolean(FName Name) const;
 
 	/**
@@ -589,7 +589,7 @@ public:
 	 * @param Name The name of the variable
 	 * @param Value The value of the variable
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void SetVariableName(FName Name, FName Value);
 
 	/**
@@ -597,7 +597,7 @@ public:
 	 * @param Name The name of the variable
 	 * @returns Value The value of the variable
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	FName GetVariableName(FName Name) const;
 
 	
@@ -607,7 +607,7 @@ public:
 	 * retrieve a missing variable result in a default value.
 	 * @param Name The name of the variable
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void UnSetVariable(FName Name);
 
 #if WITH_EDITOR

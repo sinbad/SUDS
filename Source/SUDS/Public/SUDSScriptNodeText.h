@@ -16,14 +16,14 @@ class SUDS_API USUDSScriptNodeText : public USUDSScriptNode
 
 protected:
 	/// Identifier of the speaker for text nodes
-	UPROPERTY(BlueprintReadOnly, VisibleDefaultsOnly)
+	UPROPERTY(BlueprintReadOnly, VisibleDefaultsOnly, Category="SUDS")
 	FString SpeakerID;
 	/// Text, always references a string table. Parameters will not have been completed.
 	/// Note: if you're using voiced dialogue, see the Wave property and its subtitle functionality
-	UPROPERTY(BlueprintReadOnly, VisibleDefaultsOnly)
+	UPROPERTY(BlueprintReadOnly, VisibleDefaultsOnly, Category="SUDS")
 	FText Text;
 	/// DialogueWave asset link for voiced dialogue
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="SUDS")
 	UDialogueWave* Wave;
 
 	/// Convenience flag to let you know whether this text node MAY HAVE choices attached
@@ -33,7 +33,7 @@ protected:
 	/// Internally this also lets us know to look for the next choice node
 	/// It's possible that where there are conditionals ahead, there are only choices on some of the paths.
 	/// This flag is to let us know to look for choices, but if conditionals apply we may not find any using actual dialogue state.
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS")
 	bool bHasChoices = false;
 	
 	mutable bool bFormatExtracted = false; 

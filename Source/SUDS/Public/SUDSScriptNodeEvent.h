@@ -14,11 +14,11 @@ class SUDS_API USUDSScriptNodeEvent : public USUDSScriptNode
 	GENERATED_BODY()
 protected:
 	// Variable identifier
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS")
 	FName EventName;
 	
 	/// Literal arguments
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS")
 	TArray<FSUDSExpression> Args;
 
 public:

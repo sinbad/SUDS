@@ -42,13 +42,13 @@ protected:
 
 	/// Type of node
 	/// To make it easier to check rather than having to cast to subtypes blindly. And also not all types need a subtype
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS")
 	ESUDSScriptNodeType NodeType = ESUDSScriptNodeType::Text;
 	/// Links to other nodes
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS")
 	TArray<FSUDSScriptEdge> Edges;
 	/// The line number in the script that this node came from
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS")
 	int SourceLineNo;
 
 

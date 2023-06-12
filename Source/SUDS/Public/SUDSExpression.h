@@ -36,11 +36,11 @@ struct SUDS_API FSUDSExpressionItem
 	GENERATED_BODY()
 
 protected:
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS|Expression")
 	ESUDSExpressionItemType Type;
 
 	// Value if an operand node
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS|Expression")
 	FSUDSValue OperandValue;
 
 public:
@@ -82,7 +82,7 @@ protected:
 	TArray<FSUDSExpressionItem> Queue;
 
 	/// Whether the tree is valid to execute
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS|Expression")
 	bool bIsValid;
 
 	UPROPERTY()
@@ -90,7 +90,7 @@ protected:
 	
 
 	/// The original string version of the expression, for reference 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS|Expression")
 	FString SourceString;
 
 	FSUDSExpressionItem EvaluateOperator(ESUDSExpressionItemType Op,

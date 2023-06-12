@@ -13,18 +13,18 @@ class SUDS_API USUDSScriptNodeGosub : public USUDSScriptNode
 	GENERATED_BODY()
 protected:
 	/// Name of the label which we'll jump to before returning
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS")
 	FName LabelName;
 
 	/// Generated ID for use when saving state
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS")
 	FString GosubID;
 
 	/// Convenience flag to let you know whether this node MAY HAVE any choices directly after it
 	/// Internally this also lets us know to look for the next choice node after returning
 	/// It's possible that where there are conditionals ahead, there are only choices on some of the paths.
 	/// This flag is to let us know to look for choices, but if conditionals apply we may not find any using actual dialogue state.
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS")
 	bool bHasChoices = false;
 	
 public:

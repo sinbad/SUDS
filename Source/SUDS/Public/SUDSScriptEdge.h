@@ -31,19 +31,19 @@ struct SUDS_API FSUDSScriptEdge
 	GENERATED_BODY()
 protected:
 	// Text, if a user choice. Always references a string table
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS")
 	FText Text;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS")
 	ESUDSEdgeType Type;
 	
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS")
 	TWeakObjectPtr<USUDSScriptNode> TargetNode;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS")
 	FSUDSExpression Condition;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS")
 	int SourceLineNo;
 
 	mutable bool bFormatExtracted = false; 

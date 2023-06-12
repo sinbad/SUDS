@@ -15,11 +15,11 @@ class SUDS_API USUDSScriptNodeSet : public USUDSScriptNode
 
 protected:
 	// Variable identifier
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS")
 	FName Identifier;
 	
 	/// Expression to provide value to set
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(BlueprintReadOnly, Category="SUDS")
 	FSUDSExpression Expression;
 
 public:
