@@ -1,6 +1,7 @@
 ﻿#include "SUDSExpression.h"
 
 #include "Misc/DefaultValueHelper.h"
+#include "Internationalization/Regex.h"
 
 bool FSUDSExpression::ParseFromString(const FString& Expression, FString* OutParseError)
 {

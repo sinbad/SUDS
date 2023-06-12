@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "Engine/World.h"
+#include "Engine/GameInstance.h"
 #include "SUDSSubsystem.generated.h"
 
 class USUDSDialogue;

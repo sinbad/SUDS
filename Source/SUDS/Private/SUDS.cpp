@@ -1,5 +1,5 @@
 ﻿#include "SUDS.h"
-#include "SUDSCommon.h"
+#include "Modules/ModuleManager.h"
 
 #define LOCTEXT_NAMESPACE "FSUDSModule"
 

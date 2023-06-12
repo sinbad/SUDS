@@ -13,6 +13,7 @@ class USUDSScriptNode;
 class USUDSScript;
 class UDialogueWave;
 class UDialogueVoice;
+class USoundBase;
 
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDialogueSpeakerLine, class USUDSDialogue*, Dialogue);
