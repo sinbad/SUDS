@@ -1,4 +1,6 @@
-﻿#include "SUDS.h"
+﻿// Copyright Steve Streeting 2022
+// Released under the MIT license https://opensource.org/license/MIT/
+#include "SUDS.h"
 #include "Modules/ModuleManager.h"
 
 #define LOCTEXT_NAMESPACE "FSUDSModule"

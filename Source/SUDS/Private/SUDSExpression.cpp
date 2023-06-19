@@ -1,4 +1,6 @@
-﻿#include "SUDSExpression.h"
+﻿// Copyright Steve Streeting 2022
+// Released under the MIT license https://opensource.org/license/MIT/
+#include "SUDSExpression.h"
 
 #include "Misc/DefaultValueHelper.h"
 #include "Internationalization/Regex.h"

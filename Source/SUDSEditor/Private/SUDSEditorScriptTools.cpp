@@ -1,4 +1,6 @@
-﻿#include "SUDSEditorScriptTools.h"
+﻿// Copyright Steve Streeting 2022
+// Released under the MIT license https://opensource.org/license/MIT/
+#include "SUDSEditorScriptTools.h"
 
 #include "SUDSMessageLogger.h"
 #include "SUDSScript.h"

@@ -1,4 +1,6 @@
-﻿#include "SUDSScriptImporter.h"
+﻿// Copyright Steve Streeting 2022
+// Released under the MIT license https://opensource.org/license/MIT/
+#include "SUDSScriptImporter.h"
 
 #include "SUDSExpression.h"
 #include "SUDSMessageLogger.h"

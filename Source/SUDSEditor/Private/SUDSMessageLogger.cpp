@@ -1,4 +1,6 @@
-﻿#include "SUDSMessageLogger.h"
+﻿// Copyright Steve Streeting 2022
+// Released under the MIT license https://opensource.org/license/MIT/
+#include "SUDSMessageLogger.h"
 #include "IMessageLogListing.h"
 #include "MessageLogModule.h"
 
