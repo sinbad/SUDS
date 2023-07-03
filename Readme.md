@@ -51,10 +51,11 @@ making camera cuts, playing cutscenes, and animating characters, I also publish
 It's pre-built for the engine so you don't need a C++ project, which is also
 convenient for people who just want to use Blueprints.
 
-You don't *need* SUDS Pro; core SUDS is a perfectly capable dialogue engine on its own
+You don't *need* [SUDS Pro](https://unrealengine.com/marketplace/en-US/product/suds-pro-dialogue-system); 
+core SUDS is a perfectly capable dialogue engine on its own
 and you can integrate it with the rest of your code how you like. But, if you'd like a little extra 
 functionality pre-integrated, and also to help fund development, please consider
-buying SUDS Pro.
+buying [SUDS Pro](https://unrealengine.com/marketplace/en-US/product/suds-pro-dialogue-system).
 
 > ### See Also
 > * [Testing Scripts](docs/Testing.md)
