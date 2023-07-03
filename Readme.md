@@ -39,6 +39,23 @@ SUDS has many features, including:
 * [Installation](docs/Installation.md)
 * [Your First SUD Script](docs/MyFirstSUDScript.md)
 
+## SUDS Pro
+
+SUDS is very focussed on providing just a dialogue engine; integrating it with
+your other game systems is an exercise for the reader; there are multiple ways
+to do it. 
+
+However, if you'd like more of the integration done for you, including supporting
+making camera cuts, playing cutscenes, and animating characters, I also publish
+[SUDS Pro on the Marketplace](https://unrealengine.com/marketplace/en-US/product/suds-pro-dialogue-system).
+It's pre-built for the engine so you don't need a C++ project, which is also
+convenient for people who just want to use Blueprints.
+
+You don't *need* SUDS Pro; core SUDS is a perfectly capable dialogue engine on its own
+and you can integrate it with the rest of your code how you like. But, if you'd like a little extra 
+functionality pre-integrated, and also to help fund development, please consider
+buying SUDS Pro.
+
 > ### See Also
 > * [Testing Scripts](docs/Testing.md)
 > * [Running Dialogue in Game](docs/RunningDialogue.md)
