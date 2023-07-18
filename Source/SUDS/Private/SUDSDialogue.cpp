@@ -78,14 +78,26 @@ void USUDSDialogue::Start(FName Label)
 
 void USUDSDialogue::SetParticipants(const TArray<UObject*>& InParticipants)
 {
-	Participants = InParticipants;
+	// Protect against null participants
+	// Since our stable sort dereferences
+	Participants.Empty();
+	for (auto P : InParticipants)
+	{
+		if (IsValid(P))
+		{
+			Participants.AddUnique(P);
+		}
+	}
 	SortParticipants();
 }
 
 void USUDSDialogue::AddParticipant(UObject* Participant)
 {
-	Participants.AddUnique(Participant);
-	SortParticipants();
+	if (IsValid(Participant))
+	{
+		Participants.AddUnique(Participant);
+		SortParticipants();
+	}
 }
 
 void USUDSDialogue::SortParticipants()
