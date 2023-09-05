@@ -585,12 +585,27 @@ void USUDSDialogue::PlayVoicedLineAtLocation(FVector Location,
 	}
 }
 
+UAudioComponent* USUDSDialogue::SpawnVoicedLine2D(float VolumeMultiplier, float PitchMultiplier, bool bLooselyMatchTarget)
+{
+	if (auto Sound = GetSoundForCurrentLine(bLooselyMatchTarget))
+	{
+		return UGameplayStatics::SpawnSound2D(this,
+													  Sound,
+													  VolumeMultiplier,
+													  PitchMultiplier,
+													  0,
+													  GetVoiceSoundConcurrency());
+	}
+
+	return nullptr;
+}
+
 UAudioComponent* USUDSDialogue::SpawnVoicedLineAtLocation(FVector Location,
-	FRotator Rotation,
-	float VolumeMultiplier,
-	float PitchMultiplier,
-	USoundAttenuation* AttenuationSettings,
-	bool bLooselyMatchTarget)
+                                                          FRotator Rotation,
+                                                          float VolumeMultiplier,
+                                                          float PitchMultiplier,
+                                                          USoundAttenuation* AttenuationSettings,
+                                                          bool bLooselyMatchTarget)
 {
 	if (auto Sound = GetSoundForCurrentLine(bLooselyMatchTarget))
 	{

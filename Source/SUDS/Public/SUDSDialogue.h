@@ -329,6 +329,14 @@ public:
 	                              USoundAttenuation* AttenuationSettings = nullptr,
 	                              bool bLooselyMatchTarget = true);
 
+	/** If the current line is voiced, spawn a sound for it in 2D. Use this if you want to control the sound while it's playing.
+	 * @param VolumeMultiplier A linear scalar multiplied with the volume, in order to make the sound louder or softer.
+	 * @param PitchMultiplier A linear scalar multiplied with the pitch.
+	 * @param bLooselyMatchTarget When finding the sound, don't require the target DialogueVoice to match precisely (recommended)
+	 */
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue", meta=(AdvancedDisplay = "2", UnsafeDuringActorConstruction = "true", Keywords = "play"))
+	UAudioComponent* SpawnVoicedLine2D(float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, bool bLooselyMatchTarget = true);
+
 	/** If the current line is voiced, spawn a sound for it at the given location. Unlike PlayVoicedLineAtLocation you can
 	 * attach this sound to a moving object if you want
 	 * @param Location World position to play dialogue at
