@@ -207,6 +207,7 @@ protected:
 	void RecurseAppendChoices(const USUDSScriptNode* Node, TArray<FSUDSScriptEdge>& OutChoices);
 	USoundBase* GetSoundForCurrentLine(bool bAllowAnyTarget) const;
 	UDialogueVoice* GetTargetVoice() const;
+	class USoundConcurrency* GetVoiceSoundConcurrency() const;
 
 	FText ResolveParameterisedText(const TArray<FName> Params, const FTextFormat& TextFormat, int LineNo);
 	void GetTextFormatArgs(const TArray<FName>& ArgNames, FFormatNamedArguments& OutArgs) const;

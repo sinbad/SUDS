@@ -9,6 +9,7 @@
 #include "SUDSScriptNodeGosub.h"
 #include "SUDSScriptNodeSet.h"
 #include "SUDSScriptNodeText.h"
+#include "SUDSSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/DialogueSoundWaveProxy.h"
 #include "Sound/DialogueWave.h"
@@ -40,7 +41,11 @@ void operator<<(FStructuredArchive::FSlot Slot, FSUDSDialogueState& Value)
 
 }
 
-USUDSDialogue::USUDSDialogue()
+USUDSDialogue::USUDSDialogue(): BaseScript(nullptr),
+                                CurrentSpeakerNode(nullptr),
+                                CurrentRootChoiceNode(nullptr),
+                                bParamNamesExtracted(false),
+                                CurrentSourceLineNo(0)
 {
 }
 
@@ -547,11 +552,16 @@ USoundBase* USUDSDialogue::GetSoundForCurrentLine(bool bAllowAnyTarget) const
 	return nullptr;
 }
 
+USoundConcurrency* USUDSDialogue::GetVoiceSoundConcurrency() const
+{
+	return GetSUDSSubsystem(this->GetWorld())->GetVoicedLineConcurrency();
+}
+
 void USUDSDialogue::PlayVoicedLine2D(float VolumeMultiplier, float PitchMultiplier, bool bLooselyMatchTarget)
 {
 	if (auto Sound = GetSoundForCurrentLine(bLooselyMatchTarget))
 	{
-		UGameplayStatics::PlaySound2D(this, Sound, VolumeMultiplier, PitchMultiplier);
+		UGameplayStatics::PlaySound2D(this, Sound, VolumeMultiplier, PitchMultiplier, 0, GetVoiceSoundConcurrency());
 	}
 }
 
@@ -563,7 +573,15 @@ void USUDSDialogue::PlayVoicedLineAtLocation(FVector Location,
 {
 	if (auto Sound = GetSoundForCurrentLine(bLooselyMatchTarget))
 	{
-		UGameplayStatics::PlaySoundAtLocation(this, Sound, Location, Rotation, VolumeMultiplier, PitchMultiplier, 0, AttenuationSettings);
+		UGameplayStatics::PlaySoundAtLocation(this,
+		                                      Sound,
+		                                      Location,
+		                                      Rotation,
+		                                      VolumeMultiplier,
+		                                      PitchMultiplier,
+		                                      0,
+		                                      AttenuationSettings,
+		                                      GetVoiceSoundConcurrency());
 	}
 }
 
@@ -576,7 +594,15 @@ UAudioComponent* USUDSDialogue::SpawnVoicedLineAtLocation(FVector Location,
 {
 	if (auto Sound = GetSoundForCurrentLine(bLooselyMatchTarget))
 	{
-		return UGameplayStatics::SpawnSoundAtLocation(this, Sound, Location, Rotation, VolumeMultiplier, PitchMultiplier, 0, AttenuationSettings);
+		return UGameplayStatics::SpawnSoundAtLocation(this,
+		                                              Sound,
+		                                              Location,
+		                                              Rotation,
+		                                              VolumeMultiplier,
+		                                              PitchMultiplier,
+		                                              0,
+		                                              AttenuationSettings,
+		                                              GetVoiceSoundConcurrency());
 	}
 
 	return nullptr;
