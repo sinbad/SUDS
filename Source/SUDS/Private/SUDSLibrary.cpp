@@ -4,7 +4,6 @@
 
 #include "SUDSDialogue.h"
 #include "SUDSScript.h"
-#include "CoreUObject/Public/UObject/Package.h"
 
 USUDSDialogue* USUDSLibrary::CreateDialogue(UObject* Owner, USUDSScript* Script, bool bStartImmediately, FName StartLabel)
 {
