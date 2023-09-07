@@ -116,7 +116,7 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 
 	WorkspaceMenuCategory = InTabManager->AddLocalWorkspaceMenuCategory(INVTEXT("SUDS Editor"));
 
-	InTabManager->RegisterTabSpawner("SUDSDialogueTab", FOnSpawnTab::CreateLambda([=, this](const FSpawnTabArgs&)
+	InTabManager->RegisterTabSpawner("SUDSDialogueTab", FOnSpawnTab::CreateLambda([this](const FSpawnTabArgs&)
 	{
 		OutputListView = SNew(SListView<TSharedPtr<FSUDSEditorOutputRow>>)
 				.ItemHeight(24)
@@ -211,7 +211,7 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 	.SetDisplayName(INVTEXT("Dialogue Output"))
 	.SetGroup(WorkspaceMenuCategory.ToSharedRef());
 
-	InTabManager->RegisterTabSpawner("SUDSVariablesTab", FOnSpawnTab::CreateLambda([=, this](const FSpawnTabArgs&)
+	InTabManager->RegisterTabSpawner("SUDSVariablesTab", FOnSpawnTab::CreateLambda([this](const FSpawnTabArgs&)
 	{
 		// Possibly use a SPropertyTable with a custom IPropertyTable to implement variable binding
 		return SNew(SDockTab)
@@ -241,7 +241,7 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 	.SetDisplayName(INVTEXT("Variables"))
 	.SetGroup(WorkspaceMenuCategory.ToSharedRef());
 
-	InTabManager->RegisterTabSpawner("SUDSDetailsTab", FOnSpawnTab::CreateLambda([=, this](const FSpawnTabArgs&)
+	InTabManager->RegisterTabSpawner("SUDSDetailsTab", FOnSpawnTab::CreateLambda([this](const FSpawnTabArgs&)
 	{
 		FPropertyEditorModule& PropertyEditorModule = FModuleManager::Get().LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		FDetailsViewArgs DetailsViewArgs;
@@ -279,7 +279,7 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 	.SetGroup(WorkspaceMenuCategory.ToSharedRef());
 	
 
-	InTabManager->RegisterTabSpawner("SUDSLogTab", FOnSpawnTab::CreateLambda([=, this](const FSpawnTabArgs&)
+	InTabManager->RegisterTabSpawner("SUDSLogTab", FOnSpawnTab::CreateLambda([this](const FSpawnTabArgs&)
 	{
 		TraceLog = SNew(SSUDSTraceLog);
 		return SNew(SDockTab)
