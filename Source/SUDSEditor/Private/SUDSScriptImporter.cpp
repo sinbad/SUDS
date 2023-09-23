@@ -1702,6 +1702,8 @@ bool FSUDSScriptImporter::RecurseChoiceNodeCheckPaths(const FSUDSParsedNode& Cho
 			{
 				TargetNode = GetNode(TargetNode->Edges[0].TargetNodeIdx);
 			}
+			else // We reached the end of the script
+				return true;
 			break;
 		case ESUDSParsedNodeType::Gosub:
 		case ESUDSParsedNodeType::Return:
