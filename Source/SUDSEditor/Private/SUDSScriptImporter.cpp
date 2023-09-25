@@ -1702,6 +1702,11 @@ bool FSUDSScriptImporter::RecurseChoiceNodeCheckPaths(const FSUDSParsedNode& Cho
 			{
 				TargetNode = GetNode(TargetNode->Edges[0].TargetNodeIdx);
 			}
+			else
+			{
+				// This can happen if the event is the last line, but also nested in a choice
+				return true;
+			}
 			break;
 		case ESUDSParsedNodeType::Gosub:
 		case ESUDSParsedNodeType::Return:

@@ -943,4 +943,27 @@ bool FTestParseChoiceProblem::RunTest(const FString& Parameters)
 	return true;
 }
 
+const FString TrailingEventInput = R"RAWSUD(
+
+NPC: Well, hello there. This is a test.
+* Choice
+	[event SomeEvent 1]
+)RAWSUD";
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestTrailingEventProblem,
+								 "SUDSTest.TestTrailingEventProblem",
+								 EAutomationTestFlags::EditorContext |
+								 EAutomationTestFlags::ClientContext |
+								 EAutomationTestFlags::ProductFilter)
+
+
+bool FTestTrailingEventProblem::RunTest(const FString& Parameters)
+{
+	FSUDSMessageLogger Logger(false);
+	FSUDSScriptImporter Importer;
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(TrailingEventInput), TrailingEventInput.Len(), "TrailingEventInput", &Logger, true));
+
+	return true;
+}
+
 PRAGMA_ENABLE_OPTIMIZATION
