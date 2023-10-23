@@ -30,37 +30,37 @@ class SUDSEDITOR_API USUDSEditorSettings : public UObject
 	GENERATED_BODY()
 public:
 
-	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Where to place Dialogue Voice assets for speakers in scripts when generated", RelativeToGameContentDir, LongPackageName))
+	UPROPERTY(config, EditAnywhere, Category = "Voice", meta = (Tooltip = "Where to place Dialogue Voice assets for speakers in scripts when generated", RelativeToGameContentDir, LongPackageName))
 	ESUDSAssetLocation DialogueVoiceAssetLocation = ESUDSAssetLocation::SharedDirectory;
 	
-	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Shared directory for Dialogue Voice assets, if using a shared directory", RelativeToGameContentDir, LongPackageName))
+	UPROPERTY(config, EditAnywhere, Category = "Voice", meta = (Tooltip = "Shared directory for Dialogue Voice assets, if using a shared directory", RelativeToGameContentDir, LongPackageName))
 	FDirectoryPath DialogueVoiceAssetSharedDir;
 
-	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Where to place Dialogue Wave assets for speaker lines in scripts", RelativeToGameContentDir, LongPackageName))
+	UPROPERTY(config, EditAnywhere, Category = "Voice", meta = (Tooltip = "Where to place Dialogue Wave assets for speaker lines in scripts", RelativeToGameContentDir, LongPackageName))
 	ESUDSAssetLocation DialogueWaveAssetLocation = ESUDSAssetLocation::ScriptDirectorySubdir;
 	
-	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Shared directory for Dialogue Wave assets, if using a shared directory", RelativeToGameContentDir, LongPackageName))
+	UPROPERTY(config, EditAnywhere, Category = "Voice", meta = (Tooltip = "Shared directory for Dialogue Wave assets, if using a shared directory", RelativeToGameContentDir, LongPackageName))
 	FDirectoryPath DialogueWaveAssetSharedDir;
 	
-	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Prefix to give Dialogue Voice assets in front of their SpeakerID", RelativeToGameContentDir, LongPackageName))
+	UPROPERTY(config, EditAnywhere, Category = "Voice", meta = (Tooltip = "Prefix to give Dialogue Voice assets in front of their SpeakerID", RelativeToGameContentDir, LongPackageName))
 	FString DialogueVoiceAssetPrefix = "DV_";
-	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Prefix to give Dialogue Wave assets in front of their SpeakerID", RelativeToGameContentDir, LongPackageName))
+	UPROPERTY(config, EditAnywhere, Category = "Voice", meta = (Tooltip = "Prefix to give Dialogue Wave assets in front of their SpeakerID", RelativeToGameContentDir, LongPackageName))
 	FString DialogueWaveAssetPrefix = "DW_";
-	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "When generating subdirectories and wave asset names from script names, whether to strip characters before the first '_' to avoid including script prefix", RelativeToGameContentDir, LongPackageName))
+	UPROPERTY(config, EditAnywhere, Category = "Voice", meta = (Tooltip = "When generating subdirectories and wave asset names from script names, whether to strip characters before the first '_' to avoid including script prefix", RelativeToGameContentDir, LongPackageName))
 	bool StripScriptPrefixesWhenGeneratingNames = true;
 
-	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Whether to generate a spoken line for choices (default false)."))
-	bool AlwaysGenerateSpeakerLinesFromChoices = false;
-
-	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "The SpeakerID to use for speaker lines generated from choices"))
-	FString SpeakerIDForGeneratedLinesFromChoices = "Player";
-
-	UPROPERTY(config, EditAnywhere, Category = SUDS, AdvancedDisplay, meta = (Tooltip = "Whether to auto-generate Dialogue Voice/Wave assets for ALL dialogue scripts on import. Note: you can always generate VO assets manually."))
+	UPROPERTY(config, EditAnywhere, Category = "Voice", AdvancedDisplay, meta = (Tooltip = "Whether to auto-generate Dialogue Voice/Wave assets for ALL dialogue scripts on import. Note: you can always generate VO assets manually."))
 	bool AlwaysAutoGenerateVoiceOverAssetsOnImport = false;
 
-	UPROPERTY(config, EditAnywhere, Category = SUDS, AdvancedDisplay, meta = (Tooltip = "Auto-generate Dialogue Voice/Wave assets for scripts in these directories (and subdirectories) on import. Note: you can always generate VO assets manually.", RelativeToGameContentDir, LongPackageName))
+	UPROPERTY(config, EditAnywhere, Category = "Voice", AdvancedDisplay, meta = (Tooltip = "Auto-generate Dialogue Voice/Wave assets for scripts in these directories (and subdirectories) on import. Note: you can always generate VO assets manually.", RelativeToGameContentDir, LongPackageName))
 	TArray<FDirectoryPath> DirectoriesToAutoGenerateVoiceOverAssetsOnImport;
 	
+	UPROPERTY(config, EditAnywhere, Category = "Choices", meta = (Tooltip = "Whether to generate a spoken line for choices (default false)."))
+	bool AlwaysGenerateSpeakerLinesFromChoices = false;
+
+	UPROPERTY(config, EditAnywhere, Category = "Choices", meta = (Tooltip = "The SpeakerID to use for speaker lines generated from choices"))
+	FString SpeakerIdForGeneratedLinesFromChoices = "Player";
+
 	USUDSEditorSettings() {}
 
 	bool ShouldGenerateVoiceAssets(const FString& PackagePath) const;

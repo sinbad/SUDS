@@ -535,7 +535,7 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line,
 		if (const auto Settings = GetDefault<USUDSEditorSettings>())
 		{
 			bGenerateSpeakerLine = Settings->AlwaysGenerateSpeakerLinesFromChoices;
-			GeneratedSpeakerID = Settings->SpeakerIDForGeneratedLinesFromChoices;
+			GeneratedSpeakerID = Settings->SpeakerIdForGeneratedLinesFromChoices;
 		}
 		if (bOverrideGenerateSpeakerLineForChoice.IsSet())
 		{
