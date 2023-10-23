@@ -10,7 +10,7 @@ class SudsLexer(RegexLexer):
         'root': [
             (r'===\s*\n', Generic.Heading),
             # Choices
-            (r'\s*\*\s+[^\@\n]+[\@\n]', Generic.Subheading),
+            (r'\s*\*\-?\s+[^\@\n]+[\@\n]', Generic.Subheading),
             (r'\s*#.*\n', Comment),
             # Speaker lines
             (r'\s*\S+\:', Name.Class, 'speakerline'),
