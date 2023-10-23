@@ -567,7 +567,7 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line,
 		if (bGenerateSpeakerLine)
 		{
 			// We use the same text & ID so this is just one localisation entry
-			Ctx.LastTextNodeIdx = AppendNode(Tree, FSUDSParsedNode(GeneratedSpeakerID, ChoiceText, ChoiceTextID, ChoiceTextMeta, IndentLevel, LineNo));
+			Ctx.LastTextNodeIdx = AppendNode(Tree, FSUDSParsedNode(GeneratedSpeakerID, ChoiceText, ChoiceTextID, ChoiceTextMeta, IndentLevel + 1, LineNo));
 			ReferencedSpeakers.AddUnique(GeneratedSpeakerID);			
 		}
 		return true;
