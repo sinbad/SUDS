@@ -49,6 +49,12 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "When generating subdirectories and wave asset names from script names, whether to strip characters before the first '_' to avoid including script prefix", RelativeToGameContentDir, LongPackageName))
 	bool StripScriptPrefixesWhenGeneratingNames = true;
 
+	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "Whether to generate a spoken line for choices (default false)."))
+	bool AlwaysGenerateSpeakerLinesFromChoices = false;
+
+	UPROPERTY(config, EditAnywhere, Category = SUDS, meta = (Tooltip = "The SpeakerID to use for speaker lines generated from choices"))
+	FString SpeakerIDForGeneratedLinesFromChoices = "Player";
+
 	UPROPERTY(config, EditAnywhere, Category = SUDS, AdvancedDisplay, meta = (Tooltip = "Whether to auto-generate Dialogue Voice/Wave assets for ALL dialogue scripts on import. Note: you can always generate VO assets manually."))
 	bool AlwaysAutoGenerateVoiceOverAssetsOnImport = false;
 

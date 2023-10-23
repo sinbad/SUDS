@@ -315,6 +315,8 @@ protected:
 	bool bHeaderDone = false;
 	bool bTooLateForHeader = false;
 	bool bHeaderInProgress = false;
+	TOptional<bool> bOverrideGenerateSpeakerLineForChoice;
+	TOptional<FString> OverrideChoiceSpeakerID;
 	bool bTextInProgress = false;
 	int ChoiceUniqueId = 0;
 	/// For generating text IDs
@@ -415,6 +417,13 @@ protected:
 	                   const FString& NameForErrors,
 	                   FSUDSMessageLogger* Logger,
 	                   bool bSilent);
+	bool ParseImportSettingLine(const FStringView& Line,
+	                            ParsedTree& Tree,
+	                            int IndentLevel,
+	                            int LineNo,
+	                            const FString& NameForErrors,
+	                            FSUDSMessageLogger* Logger,
+	                            bool bSilent);
 	TMap<FName, FString> GetTextMetadataForNextEntry(int CurrentLineIndent);
 	bool IsCommentLine(const FStringView& TrimmedLine);
 	FStringView TrimLine(const FStringView& Line, int& OutIndentLevel) const;
