@@ -1158,7 +1158,7 @@ bool FSUDSScriptImporter::ParseImportSettingLine(const FStringView& Line,
 				if (Expr.IsLiteral())
 				{
 					// Import settings affect importer state directly, no nodes
-					if (Name == "GenerateSpeakerLinesFromChoices")
+					if (Name.Compare("GenerateSpeakerLinesFromChoices", ESearchCase::IgnoreCase) == 0)
 					{
 						if (Expr.GetLiteralValue().GetType() == ESUDSValueType::Boolean)
 						{
@@ -1170,7 +1170,7 @@ bool FSUDSScriptImporter::ParseImportSettingLine(const FStringView& Line,
 								Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: [importsetting GenerateSpeakerLinesFromChoices ...] requires a boolean literal"), *NameForErrors, LineNo);
 						}
 					}
-					else if (Name == "SpeakerIDForGeneratedLinesFromChoices")
+					else if (Name.Compare("SpeakerIDForGeneratedLinesFromChoices", ESearchCase::IgnoreCase) == 0)
 					{
 						if (Expr.GetLiteralValue().GetType() == ESUDSValueType::Name)
 						{
