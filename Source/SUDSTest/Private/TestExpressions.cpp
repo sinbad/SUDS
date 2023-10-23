@@ -1,7 +1,7 @@
 ﻿#include "SUDSExpression.h"
 #include "Misc/AutomationTest.h"
 
-PRAGMA_DISABLE_OPTIMIZATION
+UE_DISABLE_OPTIMIZATION
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestExpressions,
 								 "SUDSTest.TestExpressions",
@@ -191,4 +191,4 @@ bool FTestBadExpressions::RunTest(const FString& Parameters)
 
 
 
-PRAGMA_ENABLE_OPTIMIZATION
+UE_ENABLE_OPTIMIZATION

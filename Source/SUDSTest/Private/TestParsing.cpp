@@ -5,7 +5,7 @@
 #include "SUDSScriptNode.h"
 #include "TestUtils.h"
 
-PRAGMA_DISABLE_OPTIMIZATION
+UE_DISABLE_OPTIMIZATION
 
 const FString SimpleParsingInput = R"RAWSUD(
 ===
@@ -966,4 +966,4 @@ bool FTestTrailingEventProblem::RunTest(const FString& Parameters)
 	return true;
 }
 
-PRAGMA_ENABLE_OPTIMIZATION
+UE_ENABLE_OPTIMIZATION

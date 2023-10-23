@@ -7,7 +7,7 @@
 #include "TestParticipant.h"
 #include "TestUtils.h"
 
-PRAGMA_DISABLE_OPTIMIZATION
+UE_DISABLE_OPTIMIZATION
 
 const FString EventParsingInput = R"RAWSUD(
 Player: Ow do?
@@ -259,4 +259,4 @@ bool FTestEvents::RunTest(const FString& Parameters)
 	return true;
 }
 
-PRAGMA_ENABLE_OPTIMIZATION
+UE_ENABLE_OPTIMIZATION

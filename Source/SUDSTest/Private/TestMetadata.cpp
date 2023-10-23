@@ -7,7 +7,7 @@
 #include "Internationalization/StringTableCore.h"
 #include "Misc/AutomationTest.h"
 
-PRAGMA_DISABLE_OPTIMIZATION
+UE_DISABLE_OPTIMIZATION
 
 // Assign known keys to the strings so we can detect 
 const FString MetadataInput = R"RAWSUD(
@@ -130,4 +130,4 @@ bool FTestMetadata::RunTest(const FString& Parameters)
 	
 }
 
-PRAGMA_ENABLE_OPTIMIZATION
+UE_ENABLE_OPTIMIZATION

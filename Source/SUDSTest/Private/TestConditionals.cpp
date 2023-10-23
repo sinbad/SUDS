@@ -4,7 +4,7 @@
 #include "SUDSScriptImporter.h"
 #include "TestUtils.h"
 
-PRAGMA_DISABLE_OPTIMIZATION
+UE_DISABLE_OPTIMIZATION
 
 const FString BasicConditionalInput = R"RAWSUD(
 Player: Hello
@@ -871,4 +871,4 @@ bool FTestMultipleOptionalChoicesWithLinesBetweenTextAndChoice::RunTest(const FS
 }
 
 
-PRAGMA_ENABLE_OPTIMIZATION
+UE_ENABLE_OPTIMIZATION

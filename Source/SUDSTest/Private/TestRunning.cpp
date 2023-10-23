@@ -6,7 +6,7 @@
 #include "TestUtils.h"
 #include "Misc/AutomationTest.h"
 
-PRAGMA_DISABLE_OPTIMIZATION
+UE_DISABLE_OPTIMIZATION
 
 const FString SimpleRunnerInput = R"RAWSUD(
 :start
@@ -458,4 +458,4 @@ bool FTestLinesBetweenTextAndChoice::RunTest(const FString& Parameters)
 	return true;
 }
 
-PRAGMA_ENABLE_OPTIMIZATION
+UE_ENABLE_OPTIMIZATION
