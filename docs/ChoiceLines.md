@@ -248,7 +248,7 @@ and you want to set something just before that.
 ## Choices as Speaker Lines
 
 By default, choices are not "spoken"; they don't get repeated as speaker lines
-after being selected. That's because msot often you'll want shorter choice text 
+after being selected. That's because most often you'll want shorter choice text 
 to fit in your UI, and you can follow up with a longer speaker line that represents
 that choice.
 
