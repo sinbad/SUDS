@@ -483,7 +483,7 @@ public:
 
 	/// Set a variable in dialogue state
 	/// This is mostly only useful if you happen to already have a general purpose FSUDSValue.
-	/// See SetDialogueText, SetDialogueInt etc for literal-friendly versions
+	/// See SetVariableText, SetVariableInt etc for literal-friendly versions
 	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void SetVariable(FName Name, FSUDSValue Value)
 	{
