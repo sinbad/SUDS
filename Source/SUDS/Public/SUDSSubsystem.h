@@ -147,6 +147,9 @@ public:
 		SetGlobalVariableImpl(Name, Value, false, 0);
 	}
 
+	// For our code only
+	void InternalSetGlobalVariable(FName Name, const FSUDSValue& Value, bool bFromScript, int LineNo) { SetGlobalVariableImpl(Name, Value, bFromScript, LineNo); }
+
 	/// Get a variable in dialogue state as a general value type
 	/// See GetDialogueText, GetDialogueInt etc for more type friendly versions, but if you want to access the state
 	/// as a type-flexible value then you can do so with this function.

@@ -194,6 +194,7 @@ protected:
 	void RaiseVariableChange(const FName& VarName, const FSUDSValue& Value, bool bFromScript, int LineNo);
 	void RaiseVariableRequested(const FName& VarName, int LineNo);
 	void RaiseExpressionVariablesRequested(const FSUDSExpression& Expression, int LineNo);
+	const TMap<FName, FSUDSValue>& GetGlobalVariables() const;
 
 	USUDSScriptNode* GetNextNode(USUDSScriptNode* Node);
 	bool IsChoiceOrTextNode(ESUDSScriptNodeType Type);

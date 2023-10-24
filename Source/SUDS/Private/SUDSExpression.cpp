@@ -2,6 +2,7 @@
 // Released under the MIT license https://opensource.org/license/MIT/
 #include "SUDSExpression.h"
 
+#include "SUDSLibrary.h"
 #include "Misc/DefaultValueHelper.h"
 #include "Internationalization/Regex.h"
 
@@ -296,7 +297,7 @@ bool FSUDSExpression::Validate()
 				return false;
 			Arg1 = EvalStack.Pop();
 
-			EvalStack.Push(EvaluateOperator(Item.GetType(), Arg1, Arg2, TempVariables));
+			EvalStack.Push(EvaluateOperator(Item.GetType(), Arg1, Arg2, TempVariables, TempVariables));
 		}
 		else
 		{
@@ -309,7 +310,7 @@ bool FSUDSExpression::Validate()
 	
 }
 
-FSUDSValue FSUDSExpression::Evaluate(const TMap<FName, FSUDSValue>& Variables) const
+FSUDSValue FSUDSExpression::Evaluate(const TMap<FName, FSUDSValue>& Variables, const TMap<FName, FSUDSValue>& GlobalVariables) const
 {
 	checkf(bIsValid, TEXT("Cannot execute an invalid expression tree"));
 
@@ -332,7 +333,7 @@ FSUDSValue FSUDSExpression::Evaluate(const TMap<FName, FSUDSValue>& Variables) c
 			}
 			checkf(!EvalStack.IsEmpty(), TEXT("Args missing before operator, bad expression"));
 			Arg1 = EvalStack.Pop();
-			EvalStack.Push(EvaluateOperator(Item.GetType(), Arg1, Arg2, Variables));
+			EvalStack.Push(EvaluateOperator(Item.GetType(), Arg1, Arg2, Variables, GlobalVariables));
 		}
 		else
 		{
@@ -342,12 +343,12 @@ FSUDSValue FSUDSExpression::Evaluate(const TMap<FName, FSUDSValue>& Variables) c
 	
 	checkf(EvalStack.Num() == 1, TEXT("We should end with a single item in the eval stack and it should be an operand"));
 
-	return EvaluateOperand(EvalStack.Top().GetOperandValue(), Variables);
+	return EvaluateOperand(EvalStack.Top().GetOperandValue(), Variables, GlobalVariables);
 }
 
-bool FSUDSExpression::EvaluateBoolean(const TMap<FName, FSUDSValue>& Variables, const FString& ErrorContext) const
+bool FSUDSExpression::EvaluateBoolean(const TMap<FName, FSUDSValue>& Variables, const TMap<FName, FSUDSValue>& GlobalVariables, const FString& ErrorContext) const
 {
-	const auto Result = Evaluate(Variables);
+	const auto Result = Evaluate(Variables, GlobalVariables);
 
 	if (Result.GetType() != ESUDSValueType::Boolean &&
 		Result.GetType() != ESUDSValueType::Variable) // Allow unresolved variable, will assume false
@@ -361,13 +362,14 @@ bool FSUDSExpression::EvaluateBoolean(const TMap<FName, FSUDSValue>& Variables, 
 FSUDSExpressionItem FSUDSExpression::EvaluateOperator(ESUDSExpressionItemType Op,
                                                       const FSUDSExpressionItem& Arg1,
                                                       const FSUDSExpressionItem& Arg2,
-                                                      const TMap<FName, FSUDSValue>& Variables) const
+                                                      const TMap<FName, FSUDSValue>& Variables,
+                                                      const TMap<FName, FSUDSValue>& GlobalVariables) const
 {
-	const FSUDSValue Val1 = EvaluateOperand(Arg1.GetOperandValue(), Variables);
+	const FSUDSValue Val1 = EvaluateOperand(Arg1.GetOperandValue(), Variables, GlobalVariables);
 	FSUDSValue Val2;
 	if (Arg1.IsBinaryOperator())
 	{
-		Val2 = EvaluateOperand(Arg2.GetOperandValue(), Variables);
+		Val2 = EvaluateOperand(Arg2.GetOperandValue(), Variables, GlobalVariables);
 	}
 
 	switch (Op)
@@ -411,11 +413,22 @@ FSUDSExpressionItem FSUDSExpression::EvaluateOperator(ESUDSExpressionItemType Op
 }
 
 FSUDSValue FSUDSExpression::EvaluateOperand(const FSUDSValue& Operand,
-	const TMap<FName, FSUDSValue>& Variables) const
+                                            const TMap<FName, FSUDSValue>& Variables,
+                                            const TMap<FName, FSUDSValue>& GlobalVariables) const
 {
 	// Simplify conversion to variable values
 	if (Operand.IsVariable())
 	{
+		FName Name = Operand.GetVariableNameValue();
+		FName GlobalName;
+		if (USUDSLibrary::IsDialogueVariableGlobal(Name, GlobalName))
+		{
+			// This will have stripped the prefix so direct find is OK
+			if (const auto Var = GlobalVariables.Find(GlobalName))
+			{
+				return *Var;
+			}
+		}
 		if (const auto Var = Variables.Find(Operand.GetVariableNameValue()))
 		{
 			return *Var;

@@ -133,5 +133,13 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="SUDS")
 	static bool GetDialogueValueIsEmpty(const FSUDSValue& Value);
-	
+
+	/**
+	 * Determine whether a SUDS variable name refers to a global variable
+	 * @param Name The full name of the variable
+	 * @param OutName The name of the variable, trimmed if necessary to remove a global prefix
+	 * @return Whether the variable was global
+	 */
+	UFUNCTION(BlueprintCallable, Category="SUDS")
+	static bool IsDialogueVariableGlobal(const FName& Name, UPARAM(ref) FName& OutName);
 };

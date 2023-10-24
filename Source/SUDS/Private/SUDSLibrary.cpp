@@ -134,3 +134,21 @@ bool USUDSLibrary::GetDialogueValueIsEmpty(const FSUDSValue& Value)
 {
 	return Value.IsEmpty();
 }
+
+bool USUDSLibrary::IsDialogueVariableGlobal(const FName& Name, FName& OutName)
+{
+	static const FString Prefix(TEXT("global."));
+	FString TempStr;
+	Name.ToString(TempStr);
+	if (TempStr.StartsWith(Prefix, ESearchCase::IgnoreCase))
+	{
+		TempStr.RightChopInline(Prefix.Len());
+		OutName = FName(TempStr);
+		return true;
+	}
+	else
+	{
+		OutName = Name;
+		return false;
+	}
+}

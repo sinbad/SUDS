@@ -96,10 +96,11 @@ protected:
 	FString SourceString;
 
 	FSUDSExpressionItem EvaluateOperator(ESUDSExpressionItemType Op,
-	                                       const FSUDSExpressionItem& Arg1,
-	                                       const FSUDSExpressionItem& Arg2,
-	                                       const TMap<FName, FSUDSValue>& Variables) const;
-	FSUDSValue EvaluateOperand(const FSUDSValue& Operand, const TMap<FName, FSUDSValue>& Variables) const;
+	                                     const FSUDSExpressionItem& Arg1,
+	                                     const FSUDSExpressionItem& Arg2,
+	                                     const TMap<FName, FSUDSValue>& Variables,
+	                                     const TMap<FName, FSUDSValue>& GlobalVariables) const;
+	FSUDSValue EvaluateOperand(const FSUDSValue& Operand, const TMap<FName, FSUDSValue>& Variables, const TMap<FName, FSUDSValue>& GlobalVariables) const;
 
 	bool Validate();
 
@@ -125,10 +126,10 @@ public:
 	bool ParseFromString(const FString& Expression, FString* OutParseError);
 
 	/// Evaluate the expression and return the result, using a given variable state 
-	FSUDSValue Evaluate(const TMap<FName, FSUDSValue>& Variables) const;
+	FSUDSValue Evaluate(const TMap<FName, FSUDSValue>& Variables, const TMap<FName, FSUDSValue>& GlobalVariables) const;
 
 	/// Evaluate the expression and return the result as a boolean, using a given variable state 
-	bool EvaluateBoolean(const TMap<FName, FSUDSValue>& Variables, const FString& ErrorContext) const;
+	bool EvaluateBoolean(const TMap<FName, FSUDSValue>& Variables, const TMap<FName, FSUDSValue>& GlobalVariables, const FString& ErrorContext) const;
 
 	/// Get the original source of the expression as a string
 	const FString& GetSourceString() const { return SourceString; }
