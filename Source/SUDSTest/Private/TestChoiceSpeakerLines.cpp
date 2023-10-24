@@ -127,5 +127,64 @@ bool FTestChoiceSpeakerSetSpeakerIdInScriptInput::RunTest(const FString& Paramet
 	return true;
 }
 
+const FString ChoicesAsSpeakerLineChainChoiceInput = R"RAWSUD(
+===
+[importsetting GenerateSpeakerLinesFromChoices true]
+===
+Player: Hello
+  * Choice 1
+	* Choice 1a
+		NPC: Hey this worked
+	* Choice 1b
+  * Choice 2
+	NPC: Also that one
+Player: The end
+)RAWSUD";
+
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestChoiceSpeakerChainedChoiceInput,
+								 "SUDSTest.TestChoiceSpeakerChainedChoiceInput",
+								 EAutomationTestFlags::EditorContext |
+								 EAutomationTestFlags::ClientContext |
+								 EAutomationTestFlags::ProductFilter)
+
+
+
+bool FTestChoiceSpeakerChainedChoiceInput::RunTest(const FString& Parameters)
+{
+	FSUDSMessageLogger Logger(false);
+	FSUDSScriptImporter Importer;
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(ChoicesAsSpeakerLineChainChoiceInput), ChoicesAsSpeakerLineChainChoiceInput.Len(), "ChoicesAsSpeakerLineChainChoiceInput", &Logger, true));
+
+	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
+	const ScopedStringTableHolder StringTableHolder;
+	Importer.PopulateAsset(Script, StringTableHolder.StringTable);
+
+	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
+	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
+	auto Participant = NewObject<UTestParticipant>();
+	Participant->TestNumber = 0;
+	Dlg->AddParticipant(Participant);
+	Dlg->Start();
+
+	TestDialogueText(this, "Line 1", Dlg, "Player", "Hello");
+	TestEqual("Choice text", Dlg->GetChoiceText(0).ToString(), TEXT("Choice 1"));
+	TestEqual("Choice text", Dlg->GetChoiceText(1).ToString(), TEXT("Choice 2"));
+	Dlg->Choose(0);
+	// Confirm that we got the choice as a speaker line, with custom speaker ID
+	TestDialogueText(this, "Choice as speaker line 1", Dlg, "Player", "Choice 1");
+	TestEqual("Choice 2nd level text", Dlg->GetChoiceText(0).ToString(), TEXT("Choice 1a"));
+	TestEqual("Choice 2nd leveltext", Dlg->GetChoiceText(1).ToString(), TEXT("Choice 1b"));
+	Dlg->Choose(0);
+	TestDialogueText(this, "Choice as speaker line 1", Dlg, "Player", "Choice 1a");
+	Dlg->Continue();
+	TestDialogueText(this, "Regular speaker line", Dlg, "NPC", "Hey this worked");
+	
+	Script->MarkAsGarbage();
+	return true;
+}
+
+
 
 UE_ENABLE_OPTIMIZATION
