@@ -2,6 +2,7 @@
 // Released under the MIT license https://opensource.org/license/MIT/
 #include "SUDSScriptImporter.h"
 
+#include "SUDSEditorSettings.h"
 #include "SUDSExpression.h"
 #include "SUDSMessageLogger.h"
 #include "SUDSScript.h"
@@ -14,6 +15,7 @@
 #include "Internationalization/StringTable.h"
 #include "Internationalization/StringTableCore.h"
 
+class USUDSEditorSettings;
 const FString FSUDSScriptImporter::EndGotoLabel = "end";
 const FString FSUDSScriptImporter::TreePathSeparator = "/";
 
@@ -41,6 +43,8 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 	bool bImportedOK = true;
 	ChoiceUniqueId = 0;
 	TextIDHighestNumber = 0;
+	bOverrideGenerateSpeakerLineForChoice.Reset();
+	OverrideChoiceSpeakerID.Reset();
 	if (Start)
 	{
 		int32 SubstringBeginIndex = 0;
@@ -299,6 +303,8 @@ bool FSUDSScriptImporter::ParseHeaderLine(const FStringView& Line, int IndentLev
 	if (Line.StartsWith(TEXT('[')))
 	{
 		bool bParsed = ParseSetLine(Line, HeaderTree, 0, LineNo, NameForErrors, Logger, bSilent);
+		if (!bParsed)
+			bParsed = ParseImportSettingLine(Line, HeaderTree, 0, LineNo, NameForErrors, Logger, bSilent);;
 	}
 	
 	return true;
@@ -355,6 +361,8 @@ bool FSUDSScriptImporter::ParseBodyLine(const FStringView& Line,
 			bParsed = ParseGosubLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 		if (!bParsed)
 			bParsed = ParseReturnLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
+		if (!bParsed)
+			bParsed = ParseImportSettingLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 
 		if (!bParsed)
 		{
@@ -520,16 +528,48 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line,
 		// Inside each choice, everything should be indented at least as much as 1 character inside the *
 		// We provide the edge with context C001, C002 etc for fallthrough
 		PushIndent(Tree, ChoiceNodeIdx, IndentLevel + 1, FString::Printf(TEXT("C%03d"), ++ChoiceUniqueId));
+
+		// Do we want to generate a speaker line for this choice
+		bool bGenerateSpeakerLine = false;
+		FString GeneratedSpeakerID;
+		if (const auto Settings = GetDefault<USUDSEditorSettings>())
+		{
+			bGenerateSpeakerLine = Settings->AlwaysGenerateSpeakerLinesFromChoices;
+			GeneratedSpeakerID = Settings->SpeakerIdForGeneratedLinesFromChoices;
+		}
+		if (bOverrideGenerateSpeakerLineForChoice.IsSet())
+		{
+			bGenerateSpeakerLine = bOverrideGenerateSpeakerLineForChoice.GetValue();
+		}
+		if (OverrideChoiceSpeakerID.IsSet())
+		{
+			GeneratedSpeakerID = OverrideChoiceSpeakerID.GetValue();
+		}
+		int ChoiceTextStart = 1;
+		if (Line[1] == '-')
+		{
+			// *- prefix, override speaker line
+			bGenerateSpeakerLine = false;
+			ChoiceTextStart = 2;
+		}
 		
 		// Add a pending edge, with the choice text
 		// Following things fill in the edge details, the next node to be parsed will finalise the destination
 		FString ChoiceTextID;
-		auto ChoiceTextView = Line.SubStr(1, Line.Len() - 1).TrimStart();
+		auto ChoiceTextView = Line.SubStr(ChoiceTextStart, Line.Len() - ChoiceTextStart).TrimStart();
 		RetrieveAndRemoveOrGenerateTextID(ChoiceTextView, ChoiceTextID);
-		const int EdgeIdx = ChoiceNode.Edges.Add(FSUDSParsedEdge(ChoiceNodeIdx, -1, LineNo, FString(ChoiceTextView), ChoiceTextID, GetTextMetadataForNextEntry(IndentLevel)));
+		const FString ChoiceText = FString(ChoiceTextView);
+		auto ChoiceTextMeta = GetTextMetadataForNextEntry(IndentLevel);
+		const int EdgeIdx = ChoiceNode.Edges.Add(FSUDSParsedEdge(ChoiceNodeIdx, -1, LineNo, ChoiceText, ChoiceTextID, ChoiceTextMeta));
 		Tree.EdgeInProgressNodeIdx = ChoiceNodeIdx;
 		Tree.EdgeInProgressEdgeIdx = EdgeIdx;
-		
+
+		if (bGenerateSpeakerLine)
+		{
+			// We use the same text & ID so this is just one localisation entry
+			Ctx.LastTextNodeIdx = AppendNode(Tree, FSUDSParsedNode(GeneratedSpeakerID, ChoiceText, ChoiceTextID, ChoiceTextMeta, IndentLevel + 1, LineNo));
+			ReferencedSpeakers.AddUnique(GeneratedSpeakerID);			
+		}
 		return true;
 	}
 	return false;
@@ -1090,6 +1130,78 @@ bool FSUDSScriptImporter::ParseSetLine(const FStringView& InLine,
 	return false;
 }
 
+bool FSUDSScriptImporter::ParseImportSettingLine(const FStringView& Line,
+	ParsedTree& Tree,
+	int IndentLevel,
+	int LineNo,
+	const FString& NameForErrors,
+	FSUDSMessageLogger* Logger,
+	bool bSilent)
+{
+	// Unfortunately FRegexMatcher doesn't support FStringView
+	const FString LineStr(Line);
+	const FRegexPattern ImportSetPattern(TEXT("^\\[importsetting\\s+(\\S+)\\s+(?:=\\s+)?([^\\]]+)\\]$"));
+	FRegexMatcher ImportSetRegex(ImportSetPattern, LineStr);
+	if (ImportSetRegex.FindNext())
+	{
+		if (!bSilent)
+			UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: IMPORTSETTING: %s"), LineNo, IndentLevel, *FString(Line));
+
+		const FString Name = ImportSetRegex.GetCaptureGroup(1);
+		const FString ExprStr = ImportSetRegex.GetCaptureGroup(2).TrimStartAndEnd(); // trim because capture accepts spaces in quotes
+		
+		FSUDSExpression Expr;
+		{
+			FString ParseError;
+			if (Expr.ParseFromString(ExprStr, &ParseError))
+			{
+				if (Expr.IsLiteral())
+				{
+					// Import settings affect importer state directly, no nodes
+					if (Name.Compare("GenerateSpeakerLinesFromChoices", ESearchCase::IgnoreCase) == 0)
+					{
+						if (Expr.GetLiteralValue().GetType() == ESUDSValueType::Boolean)
+						{
+							bOverrideGenerateSpeakerLineForChoice = Expr.GetBooleanLiteralValue();
+						}
+						else
+						{
+							if (!bSilent)
+								Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: [importsetting GenerateSpeakerLinesFromChoices ...] requires a boolean literal"), *NameForErrors, LineNo);
+						}
+					}
+					else if (Name.Compare("SpeakerIDForGeneratedLinesFromChoices", ESearchCase::IgnoreCase) == 0)
+					{
+						if (Expr.GetLiteralValue().GetType() == ESUDSValueType::Name)
+						{
+							// Speaker IDs are strings, but we go via FName to avoid translation
+							OverrideChoiceSpeakerID = Expr.GetNameLiteralValue().ToString();
+						}
+						else
+						{
+							if (!bSilent)
+								Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: [importsetting SpeakerIDForGeneratedLinesFromChoices ...] requires a Name literal e.g. (`Value`)"), *NameForErrors, LineNo);
+						}
+					}
+				
+					return true;
+				}
+				else
+				{
+					if (!bSilent)
+						Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: importsetting only accepts literal values"), *NameForErrors, LineNo);
+				}
+			}
+			else
+			{
+				if (!bSilent)
+					Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: %s"), *NameForErrors, LineNo, *ParseError);
+			}
+		}
+	}
+	return false;
+	
+}
 
 bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line,
                                          FSUDSScriptImporter::ParsedTree& Tree,

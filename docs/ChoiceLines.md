@@ -245,6 +245,53 @@ lines and choices. But it can be very useful, for example for cases when you
 use [goto](GotoLines.md) or [gosub](GosubLines.md) to go back to common choices
 and you want to set something just before that.
 
+## Choices as Speaker Lines
+
+By default, choices are not "spoken"; they don't get repeated as speaker lines
+after being selected. That's because most often you'll want shorter choice text 
+to fit in your UI, and you can follow up with a longer speaker line that represents
+that choice.
+
+But, what if you want the choice to be the full text that the player speaks?
+You could simply duplicate the choice text in a speaker line directly afterwards,
+but that gets tedious to do, and duplicates the text to localise.
+
+Instead, you can tell SUDS to generate a speaker line directly after each choice
+by default, with the same text as the choice. There are 2 ways to do this:
+
+1. In Project Settings > SUDS Editor, set "Always Generate Speaker Lines From Choices" to true.
+2. In a script, use `[importsetting GenerateSpeakerLinesFromChoices true]` in the [Header Section](Header.md)
+
+These settings only apply on *importing a script*, so if you change the global setting,
+you'll need to re-import any `.sud` script you want the change to apply to.
+
+### Disabling Speaker Lines for Individual Choices
+
+If you use the option to generate speaker lines from choices, you'll sometimes
+want to *not* do that for certain choices. To disable the generation of speaker
+lines for a choice, use the prefix `*-` instead of the usual `*`. E.g.
+
+```yaml
+NPC: Hello
+  * This is a speaker line choice
+    NPC: The player spoke the previous line
+  *- This choice is not a speaker line
+```
+
+### Setting the SpeakerID for Choice Lines
+
+By default the SpeakerID for speaker lines generated from choices is "Player",
+but you can override this:
+
+1. In Project Settings > SUDS Editor, set "Speaker ID For Generated Lines From Choices".
+2. In a script, use ``[importsetting SpeakerIDForGeneratedLinesFromChoices `Speaker`]`` in the [Header Section](Header.md)
+
+
+> Note: You *can* actually use `[importsetting ...]` outside the [Header Section](Header.md)
+> if you *really* need to. However, be careful; changing `importsetting` values apply
+> **for all lines** below that one. Indenting does not matter for `importsetting`.
+> So, put it in the header if you can for simplicity.
+
 ---
 
 ### See Also:
