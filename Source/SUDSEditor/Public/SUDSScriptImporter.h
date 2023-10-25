@@ -447,11 +447,11 @@ protected:
 	                                 Logger,
 	                                 bool bSilent);
 	void ConnectRemainingNodes(ParsedTree& Tree, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent);
+	void GenerateTextIDs(ParsedTree& BodyTree);
 	int FindFallthroughNodeIndex(ParsedTree& Tree, int StartNodeIndex, const FString& FromChoicePath, const FString& FromConditionalPath);
-	void RetrieveAndRemoveOrGenerateTextID(FStringView& InOutLine, FString& OutTextID);
 	bool RetrieveAndRemoveTextID(FStringView& InOutLine, FString& OutTextID);
 	bool RetrieveAndRemoveGosubID(FStringView& InOutLine, FString& OutTextID);
-	FString GenerateTextID(const FStringView& Line);
+	FString GenerateTextID();
 	const FSUDSParsedNode* GetNode(const ParsedTree& Tree, int Index = 0);
 	int GetGotoTargetNodeIndex(const ParsedTree& Tree, const FString& InLabel);
 	void PopulateAssetFromTree(USUDSScript* Asset,

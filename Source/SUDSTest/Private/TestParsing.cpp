@@ -861,8 +861,8 @@ Vagabond: Well met, fellow!
   * Er, hi?    
 	Vagabond: Verily, 'tis wondrous to see such a fine fellow on the road this morn!
 	[goto FriendlyChat]
-  * Jog on, mate    @0004@
-	Vagabond: Well, really! Good day then sir!    @0005@
+  * Jog on, mate    @0001@
+	Vagabond: Well, really! Good day then sir!    @0002@
 	[goto end]
 
 :FriendlyChat
@@ -887,11 +887,23 @@ bool FTestPartiallyLocalised::RunTest(const FString& Parameters)
 	auto NextNode = Importer.GetNode(0);
 
 	TestParsedText(this, "Start node", NextNode, "Vagabond", "Well met, fellow!");
+	// Test that we generated unique textIDs for inserted lines that are unique
+	// Should be after the last explicit one
+	TestFalse("TextID should be populated", NextNode->TextID.IsEmpty());
+	TestEqual("TextID should be correct", NextNode->TextID, "@0008@");
 	TestGetParsedNextNode(this, "Next", NextNode, Importer, false, &NextNode);
 	if (TestParsedChoice(this, "First choice", NextNode, 2))
 	{
+		TestFalse("TextID should be populated", NextNode->Edges[0].TextID.IsEmpty());
+		TestEqual("TextID should be correct", NextNode->Edges[0].TextID, "@0009@");
+		TestFalse("TextID should be populated", NextNode->Edges[1].TextID.IsEmpty());
+		TestEqual("TextID should be correct", NextNode->Edges[1].TextID, "@0001@");
+
 		TestParsedChoiceEdge(this, "First choice", NextNode, 0, "Er, hi?", Importer, &NextNode);
 		TestParsedText(this, "Next node", NextNode, "Vagabond", "Verily, 'tis wondrous to see such a fine fellow on the road this morn!");
+		TestFalse("TextID should be populated", NextNode->TextID.IsEmpty());
+		TestEqual("TextID should be correct", NextNode->TextID, "@000a@");
+		
 		TestGetParsedNextNode(this, "Next", NextNode, Importer, false, &NextNode);
 		TestParsedGoto(this, "Goto", NextNode, Importer, &NextNode);
 		TestParsedText(this, "Next node", NextNode, "Vagabond", "Mayhaps we could travel together a while, and share a tale or two?\nWhat do you say?");
@@ -902,10 +914,10 @@ bool FTestPartiallyLocalised::RunTest(const FString& Parameters)
 	TestGetParsedNextNode(this, "Next", NextNode, Importer, false, &NextNode);
 	if (TestParsedChoice(this, "First choice", NextNode, 2))
 	{
-		TestEqual("TextID should be correct", NextNode->Edges[1].TextID, "@0004@");
+		TestEqual("TextID should be correct", NextNode->Edges[1].TextID, "@0001@");
 		TestParsedChoiceEdge(this, "First choice", NextNode, 1, "Jog on, mate", Importer, &NextNode);
 		TestParsedText(this, "Next node", NextNode, "Vagabond", "Well, really! Good day then sir!");
-		TestEqual("TextID should be correct", NextNode->TextID, "@0005@");
+		TestEqual("TextID should be correct", NextNode->TextID, "@0002@");
 	}
 	
 	return true;

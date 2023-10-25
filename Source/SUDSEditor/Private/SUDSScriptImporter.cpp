@@ -99,6 +99,8 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 
 	ConnectRemainingNodes(HeaderTree, NameForErrors, Logger, bSilent);
 	ConnectRemainingNodes(BodyTree, NameForErrors, Logger, bSilent);
+	GenerateTextIDs(HeaderTree);
+	GenerateTextIDs(BodyTree);
 
 	bImportedOK = PostImportSanityCheck(NameForErrors, Logger, bSilent) && bImportedOK;
 
@@ -557,7 +559,8 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line,
 		// Following things fill in the edge details, the next node to be parsed will finalise the destination
 		FString ChoiceTextID;
 		auto ChoiceTextView = Line.SubStr(ChoiceTextStart, Line.Len() - ChoiceTextStart).TrimStart();
-		RetrieveAndRemoveOrGenerateTextID(ChoiceTextView, ChoiceTextID);
+		// TextID might be blank after this, but that's OK, we fix later after we know what IDs are in use
+		RetrieveAndRemoveTextID(ChoiceTextView, ChoiceTextID);
 		const FString ChoiceText = FString(ChoiceTextView);
 		auto ChoiceTextMeta = GetTextMetadataForNextEntry(IndentLevel);
 		const int EdgeIdx = ChoiceNode.Edges.Add(FSUDSParsedEdge(ChoiceNodeIdx, -1, LineNo, ChoiceText, ChoiceTextID, ChoiceTextMeta));
@@ -1083,6 +1086,7 @@ bool FSUDSScriptImporter::ParseSetLine(const FStringView& InLine,
 	// We generate anyway, because it can be overriden by later lines, but makes sure we have one always
 	FString TextID;
 	FStringView Line = InLine;
+	// TextID may be blank after this, that's OK - we fix at the end once we know what IDs are used
 	RetrieveAndRemoveTextID(Line, TextID);
 	
 	// Unfortunately FRegexMatcher doesn't support FStringView
@@ -1107,11 +1111,6 @@ bool FSUDSScriptImporter::ParseSetLine(const FStringView& InLine,
 			{
 				if (Expr.IsTextLiteral())
 				{
-					// Text must be localised
-					if (TextID.IsEmpty())
-					{
-						TextID = GenerateTextID(InLine);
-					}
 					AppendNode(Tree, FSUDSParsedNode(Name, Expr, TextID, IndentLevel, LineNo));
 				}
 				else
@@ -1276,7 +1275,8 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine,
 	FStringView Line = InLine;
 	// Retrieve, but don't generate text ID at this point
 	// If this is a continuation line, we shouldn't generate one, but we need to trim it off if it's there
-	bool bFoundTextID = RetrieveAndRemoveTextID(Line, TextID);
+	// TextID may be blank after this, that's OK - we fix at the end once we know what IDs are used
+	RetrieveAndRemoveTextID(Line, TextID);
 	
 	const FString LineStr(Line);
 	const FRegexPattern SpeakerPattern(TEXT("^(\\S+)\\:\\s*(.+)$"));
@@ -1291,10 +1291,6 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine,
 		// New text node
 		// Text nodes can never introduce another indent context
 		// We've already backed out to the outer indent in caller
-		if (!bFoundTextID)
-		{
-			TextID = GenerateTextID(Line);
-		}
 		Ctx.LastTextNodeIdx = AppendNode(Tree, FSUDSParsedNode(Speaker, Text, TextID, GetTextMetadataForNextEntry(IndentLevel), IndentLevel, LineNo));
 
 		ReferencedSpeakers.AddUnique(Speaker);
@@ -1323,14 +1319,6 @@ bool FSUDSScriptImporter::ParseTextLine(const FStringView& InLine,
 	return true;
 
 
-}
-
-void FSUDSScriptImporter::RetrieveAndRemoveOrGenerateTextID(FStringView& InOutLine, FString& OutTextID)
-{
-	if (!RetrieveAndRemoveTextID(InOutLine, OutTextID))
-	{
-		OutTextID = GenerateTextID(InOutLine);
-	}
 }
 
 bool FSUDSScriptImporter::RetrieveAndRemoveTextID(FStringView& InOutLine, FString& OutTextID)
@@ -1407,7 +1395,7 @@ bool FSUDSScriptImporter::RetrieveGosubIDFromLine(FStringView& InOutLine, FStrin
 	
 }
 
-FString FSUDSScriptImporter::GenerateTextID(const FStringView& Line)
+FString FSUDSScriptImporter::GenerateTextID()
 {
 	// Generate a new text ID just based on ascending numbers
 	// We don't actually base this on the line but we have it for future possible use
@@ -1717,6 +1705,71 @@ void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree&
 			}
 		}
 	}
+}
+
+void FSUDSScriptImporter::GenerateTextIDs(ParsedTree& Tree)
+{
+	// This is where we generate any missing TextIDs for Text nodes, Set nodes (optionally) and Choice nodes
+	// We don't want to do it as we go along, because if a script has some lines with TextIDs and new inserted lines
+	// in between, we won't know from a top-down scan which IDs have already been used. Later explicit TextIDs in
+	// the script could cause an ID clash with generated ones for inserted lines
+
+	int LastLineNo = -1;
+	bool bLastLineWasChoice = false;
+	FString LastTextID;
+	for (auto& Node : Tree.Nodes)
+	{
+		switch (Node.NodeType)
+		{
+		case ESUDSParsedNodeType::Text:
+			bLastLineWasChoice = false;
+			if (Node.TextID.IsEmpty())
+			{
+				if (Node.SourceLineNo == LastLineNo && bLastLineWasChoice && !LastTextID.IsEmpty())
+				{
+					// This was a generated speaker line from the previous choice line
+					// Impossible to have the same line otherwise
+					Node.TextID = LastTextID;
+				}
+				else
+				{
+					Node.TextID = GenerateTextID();
+				}
+			}
+			break;
+		case ESUDSParsedNodeType::Choice:
+			bLastLineWasChoice = true;
+			// Text for choices is on edges
+			{
+				for (auto& Edge : Node.Edges)
+				{
+					if (!Edge.Text.IsEmpty() && Edge.TextID.IsEmpty())
+					{
+						Edge.TextID = GenerateTextID();
+					}
+				}
+			}
+			break;
+		case ESUDSParsedNodeType::SetVariable:
+			bLastLineWasChoice = false;
+			if (Node.Expression.IsTextLiteral())
+			{
+				// Text must be localised
+				if (Node.TextID.IsEmpty())
+				{
+					Node.TextID = GenerateTextID();
+				}
+			}
+			break;
+		default:
+			bLastLineWasChoice = false;
+			break;
+		}
+
+		LastLineNo = Node.SourceLineNo;
+		LastTextID = Node.TextID;
+	}
+	
 }
 
 bool FSUDSScriptImporter::PostImportSanityCheck(const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent)
