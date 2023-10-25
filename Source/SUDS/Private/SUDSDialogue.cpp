@@ -409,7 +409,17 @@ void USUDSDialogue::GetTextFormatArgs(const TArray<FName>& ArgNames, FFormatName
 {
 	for (auto& Name : ArgNames)
 	{
-		if (const FSUDSValue* Value = VariableState.Find(Name))
+		FName GlobalName;
+		if (USUDSLibrary::IsDialogueVariableGlobal(Name, GlobalName))
+		{
+			auto& Globals = InternalGetGlobalVariables(this->GetWorld());
+			if (const FSUDSValue* Value = Globals.Find(GlobalName))
+			{
+				// Add to format args using name with prefix
+				OutArgs.Add(Name.ToString(), Value->ToFormatArg());
+			}
+		}
+		else if (const FSUDSValue* Value = VariableState.Find(Name))
 		{
 			// Use the operator conversion
 			OutArgs.Add(Name.ToString(), Value->ToFormatArg());
