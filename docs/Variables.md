@@ -171,9 +171,23 @@ as [setting variables](#setting-variables-in-code) above.
 
 ### Uninitialised Variables
 
-If you reference the value of a variable which has not been set, you get a 
-default value depending on the context. If you're doing a boolean test you get
-false, if numeric you get 0, and for text you get a blank string.
+#### In Expressions Or Conditionals
+
+If you use the value of a variable which has not been set in expressions like
+`{SomeValue} + 1`, you get a default value depending on the context. 
+
+If you're doing a boolean test you get false, if numeric you get 0, and for text 
+you get a blank string. This is so that expressions never fail to evaluate, so they
+don't break your script.
+
+#### In Text
+
+If you output an uninitialised variable in text, then you get just the original
+text, unsubstituted. For example if you had a speaker line that said
+`NPC: So you want {Count}?`, and `Count` is undefined, then that line will be
+printed verbatim, rather than substituting the default 0. This is because you 
+basically never want to rely on defaults when outputting text to a player, so
+printing the unsubstituted variable name makes it easier to detect a bug like this. 
 
 ---
 
