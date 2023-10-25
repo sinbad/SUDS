@@ -2,6 +2,8 @@
 // Released under the MIT license https://opensource.org/license/MIT/
 #include "SUDSDialogue.h"
 
+#include "SUDSInternal.h"
+#include "SUDSLibrary.h"
 #include "SUDSParticipant.h"
 #include "SUDSScript.h"
 #include "SUDSScriptNode.h"
@@ -196,7 +198,7 @@ USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node)
 		{
 			// use the first satisfied edge
 			RaiseExpressionVariablesRequested(Edge.GetCondition(), Edge.GetSourceLineNo());
-			const bool bSuccess = Edge.GetCondition().EvaluateBoolean(VariableState, BaseScript->GetName());
+			const bool bSuccess = Edge.GetCondition().EvaluateBoolean(VariableState, GetGlobalVariables(), BaseScript->GetName());
 #if WITH_EDITOR
 			InternalOnSelectEval.ExecuteIfBound(this, Edge.GetCondition().GetSourceString(), bSuccess, Edge.GetSourceLineNo());
 #endif
@@ -222,7 +224,7 @@ USUDSScriptNode* USUDSDialogue::RunEventNode(USUDSScriptNode* Node)
 		for (auto& Expr : EvtNode->GetArgs())
 		{
 			RaiseExpressionVariablesRequested(Expr, EvtNode->GetSourceLineNo());
-			ArgsResolved.Add(Expr.Evaluate(VariableState));
+			ArgsResolved.Add(Expr.Evaluate(VariableState, GetGlobalVariables()));
 		}
 		
 		for (const auto P : Participants)
@@ -290,8 +292,16 @@ USUDSScriptNode* USUDSDialogue::RunSetVariableNode(USUDSScriptNode* Node)
 		if (SetNode->GetExpression().IsValid())
 		{
 			RaiseExpressionVariablesRequested(SetNode->GetExpression(), SetNode->GetSourceLineNo());
-			FSUDSValue Value = SetNode->GetExpression().Evaluate(VariableState);
-			SetVariableImpl(SetNode->GetIdentifier(), Value, true, SetNode->GetSourceLineNo());
+			FSUDSValue Value = SetNode->GetExpression().Evaluate(VariableState, GetGlobalVariables());
+			FName Identifier;
+			if (USUDSLibrary::IsDialogueVariableGlobal(SetNode->GetIdentifier(), Identifier))
+			{
+				InternalSetGlobalVariable(this->GetWorld(), Identifier, Value, true, SetNode->GetSourceLineNo());
+			}
+			else
+			{
+				SetVariableImpl(SetNode->GetIdentifier(), Value, true, SetNode->GetSourceLineNo());
+			}
 #if WITH_EDITOR
 			// We do this here so that we have access to the expression
 			InternalOnSetVar.ExecuteIfBound(this,
@@ -351,6 +361,11 @@ void USUDSDialogue::RaiseExpressionVariablesRequested(const FSUDSExpression& Exp
 	}
 }
 
+const TMap<FName, FSUDSValue>& USUDSDialogue::GetGlobalVariables() const
+{
+	return InternalGetGlobalVariables(this->GetWorld());
+}
+
 void USUDSDialogue::SetCurrentSpeakerNode(USUDSScriptNodeText* Node, bool bQuietly)
 {
 	CurrentSpeakerNode = Node;
@@ -395,7 +410,17 @@ void USUDSDialogue::GetTextFormatArgs(const TArray<FName>& ArgNames, FFormatName
 {
 	for (auto& Name : ArgNames)
 	{
-		if (const FSUDSValue* Value = VariableState.Find(Name))
+		FName GlobalName;
+		if (USUDSLibrary::IsDialogueVariableGlobal(Name, GlobalName))
+		{
+			auto& Globals = InternalGetGlobalVariables(this->GetWorld());
+			if (const FSUDSValue* Value = Globals.Find(GlobalName))
+			{
+				// Add to format args using name with prefix
+				OutArgs.Add(Name.ToString(), Value->ToFormatArg());
+			}
+		}
+		else if (const FSUDSValue* Value = VariableState.Find(Name))
 		{
 			// Use the operator conversion
 			OutArgs.Add(Name.ToString(), Value->ToFormatArg());
@@ -751,7 +776,7 @@ void USUDSDialogue::RecurseAppendChoices(const USUDSScriptNode* Node, TArray<FSU
 			if (Edge.GetCondition().IsValid())
 			{
 				RaiseExpressionVariablesRequested(Edge.GetCondition(), Edge.GetSourceLineNo());
-				if (Edge.GetCondition().EvaluateBoolean(VariableState, BaseScript->GetName()))
+				if (Edge.GetCondition().EvaluateBoolean(VariableState, GetGlobalVariables(), BaseScript->GetName()))
 				{
 					RecurseAppendChoices(Edge.GetTargetNode().Get(), OutChoices);
 					// When we choose a path on a select, we don't check the other paths, we can only go down one

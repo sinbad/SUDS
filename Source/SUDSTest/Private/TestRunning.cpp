@@ -3,6 +3,7 @@
 #include "SUDSMessageLogger.h"
 #include "SUDSScript.h"
 #include "SUDSScriptImporter.h"
+#include "SUDSSubsystem.h"
 #include "TestUtils.h"
 #include "Misc/AutomationTest.h"
 
@@ -56,6 +57,9 @@ const FString SetVariableRunnerInput = R"RAWSUD(
 [set SomeFloat = 12.5]
 [set SomeCalculatedInt = (3 + 4) * 2]
 [set SomeCalculatedBoolean = true or false]
+// Test global vars
+[set global.SomeGlobalInt 3]
+[set global.SomeGlobalFloat = 12.5 * 3]
 ===
 
 Player: Hello
@@ -63,7 +67,9 @@ Player: Hello
 # Test that we can use variables in set and that ordering works
 [set SomeOtherFloat {SomeFloat} + 10]
 [set SomeFloat 43.754]
+# Test global values
 NPC: Wotcha
+Player: Values are: {global.SomeGlobalInt}, {global.SomeGlobalFloat}, {global.GlobalIntSetOutside}
 # Test that inserting a set node in between text and choice doesn't break link 
 [set SomeGender masculine]
 	* Choice 1
@@ -219,11 +225,15 @@ bool FTestSetVariableRunning::RunTest(const FString& Parameters)
 	FSUDSMessageLogger Logger(false);
 	FSUDSScriptImporter Importer;
 	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SetVariableRunnerInput), SetVariableRunnerInput.Len(), "SetVariableRunnerInput", &Logger, true));
-
+	
 	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
 	const ScopedStringTableHolder StringTableHolder;
 	Importer.PopulateAsset(Script, StringTableHolder.StringTable);
 
+	// We need to use dummy global vars since subsystem doesn't exist
+	USUDSSubsystem::Test_DummyGlobalVariables.Empty();
+	USUDSSubsystem::Test_DummyGlobalVariables.Add("GlobalIntSetOutside", 245);
+	
 	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
 	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
 	Dlg->Start();
@@ -241,6 +251,12 @@ bool FTestSetVariableRunning::RunTest(const FString& Parameters)
 	TestTrue("Initial: calculated bool", Dlg->GetVariableBoolean("SomeCalculatedBoolean"));
 
 
+	// Test globals
+	TestFalse("Test not setting local var", Dlg->IsVariableSet("global.SomeGlobalInt"));
+	TestFalse("Test not setting local var", Dlg->IsVariableSet("global.SomeGlobalFloat"));
+	TestTrue("Test setting global var", USUDSSubsystem::Test_DummyGlobalVariables.Contains("SomeGlobalInt"));
+	TestTrue("Test setting global var", USUDSSubsystem::Test_DummyGlobalVariables.Contains("SomeGlobalFloat"));
+
 	TestDialogueText(this, "Node 1", Dlg, "Player", "Hello");
 	TestTrue("Continue", Dlg->Continue());
 	// Set node should have run
@@ -250,6 +266,10 @@ bool FTestSetVariableRunning::RunTest(const FString& Parameters)
 	// Test that setting a new variable from another variable + 10 worked
 	TestEqual("Some copied float", Dlg->GetVariableFloat("SomeOtherFloat"), 22.5f);
 	TestEqual("Original float", Dlg->GetVariableFloat("SomeFloat"), 43.754f);
+
+	// Test globals
+	TestTrue("Continue", Dlg->Continue());
+	TestDialogueText(this, "Global text", Dlg, "Player", "Values are: 3, 37.5, 245");
 	
 	TestEqual("Choices count", Dlg->GetNumberOfChoices(), 2);
 	TestEqual("Choice 1 text", Dlg->GetChoiceText(0).ToString(), "Choice 1");
@@ -288,6 +308,7 @@ bool FTestSetVariableRunning::RunTest(const FString& Parameters)
 
 	// Try the other path
 	TestTrue("Continue", Dlg->Continue());
+	TestTrue("Continue", Dlg->Continue());
 	TestTrue("Choose 2", Dlg->Choose(1));
 	TestDialogueText(this, "Choice 2 text", Dlg, "NPC", "Surprise");
 	TestEqual("Gender should not be changed yet", Dlg->GetVariableGender("SomeGender"), ETextGender::Masculine);
@@ -300,8 +321,8 @@ bool FTestSetVariableRunning::RunTest(const FString& Parameters)
 	
 	TestFalse("Continue", Dlg->Continue());
 	TestTrue("At end", Dlg->IsEnded());
-	
 
+	USUDSSubsystem::Test_DummyGlobalVariables.Empty();
 	Script->MarkAsGarbage();
 	return true;
 

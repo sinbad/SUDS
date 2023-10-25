@@ -171,6 +171,17 @@ voiced lines using "Is Current Line Voiced", and if so play the audio, like this
 You can also use "Play Voiced Line at Location" if you want to place the voice in
 real space.
 
+### Voice concurrency
+
+By default only one voiced line will be played at a time, so if you advance dialogue
+before a line is finished playing and another one is played, it will interrupt
+the previous one. The settings for this are persistent across all dialogues.
+
+To allow more voiced lines to be played at once, use `SUDSSubsystem`:
+
+![ConcurrentVoices](img/VoiceSetMaxConcurrent.png)
+
+
 ### See Also:
 * [Speaker Lines](SpeakerLines.md)
 * [Localisation](Localisation.md)

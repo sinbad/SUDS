@@ -194,6 +194,7 @@ protected:
 	void RaiseVariableChange(const FName& VarName, const FSUDSValue& Value, bool bFromScript, int LineNo);
 	void RaiseVariableRequested(const FName& VarName, int LineNo);
 	void RaiseExpressionVariablesRequested(const FSUDSExpression& Expression, int LineNo);
+	const TMap<FName, FSUDSValue>& GetGlobalVariables() const;
 
 	USUDSScriptNode* GetNextNode(USUDSScriptNode* Node);
 	bool IsChoiceOrTextNode(ESUDSScriptNodeType Type);
@@ -483,7 +484,7 @@ public:
 
 	/// Set a variable in dialogue state
 	/// This is mostly only useful if you happen to already have a general purpose FSUDSValue.
-	/// See SetDialogueText, SetDialogueInt etc for literal-friendly versions
+	/// See SetVariableText, SetVariableInt etc for literal-friendly versions
 	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void SetVariable(FName Name, FSUDSValue Value)
 	{
