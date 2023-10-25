@@ -61,15 +61,15 @@ class SUDS_API USUDSSubsystem : public UGameInstanceSubsystem
 public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
-
-protected:
-	UPROPERTY()
-	USoundConcurrency* VoiceConcurrency;
-
+	
 	/// Event raised when a global variable is changed. "FromScript" is true if the variable was set by the script, false if set from code
 	UPROPERTY(BlueprintAssignable)
 	FOnGlobalVariableChangedEvent OnGlobalVariableChanged;
 
+protected:
+	UPROPERTY()
+	USoundConcurrency* VoiceConcurrency;
+	
 	/// Global variable state
 	typedef TMap<FName, FSUDSValue> FSUDSValueMap;
 	FSUDSValueMap GlobalVariableState;
