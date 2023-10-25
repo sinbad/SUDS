@@ -52,7 +52,7 @@ Here are all the types of lines you can include in your scripts:
 | [Conditional lines](ConditionalLines.md)  | Include/exclude parts of the dialogue based on state |
 | [Event lines](EventLines.md)              | Raise events to be received by code |
 | [Comment Lines](CommentLines.md) | Ignored by the importer |
-
+| [Import Setting Lines](ImportSettingLines.md) | Change behaviour during import |
 
 ## Script Sequence
 
