@@ -5,6 +5,10 @@
 
 DEFINE_LOG_CATEGORY(LogSUDSSubsystem)
 
+#if WITH_EDITORONLY_DATA
+	TMap<FName, FSUDSValue> USUDSSubsystem::Test_DummyGlobalVariables;
+#endif
+
 void USUDSSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);

@@ -2,6 +2,7 @@
 // Released under the MIT license https://opensource.org/license/MIT/
 #include "SUDSDialogue.h"
 
+#include "SUDSInternal.h"
 #include "SUDSLibrary.h"
 #include "SUDSParticipant.h"
 #include "SUDSScript.h"
@@ -295,7 +296,7 @@ USUDSScriptNode* USUDSDialogue::RunSetVariableNode(USUDSScriptNode* Node)
 			FName Identifier;
 			if (USUDSLibrary::IsDialogueVariableGlobal(SetNode->GetIdentifier(), Identifier))
 			{
-				GetSUDSSubsystem(this->GetWorld())->InternalSetGlobalVariable(Identifier, Value, true, SetNode->GetSourceLineNo());
+				InternalSetGlobalVariable(this->GetWorld(), Identifier, Value, true, SetNode->GetSourceLineNo());
 			}
 			else
 			{
@@ -362,7 +363,7 @@ void USUDSDialogue::RaiseExpressionVariablesRequested(const FSUDSExpression& Exp
 
 const TMap<FName, FSUDSValue>& USUDSDialogue::GetGlobalVariables() const
 {
-	return GetSUDSSubsystem(this->GetWorld())->GetGlobalVariables();
+	return InternalGetGlobalVariables(this->GetWorld());
 }
 
 void USUDSDialogue::SetCurrentSpeakerNode(USUDSScriptNodeText* Node, bool bQuietly)

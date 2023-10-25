@@ -71,8 +71,7 @@ protected:
 	USoundConcurrency* VoiceConcurrency;
 	
 	/// Global variable state
-	typedef TMap<FName, FSUDSValue> FSUDSValueMap;
-	FSUDSValueMap GlobalVariableState;
+	TMap<FName, FSUDSValue> GlobalVariableState;
 	
 	void SetGlobalVariableImpl(FName Name, const FSUDSValue& Value, bool bFromScript, int LineNo)
 	{
@@ -147,7 +146,7 @@ public:
 		SetGlobalVariableImpl(Name, Value, false, 0);
 	}
 
-	// For our code only
+	/// Internal use only
 	void InternalSetGlobalVariable(FName Name, const FSUDSValue& Value, bool bFromScript, int LineNo) { SetGlobalVariableImpl(Name, Value, bFromScript, LineNo); }
 
 	/// Get a variable in dialogue state as a general value type
@@ -281,6 +280,12 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="SUDS|Global Variables")
 	void UnSetGlobalVariable(FName Name);
+
+#if WITH_EDITORONLY_DATA
+	/// Only for use by tests / editor tools when real subsystem isn't running
+	static TMap<FName, FSUDSValue> Test_DummyGlobalVariables;
+#endif
+
 	
 	
 };
