@@ -1,4 +1,6 @@
-# Saving and Restoring Dialogue State
+# Saving and Restoring State
+
+## Dialogue State
 
 Every [runtime dialogue](RunningDialogue.md) has a set of active state which comprises 3 things:
 
@@ -11,9 +13,9 @@ doesn't - either if you dispose of your dialogue instances once the UI closes, o
 across save games, you need access to that state so you can store it somewhere,
 and include it in your save game.
 
-## Extracting Dialogue State
+### Extracting Dialogue State
 
-To get a snapshot of dialogue state, call `GetSavedState` on the dialogue. You
+To get a snapshot of dialogue state, call `GetSavedState` on the dialogue instance. You
 could just save this in a property on the 
 [owner of the dialogue](RunningDialogue.md#dialogue-owners), for example:
 
@@ -22,7 +24,7 @@ could just save this in a property on the
 If you mark this property "Save Game", then most save game systems (such as [SPUD](https://github.com/sinbad/SPUD))
 will be able to serialise it along with the rest of your save game data.
 
-## Restoring Dialogue State
+### Restoring Dialogue State
 
 When you [run the dialogue](RunningDialogue.md), instead of just immediately 
 starting it, call `RestoreSavedState` first, like this:
@@ -33,7 +35,7 @@ starting it, call `RestoreSavedState` first, like this:
 `RestoreSavedState` will restore the active speaker node as well, in case you
 saved in the middle of the dialogue. 
 
-## Examining Dialogue State
+### Examining Dialogue State
 
 If you want you can dig into the dialogue state:
 
@@ -65,11 +67,20 @@ It contains:
 > in active development, until you get to the point when your script is mostly finished,
 > and you're ready to [localise it](Localisation.md).
 
+## Global State
+
+You may also be using [global variables](Variables.md#global-variables),
+and want to save the state of those variables.
+
+To do so, get a reference to the `SUDSSubsystem` and use the same kind of functions as
+dialogues, but the Global versions, e.g. `GetSavedGlobalState`, `RestoreSavedGlobalState`.
 
 ## Using SPUD
 
 One of the easiest ways to handle saved dialogue in save games is via one of my
 other projects, [SPUD](https://github.com/sinbad/SPUD). 
+
+### Dialogue State
 
 Assuming that you've made the [owner of the dialogue](RunningDialogue.md#dialogue-owners)
 the NPC you're talking to, and that NPC is already registered as a SPUD Object,
@@ -80,6 +91,13 @@ You still need to populate it by calling `GetSavedState`, which you can either d
 at the end of the dialogue (if the NPC is a [Participant](Participants.md) this is
 easy, use the `OnDialogueFinished` callback), or if you can save mid-dialogue then
 use the `ISPUDObjectCallback::SpudPreStore` hook.
+
+### Global State
+
+Global state will need to be stored in a `SaveGame` property of a UObject which
+is registered with SPUD via `AddPersistentGlobalObjectWithName`. You can extract
+the state from SUDS using `SUDSSubsystem`'s `GetSavedGlobalState` method, and
+restore it after load using `RestoreSavedGlobalState`. 
 
 ---
 

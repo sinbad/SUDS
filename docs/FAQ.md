@@ -35,7 +35,7 @@ cover this scenario, and advise to turn off the editor setting "Detect Changes o
 
 Changing this setting will fix the problem, but has the side effect of making UE
 only prompt you to re-import assets that you update *while the editor is running*.
-If you're in the habit of changing source files then started UE, you'll no longer
+If you're in the habit of changing source files then starting UE, you'll no longer
 get the auto-import prompt for this.
 
 ### How do I resolve merge conflicts with SUDS files?
