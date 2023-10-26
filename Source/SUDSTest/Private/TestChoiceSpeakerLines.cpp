@@ -195,6 +195,80 @@ bool FTestChoiceSpeakerChainedChoiceInput::RunTest(const FString& Parameters)
 	return true;
 }
 
+const FString ChoicesAsSpeakerLineWithStringKeysInput = R"RAWSUD(
+===
+[importsetting GenerateSpeakerLinesFromChoices true]
+===
+Player: Hello @0012@
+  * Choice 1 @0016@
+	NPC: I see @0017@
+		* Choice 1a @0018@
+            NPC: Sure
+        *- Not a speaker line!
+			Player: I had to say this separately
+  * Choice 2
+	NPC: Totally
 
+Player: The end
+)RAWSUD";
+
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestChoicesAsSpeakerLineWithStringKeys,
+								 "SUDSTest.TestChoicesAsSpeakerLineWithStringKeys",
+								 EAutomationTestFlags::EditorContext |
+								 EAutomationTestFlags::ClientContext |
+								 EAutomationTestFlags::ProductFilter)
+
+
+
+bool FTestChoicesAsSpeakerLineWithStringKeys::RunTest(const FString& Parameters)
+{
+	FSUDSMessageLogger Logger(false);
+	FSUDSScriptImporter Importer;
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(ChoicesAsSpeakerLineWithStringKeysInput), ChoicesAsSpeakerLineWithStringKeysInput.Len(), "ChoicesAsSpeakerLineWithStringKeysInput", &Logger, true));
+
+	auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
+	const ScopedStringTableHolder StringTableHolder;
+	Importer.PopulateAsset(Script, StringTableHolder.StringTable);
+
+	// Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
+	auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
+	auto Participant = NewObject<UTestParticipant>();
+	Participant->TestNumber = 0;
+	Dlg->AddParticipant(Participant);
+	Dlg->Start();
+
+	TestDialogueText(this, "Line 1", Dlg, "Player", "Hello");
+	TestEqual("String key", FTextInspector::GetTextId(Dlg->GetText()).GetKey().GetChars(), "@0012@");
+	TestEqual("Choice text", Dlg->GetChoiceText(0).ToString(), TEXT("Choice 1"));
+	TestEqual("Choice text", Dlg->GetChoiceText(1).ToString(), TEXT("Choice 2"));
+	TestEqual("String key", FTextInspector::GetTextId(Dlg->GetChoiceText(0)).GetKey().GetChars(), "@0016@");
+	FText ChoiceText0 = Dlg->GetChoiceText(0);
+	Dlg->Choose(0);
+	// Confirm that we got the choice as a speaker line
+	TestDialogueText(this, "Choice as speaker line 1", Dlg, "Player", "Choice 1");
+	// Confirm that text ID is the same
+	TestTrue("Text should be identical", ChoiceText0.IdenticalTo(Dlg->GetText()));
+	TestEqual("TextIDs should match", FTextInspector::GetTextId(ChoiceText0).GetKey().GetChars(), FTextInspector::GetTextId(Dlg->GetText()).GetKey().GetChars());
+	
+	Dlg->Continue();
+	TestDialogueText(this, "Regular speaker line", Dlg, "NPC", "I see");
+	TestEqual("String key", FTextInspector::GetTextId(Dlg->GetText()).GetKey().GetChars(), "@0017@");
+	TestEqual("String key", FTextInspector::GetTextId(Dlg->GetChoiceText(0)).GetKey().GetChars(), "@0018@");
+	TestEqual("Choice text", Dlg->GetChoiceText(0).ToString(), TEXT("Choice 1a"));
+	TestEqual("Choice text", Dlg->GetChoiceText(1).ToString(), TEXT("Not a speaker line!"));
+
+	ChoiceText0 = Dlg->GetChoiceText(0);
+	Dlg->Choose(0);
+	TestDialogueText(this, "Duplicated speaker line", Dlg, "Player", "Choice 1a");
+	
+	// Confirm that text ID is the same
+	TestTrue("Text should be identical", ChoiceText0.IdenticalTo(Dlg->GetText()));
+	TestEqual("TextIDs should match", FTextInspector::GetTextId(ChoiceText0).GetKey().GetChars(), FTextInspector::GetTextId(Dlg->GetText()).GetKey().GetChars());
+
+	Script->MarkAsGarbage();
+	return true;
+}
 
 UE_ENABLE_OPTIMIZATION
