@@ -56,9 +56,14 @@ bool FTestChoiceSpeakerLineInScript::RunTest(const FString& Parameters)
 	TestDialogueText(this, "Line 1", Dlg, "Player", "Hello");
 	TestEqual("Choice text", Dlg->GetChoiceText(0).ToString(), TEXT("Choice 1"));
 	TestEqual("Choice text", Dlg->GetChoiceText(1).ToString(), TEXT("Choice 2"));
+	const FText ChoiceText0 = Dlg->GetChoiceText(0);
 	Dlg->Choose(0);
 	// Confirm that we got the choice as a speaker line
 	TestDialogueText(this, "Choice as speaker line 1", Dlg, "Player", "Choice 1");
+	// Confirm that text ID is the same
+	TestTrue("Text should be identical", ChoiceText0.IdenticalTo(Dlg->GetText()));
+	TestEqual("TextIDs should match", FTextInspector::GetTextId(ChoiceText0).GetKey().GetChars(), FTextInspector::GetTextId(Dlg->GetText()).GetKey().GetChars());
+	
 	Dlg->Continue();
 	TestDialogueText(this, "Regular speaker line", Dlg, "NPC", "I see");
 	TestEqual("Choice text", Dlg->GetChoiceText(0).ToString(), TEXT("Choice 1a"));
@@ -117,7 +122,12 @@ bool FTestChoiceSpeakerSetSpeakerIdInScriptInput::RunTest(const FString& Paramet
 	TestDialogueText(this, "Line 1", Dlg, "Player", "Hello");
 	TestEqual("Choice text", Dlg->GetChoiceText(0).ToString(), TEXT("Choice 1"));
 	TestEqual("Choice text", Dlg->GetChoiceText(1).ToString(), TEXT("Choice 2"));
+	const FText ChoiceText0 = Dlg->GetChoiceText(0);
 	Dlg->Choose(0);
+	// Confirm that text ID is the same
+	TestTrue("Text should be identical", ChoiceText0.IdenticalTo(Dlg->GetText()));
+	TestEqual("TextIDs should match", FTextInspector::GetTextId(ChoiceText0).GetKey().GetChars(), FTextInspector::GetTextId(Dlg->GetText()).GetKey().GetChars());
+	
 	// Confirm that we got the choice as a speaker line, with custom speaker ID
 	TestDialogueText(this, "Choice as speaker line 1", Dlg, "TheDude", "Choice 1");
 	Dlg->Continue();

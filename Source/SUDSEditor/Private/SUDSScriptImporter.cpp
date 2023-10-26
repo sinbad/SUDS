@@ -1709,36 +1709,22 @@ void FSUDSScriptImporter::ConnectRemainingNodes(FSUDSScriptImporter::ParsedTree&
 
 void FSUDSScriptImporter::GenerateTextIDs(ParsedTree& Tree)
 {
-	// This is where we generate any missing TextIDs for Text nodes, Set nodes (optionally) and Choice nodes
+	// This is where we generate any missing TextIDs for Text nodes, Set nodes (optionally) and Choice edges
 	// We don't want to do it as we go along, because if a script has some lines with TextIDs and new inserted lines
 	// in between, we won't know from a top-down scan which IDs have already been used. Later explicit TextIDs in
 	// the script could cause an ID clash with generated ones for inserted lines
 
-	int LastLineNo = -1;
-	bool bLastLineWasChoice = false;
-	FString LastTextID;
 	for (auto& Node : Tree.Nodes)
 	{
 		switch (Node.NodeType)
 		{
 		case ESUDSParsedNodeType::Text:
-			bLastLineWasChoice = false;
 			if (Node.TextID.IsEmpty())
 			{
-				if (Node.SourceLineNo == LastLineNo && bLastLineWasChoice && !LastTextID.IsEmpty())
-				{
-					// This was a generated speaker line from the previous choice line
-					// Impossible to have the same line otherwise
-					Node.TextID = LastTextID;
-				}
-				else
-				{
-					Node.TextID = GenerateTextID();
-				}
+				Node.TextID = GenerateTextID();
 			}
 			break;
 		case ESUDSParsedNodeType::Choice:
-			bLastLineWasChoice = true;
 			// Text for choices is on edges
 			{
 				for (auto& Edge : Node.Edges)
@@ -1747,11 +1733,22 @@ void FSUDSScriptImporter::GenerateTextIDs(ParsedTree& Tree)
 					{
 						Edge.TextID = GenerateTextID();
 					}
+
+					// If this choice generated a speaker line, we need to give that the same text ID
+					// It will always be directly after the choice edge
+					if (Tree.Nodes.IsValidIndex(Edge.TargetNodeIdx))
+					{
+						auto& NextNode = Tree.Nodes[Edge.TargetNodeIdx];
+						if (NextNode.NodeType == ESUDSParsedNodeType::Text && NextNode.TextID.IsEmpty() &&
+							NextNode.Text == Edge.Text)
+						{
+							NextNode.TextID = Edge.TextID;
+						}
+					}
 				}
 			}
 			break;
 		case ESUDSParsedNodeType::SetVariable:
-			bLastLineWasChoice = false;
 			if (Node.Expression.IsTextLiteral())
 			{
 				// Text must be localised
@@ -1762,12 +1759,9 @@ void FSUDSScriptImporter::GenerateTextIDs(ParsedTree& Tree)
 			}
 			break;
 		default:
-			bLastLineWasChoice = false;
 			break;
 		}
 
-		LastLineNo = Node.SourceLineNo;
-		LastTextID = Node.TextID;
 	}
 	
 }
