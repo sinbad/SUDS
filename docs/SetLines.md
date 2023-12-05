@@ -52,6 +52,12 @@ This is for text (FText) you expect to display to the player.
 [set SomeText "Hello world"]
 ```
 
+You can include double quotes inside text by using the escape (`\`) character:
+```yaml
+[set SomeText "This includes some \"Quoted\" text"]
+```
+
+
 > Note: Literal text is automatically tagged for [localisation](Localisation.md)
 > just like text in [speaker lines](SpeakerLines.md) and [choices](ChoiceLines.md).
 

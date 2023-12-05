@@ -82,6 +82,7 @@ const FString SetVariableParsingInput = R"RAWSUD(
 [set ValetName "Bob"]
 [set SomeFloat 12.5]
 [set SomeName `AName`]
+[set EmbeddedQuoteString "Hello this has some \"Embedded Quotes\""]
 ===
 
 Player: Hello
@@ -673,6 +674,8 @@ bool FTestSetVariableParsing::RunTest(const FString& Parameters)
 	TestParsedSetLiteral(this, "Header node 3", NextNode, "SomeFloat", 12.5f);
 	TestGetParsedNextNode(this, "Header node 3 next", NextNode, Importer, true, &NextNode);
 	TestParsedSetLiteral(this, "Header node 4", NextNode, "SomeName", FName("AName"));
+	TestGetParsedNextNode(this, "Header node 4 next", NextNode, Importer, true, &NextNode);
+	TestParsedSetLiteral(this, "Header node 5", NextNode, "EmbeddedQuoteString", "Hello this has some \"Embedded Quotes\"");
 
 	// Now body nodes
 	NextNode = Importer.GetNode(0);

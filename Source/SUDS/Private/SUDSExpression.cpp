@@ -27,8 +27,9 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, FString* OutPar
 	// - Boolean operators & comparisons
 	// - Predefined constants (Masculine, feminine, true, false etc)
 	// - Quoted strings "string"
+	//   - Including ignoring escaped double quotes
 	// - Quoted names `name`
-	const FRegexPattern Pattern(TEXT("(\\{[\\w\\.]+\\}|-?\\d+(?:\\.\\d*)?|[-+*\\/\\(\\)]|and|&&|\\|\\||or|not|\\<\\>|!=|!|\\<=?|\\>=?|==?|[mM]asculine|[fF]eminine|[nN]euter|[tT]rue|[fF]alse|\\\"([^\\\"]*)\\\"|`([^`]*)`)"));
+	const FRegexPattern Pattern(TEXT("(\\{[\\w\\.]+\\}|-?\\d+(?:\\.\\d*)?|[-+*\\/\\(\\)]|and|&&|\\|\\||or|not|\\<\\>|!=|!|\\<=?|\\>=?|==?|[mM]asculine|[fF]eminine|[nN]euter|[tT]rue|[fF]alse|\"(?:[^\"\\\\]|\\\\.)*\"|`([^`]*)`)"));
 	FRegexMatcher Regex(Pattern, Expression);
 	// Stacks that we use to construct
 	TArray<ESUDSExpressionItemType> OperatorStack;
@@ -221,11 +222,13 @@ bool FSUDSExpression::ParseOperand(const FString& ValueStr, FSUDSValue& OutVal)
 	}
 	// Try quoted text (will be localised later in asset conversion)
 	{
-		const FRegexPattern Pattern(TEXT("^\\\"([^\\\"]*)\\\"$"));
+		const FRegexPattern Pattern(TEXT("^\"((?:[^\"\\\\]|\\\\.)*)\"$"));
 		FRegexMatcher Regex(Pattern, ValueStr);
 		if (Regex.FindNext())
 		{
-			const FString Val = Regex.GetCaptureGroup(1);
+			FString Val = Regex.GetCaptureGroup(1);
+			// Consolidate any escaped double quotes into just quotes
+			Val.ReplaceInline(TEXT("\\\""), TEXT("\""));
 			OutVal = FSUDSValue(FText::FromString(Val));
 			return true;
 		}
