@@ -45,6 +45,7 @@ bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, con
 	TextIDHighestNumber = 0;
 	bOverrideGenerateSpeakerLineForChoice.Reset();
 	OverrideChoiceSpeakerID.Reset();
+	ReferencedSpeakers.Empty();
 	if (Start)
 	{
 		int32 SubstringBeginIndex = 0;
