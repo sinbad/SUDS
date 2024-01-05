@@ -1871,7 +1871,7 @@ bool FSUDSScriptImporter::RecurseChoiceNodeCheckPaths(const FSUDSParsedNode& Cho
 		case ESUDSParsedNodeType::Gosub:
 		case ESUDSParsedNodeType::Return:
 			// We can't really check the gosub/return statically, this will be a runtime error
-			break;
+			return true;
 		case ESUDSParsedNodeType::Goto:
 			{
 				// Follow the goto (if end, will result in null)
