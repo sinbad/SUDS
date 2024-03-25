@@ -31,6 +31,7 @@ UObject* USUDSScriptFactory::FactoryCreateText(UClass* InClass,
 	FFeedbackContext* Warn)
 {
 	Flags |= RF_Transactional;
+	FSUDSMessageLogger::ClearMessages();
 	FSUDSMessageLogger Logger;
 
 	USUDSScript* Result = nullptr;

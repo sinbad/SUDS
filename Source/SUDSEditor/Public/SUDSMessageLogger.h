@@ -39,4 +39,9 @@ public:
 
 	const TArray<TSharedRef<FTokenizedMessage>>& GetErrorMessages() const { return ErrorMessages; }
 
+	/// Clear messages in preparation for an import
+	static void ClearMessages();
+
+	
+
 };

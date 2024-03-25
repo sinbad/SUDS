@@ -1114,6 +1114,7 @@ void FSUDSEditorToolkit::WriteBackTextIDs()
 		                         "Are you sure you want to write string keys back to this script?"))
 		== EAppReturnType::Yes)
 	{
+		FSUDSMessageLogger::ClearMessages();
 		FSUDSMessageLogger Logger;
 		FSUDSEditorScriptTools::WriteBackTextIDs(Script, Logger);
 	}
@@ -1128,6 +1129,7 @@ void FSUDSEditorToolkit::GenerateVOAssets()
 		== EAppReturnType::Yes)
 	{
 		EObjectFlags Flags = RF_Public | RF_Standalone | RF_Transactional;
+		FSUDSMessageLogger::ClearMessages();
 		FSUDSMessageLogger Logger;
 		FSUDSEditorVoiceOverTools::GenerateAssets(Script, Flags, &Logger);
 	}

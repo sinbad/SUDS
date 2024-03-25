@@ -98,6 +98,7 @@ void FSUDSScriptActions::WriteBackTextIDs(TArray<TWeakObjectPtr<USUDSScript>> Sc
 							 "Are you sure you want to write string keys back to the selected scripts?"))
 	== EAppReturnType::Yes)
 	{
+		FSUDSMessageLogger::ClearMessages();
 		FSUDSMessageLogger Logger;
 		for (auto Script : Scripts)
 		{
@@ -118,6 +119,7 @@ void FSUDSScriptActions::GenerateVOAssets(TArray<TWeakObjectPtr<USUDSScript>> Sc
 		== EAppReturnType::Yes)
 	{
 		EObjectFlags Flags = RF_Public | RF_Standalone | RF_Transactional;
+		FSUDSMessageLogger::ClearMessages();
 		FSUDSMessageLogger Logger;
 		for (auto WeakScript : Scripts)
 		{
