@@ -101,7 +101,11 @@ public:
 	
 	// UObject interface
 	virtual void PostInitProperties() override;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 4
+	virtual void GetAssetRegistryTags(FAssetRegistryTagsContext Context) const override;
+#else
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
+#endif
 	virtual void Serialize(FArchive& Ar) override;
 	// End of UObject interface
 #endif
