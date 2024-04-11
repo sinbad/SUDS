@@ -648,6 +648,11 @@ UAudioComponent* USUDSDialogue::SpawnVoicedLineAtLocation(FVector Location,
 	return nullptr;
 }
 
+USoundBase* USUDSDialogue::GetVoicedLineSound(bool bLooselyMatchTarget)
+{
+	return GetSoundForCurrentLine(bLooselyMatchTarget);
+}
+
 USUDSScriptNode* USUDSDialogue::GetNextNode(USUDSScriptNode* Node)
 {
 	// In the case of select, we need to evaluate to get the next node

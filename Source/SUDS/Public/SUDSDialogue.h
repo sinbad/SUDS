@@ -355,6 +355,12 @@ public:
 								  USoundAttenuation* AttenuationSettings = nullptr,
 								  bool bLooselyMatchTarget = true);
 
+	/** If the current line is voiced, get the sound which would be played for it. 
+	 * @param bLooselyMatchTarget When finding the sound, don't require the target DialogueVoice to match precisely (recommended)
+	 */
+	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue", meta=(AdvancedDisplay = "4", UnsafeDuringActorConstruction = "true", Keywords = "play"))
+	USoundBase* GetVoicedLineSound(bool bLooselyMatchTarget = true);
+	
 	/**
 	 * Get the number of choices available from this node.
 	 * Note, this will return 1 in the case of just linear text progression. The difference between just linked text
