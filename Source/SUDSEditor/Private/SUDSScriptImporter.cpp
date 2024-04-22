@@ -549,7 +549,7 @@ bool FSUDSScriptImporter::ParseChoiceLine(const FStringView& Line,
 			GeneratedSpeakerID = OverrideChoiceSpeakerID.GetValue();
 		}
 		int ChoiceTextStart = 1;
-		if (Line[1] == '-')
+		if (Line.Len() > 1 && Line[1] == '-')
 		{
 			// *- prefix, override speaker line
 			bGenerateSpeakerLine = false;
