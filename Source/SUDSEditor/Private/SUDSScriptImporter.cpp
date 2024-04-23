@@ -382,12 +382,6 @@ bool FSUDSScriptImporter::ParseBodyLine(const FStringView& Line,
 	{
 		return ParseTextLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 	}
-	
-
-
-	return true;
-	
-	
 }
 
 bool FSUDSScriptImporter::IsLastNodeOfType(const FSUDSScriptImporter::ParsedTree& Tree, ESUDSParsedNodeType Type)
