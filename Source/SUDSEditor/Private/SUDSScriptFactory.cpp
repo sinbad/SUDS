@@ -2,6 +2,7 @@
 // Released under the MIT license https://opensource.org/license/MIT/
 #include "SUDSScriptFactory.h"
 
+#include "PackageTools.h"
 #include "SUDSEditorSettings.h"
 #include "SUDSEditorVoiceOverTools.h"
 #include "SUDSMessageLogger.h"
@@ -10,6 +11,7 @@
 #include "EditorFramework/AssetImportData.h"
 #include "Internationalization/StringTable.h"
 #include "Editor.h"
+#include "Internationalization/StringTableCore.h"
 
 
 USUDSScriptFactory::USUDSScriptFactory()
@@ -54,14 +56,9 @@ UObject* USUDSScriptFactory::FactoryCreateText(UClass* InClass,
 		
 		// Populate with data
 		Result = NewObject<USUDSScript>(InParent, InName, Flags);
-		// Build native language string table
-		const FName StringTableName = FName(InName.ToString() + "Strings");
-		// This constructor registers the string table with FStringTableRegistry
-		UStringTable* StringTable = NewObject<UStringTable>(InParent, StringTableName, Flags);
+		UStringTable* StringTable = CreateStringTable(InName, Result, Flags, &Logger);
 		Importer.PopulateAsset(Result, StringTable);
 		
-		FAssetRegistryModule::AssetCreated(StringTable);
-
 		// Register source info
 		const FMD5Hash Hash = FSUDSScriptImporter::CalculateHash(Buffer, BufferEnd - Buffer);
 		Result->AssetImportData->Update(FactoryCurrentFilename, Hash);
@@ -86,4 +83,65 @@ bool USUDSScriptFactory::ShouldGenerateVoiceAssets(const FString& PackagePath) c
 		return Settings->ShouldGenerateVoiceAssets(PackagePath);
 	}
 	return false;
+}
+
+UStringTable* USUDSScriptFactory::CreateStringTable(FName InName, USUDSScript* Script, EObjectFlags Flags, FSUDSMessageLogger* Logger)
+{
+	auto Registry = &FModuleManager::LoadModuleChecked<FAssetRegistryModule>(AssetRegistryConstants::ModuleName).Get();
+
+	const FString PackageDir = FPackageName::GetLongPackagePath(Script->GetOuter()->GetOutermost()->GetPathName());
+	const FString StringTableName = InName.ToString() + "Strings";
+	const FString PackageName = UPackageTools::SanitizePackageName(PackageDir / StringTableName);
+
+	UStringTable* Table = nullptr;
+	if (FPackageName::DoesPackageExist(*PackageName))
+	{
+		// Package already exists, so try and import over the top of it, if it doesn't already have a source file path
+		TArray<FAssetData> Assets;
+		if (Registry->GetAssetsByPackageName(*PackageName, Assets))
+		{
+			if (Assets.Num() > 0)
+			{
+				if (Assets[0].GetAsset()->IsA(UStringTable::StaticClass()))
+				{
+					Table = Cast<UStringTable>(Assets[0].GetAsset());
+					Table->GetMutableStringTable()->ClearSourceStrings();
+				}
+				else
+				{
+					Logger->Logf(ELogVerbosity::Error,
+								 TEXT(
+									 "Asset %s already exists but is not a String Table! Cannot replace, please move aside and re-import script."),
+								 *PackageName);
+					return nullptr;
+				}
+			}
+		}
+	}
+
+	if (!Table)
+	{
+		// String Table didn't exist (although package might have)
+		// It's safe to call CreatePackage either way, it'll return the existing one if needed
+		UPackage* Package = CreatePackage(*PackageName);
+		if (!ensure(Package))
+		{
+			Logger->Logf(ELogVerbosity::Error,
+						 TEXT("Failed to create/retrieve package for string table %s"),
+						 *PackageName);
+		}
+		else
+		{
+			//Logger->Logf(ELogVerbosity::Display, TEXT("Creating string table %s"), *PackageName);
+
+			// This constructor registers the string table with FStringTableRegistry
+			Table = NewObject<UStringTable>(Package, FName(StringTableName), Flags);
+			Package->FullyLoad();
+			Table->MarkPackageDirty();
+			FAssetRegistryModule::AssetCreated(Table);
+		}
+	}
+		
+	return Table;
+	
 }
