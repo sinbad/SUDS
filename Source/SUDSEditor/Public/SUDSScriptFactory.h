@@ -31,4 +31,6 @@ protected:
 
 	bool ShouldGenerateVoiceAssets(const FString& PackagePath) const;
 	FSUDSScriptImporter Importer;
+
+	UStringTable* CreateStringTable(FName InName, USUDSScript* Script, EObjectFlags Flags, FSUDSMessageLogger* Logger);
 };
