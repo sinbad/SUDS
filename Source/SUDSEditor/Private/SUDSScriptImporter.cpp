@@ -1323,7 +1323,7 @@ bool FSUDSScriptImporter::RetrieveAndRemoveTextID(FStringView& InOutLine, FStrin
 	int Number;
 	if (RetrieveTextIDFromLine(InOutLine, OutTextID, Number))
 	{
-		TextIDHighestNumber = Number;
+		TextIDHighestNumber = FMath::Max(TextIDHighestNumber, Number);
 		return true;
 	}
 
