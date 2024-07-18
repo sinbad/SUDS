@@ -5,6 +5,7 @@
 #include "SUDSScriptImporter.h"
 #include "SUDSSubsystem.h"
 #include "TestUtils.h"
+#include "Internationalization/Internationalization.h"
 #include "Misc/AutomationTest.h"
 
 UE_DISABLE_OPTIMIZATION
@@ -222,6 +223,15 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestSetVariableRunning,
 
 bool FTestSetVariableRunning::RunTest(const FString& Parameters)
 {
+	// Number and plural formatting are locale-specific, so we must set it to a predefined value to produce the expected output
+	FInternationalization::FCultureStateSnapshot CultureStateSnapshot;
+	FInternationalization::Get().BackupCultureState(CultureStateSnapshot);
+	FInternationalization::Get().SetCurrentCulture(TEXT("en-US"));
+	ON_SCOPE_EXIT
+	{
+		FInternationalization::Get().RestoreCultureState(CultureStateSnapshot);
+	};
+
 	FSUDSMessageLogger Logger(false);
 	FSUDSScriptImporter Importer;
 	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SetVariableRunnerInput), SetVariableRunnerInput.Len(), "SetVariableRunnerInput", &Logger, true));
