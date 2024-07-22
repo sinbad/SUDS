@@ -76,6 +76,7 @@ would normally be to make it easier to line things up.
  
 * [Variables](Variables.md)
 * [Expressions](Expressions.md)
+* [Random Lines](RandomLines.md)
 * [Script Reference](ScriptReference.md)
 * [Running Dialogue](RunningDialogue.md)
 * [Full Documentation Index](../Index.md)

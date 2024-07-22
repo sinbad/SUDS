@@ -21,6 +21,7 @@ DEFINE_LOG_CATEGORY(LogSUDSDialogue);
 const FText USUDSDialogue::DummyText = FText::FromString("INVALID");
 const FString USUDSDialogue::DummyString = "INVALID";
 
+const FName USUDSDialogue::RandomItemSelectIndexVarName(SUDS_RANDOMITEM_VAR);
 
 FArchive& operator<<(FArchive& Ar, FSUDSDialogueState& Value)
 {
@@ -192,6 +193,16 @@ USUDSScriptNode* USUDSDialogue::RunNode(USUDSScriptNode* Node)
 
 USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node)
 {
+	// Define internal random selection variable (used in random selects)
+	const int OptCount = Node->GetEdgeCount();
+	if (OptCount > 0)
+	{
+		// Use SRand() so can be seeded if required
+		const int RandChoice = FMath::Min(OptCount-1, FMath::TruncToInt(FMath::SRand() * (float)OptCount));
+
+		SetVariableInt(RandomItemSelectIndexVarName, RandChoice);
+	}
+	
 	for (auto& Edge : Node->GetEdges())
 	{
 		if (Edge.GetCondition().IsValid())
@@ -655,7 +666,7 @@ USoundBase* USUDSDialogue::GetVoicedLineSound(bool bLooselyMatchTarget)
 
 USUDSScriptNode* USUDSDialogue::GetNextNode(USUDSScriptNode* Node)
 {
-	// In the case of select, we need to evaluate to get the next node
+	// In the case of select or random, we need to evaluate to get the next node
 	if (Node->GetNodeType() == ESUDSScriptNodeType::Select)
 	{
 		return RunSelectNode(Node);	
