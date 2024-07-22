@@ -992,7 +992,7 @@ bool FSUDSScriptImporter::ParseBeginRandomLine(const FStringView& Line,
 	Tree.EdgeInProgressEdgeIdx = EdgeIdx;
 			
 	Tree.CurrentConditionalBlockIdx = Tree.ConditionalBlocks.Add(
-		ConditionalContext(NewNodeIdx, Tree.CurrentConditionalBlockIdx, EConditionalStage::IfStage, ConditionStr));
+		ConditionalContext(NewNodeIdx, Tree.CurrentConditionalBlockIdx, EConditionalStage::RandomStage, ConditionStr));
 	
 	return true;
 	
@@ -1019,9 +1019,10 @@ bool FSUDSScriptImporter::ParseRandomOptionLine(const FStringView& Line,
 	if (Tree.ConditionalBlocks.IsValidIndex(Tree.CurrentConditionalBlockIdx))
 	{
 		auto& Block = Tree.ConditionalBlocks[Tree.CurrentConditionalBlockIdx];
-		if (Block.Stage != EConditionalStage::ElseStage)
+		if (Block.Stage == EConditionalStage::RandomStage ||
+			Block.Stage == EConditionalStage::RandomOptionStage)
 		{
-			Block.Stage = EConditionalStage::ElseIfStage;
+			Block.Stage = EConditionalStage::RandomOptionStage;
 			const int NodeIdx = Block.SelectNodeIdx;
 				
 			auto& SelectOrChoiceNode = Tree.Nodes[NodeIdx];
@@ -1043,7 +1044,7 @@ bool FSUDSScriptImporter::ParseRandomOptionLine(const FStringView& Line,
 		else
 		{
 			if (!bSilent)
-				Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: 'elseif' occurs after 'else'"), *NameForErrors, LineNo);
+				Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: 'or' must occur after 'random'"), *NameForErrors, LineNo);
 						
 		}
 					
@@ -1071,24 +1072,33 @@ bool FSUDSScriptImporter::ParseEndRandomLine(const FStringView& Line,
 	{
 		// Endrandom finishes the current block
 		const auto& Block = Tree.ConditionalBlocks[Tree.CurrentConditionalBlockIdx];
-		const int NodeIdx = Block.SelectNodeIdx;
-		auto& SelectNode = Tree.Nodes[NodeIdx];
-		if (SelectNode.Edges.Num() > 0)
+		if (Block.Stage == EConditionalStage::RandomStage ||
+			Block.Stage == EConditionalStage::RandomOptionStage)
 		{
-			auto& LastEdge = SelectNode.Edges[SelectNode.Edges.Num()-1];
-			LastEdge.ConditionExpression.Reset();
-		}
+			const int NodeIdx = Block.SelectNodeIdx;
+			auto& SelectNode = Tree.Nodes[NodeIdx];
+			if (SelectNode.Edges.Num() > 0)
+			{
+				auto& LastEdge = SelectNode.Edges[SelectNode.Edges.Num()-1];
+				LastEdge.ConditionExpression.Reset();
+			}
 		
-		Tree.CurrentConditionalBlockIdx = Block.PreviousBlockIdx;
-		// We must also clear the indent last node pointer, because we never want to auto-connect to conditionals
-		// We'll let the final fallthrough pass connect things
-		auto& Ctx = Tree.IndentLevelStack.Top();
-		Ctx.LastNodeIdx = -1;
+			Tree.CurrentConditionalBlockIdx = Block.PreviousBlockIdx;
+			// We must also clear the indent last node pointer, because we never want to auto-connect to conditionals
+			// We'll let the final fallthrough pass connect things
+			auto& Ctx = Tree.IndentLevelStack.Top();
+			Ctx.LastNodeIdx = -1;
+		}
+		else
+		{
+			if (!bSilent)
+				Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: 'endrandom' with no matching 'random'"), *NameForErrors, LineNo);
+		}
 	}
 	else
 	{
 		if (!bSilent)
-			Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: 'endif' with no matching 'if'"), *NameForErrors, LineNo);
+			Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: 'endrandom' with no matching 'random'"), *NameForErrors, LineNo);
 	}
 	if (!bSilent)
 		UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: ENDRANDOM : %s"), LineNo, IndentLevel, *FString(Line));

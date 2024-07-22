@@ -183,7 +183,9 @@ protected:
 	{
 		IfStage,
 		ElseIfStage,
-		ElseStage
+		ElseStage,
+		RandomStage,
+		RandomOptionStage
 	};
 	enum class EConditionalParent : uint8
 	{
