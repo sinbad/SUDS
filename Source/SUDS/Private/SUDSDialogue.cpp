@@ -198,6 +198,9 @@ USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node)
 	if (OptCount > 0 && Node->GetEdge(0)->GetCondition().GetSourceString().Contains(SUDS_RANDOMITEM_VAR))
 	{
 		// Random picker
+		// Could try to NOT pick the same ones we already picked, but this would require some additional state, similar
+		// to "ChoicesTaken" state but for random text nodes already chosen. For now, keep it simple
+		
 		// Use SRand() so can be seeded if required
 		const int RandChoice = FMath::Min(OptCount-1, FMath::TruncToInt(FMath::SRand() * (float)OptCount));
 
