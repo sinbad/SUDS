@@ -61,7 +61,7 @@ bool FTestChoiceSpeakerLineInScript::RunTest(const FString& Parameters)
 	// Confirm that we got the choice as a speaker line
 	TestDialogueText(this, "Choice as speaker line 1", Dlg, "Player", "Choice 1");
 	// Confirm that text ID is the same
-	TestTrue("Text should be identical", ChoiceText0.IdenticalTo(Dlg->GetText()));
+	TestTrue("Text should be identical", ChoiceText0.IdenticalTo(Dlg->GetText(), ETextIdenticalModeFlags::DeepCompare));
 	TestEqual("TextIDs should match", FTextInspector::GetTextId(ChoiceText0).GetKey().GetChars(), FTextInspector::GetTextId(Dlg->GetText()).GetKey().GetChars());
 	
 	Dlg->Continue();
@@ -125,7 +125,7 @@ bool FTestChoiceSpeakerSetSpeakerIdInScriptInput::RunTest(const FString& Paramet
 	const FText ChoiceText0 = Dlg->GetChoiceText(0);
 	Dlg->Choose(0);
 	// Confirm that text ID is the same
-	TestTrue("Text should be identical", ChoiceText0.IdenticalTo(Dlg->GetText()));
+	TestTrue("Text should be identical", ChoiceText0.IdenticalTo(Dlg->GetText(), ETextIdenticalModeFlags::DeepCompare));
 	TestEqual("TextIDs should match", FTextInspector::GetTextId(ChoiceText0).GetKey().GetChars(), FTextInspector::GetTextId(Dlg->GetText()).GetKey().GetChars());
 	
 	// Confirm that we got the choice as a speaker line, with custom speaker ID
@@ -249,7 +249,7 @@ bool FTestChoicesAsSpeakerLineWithStringKeys::RunTest(const FString& Parameters)
 	// Confirm that we got the choice as a speaker line
 	TestDialogueText(this, "Choice as speaker line 1", Dlg, "Player", "Choice 1");
 	// Confirm that text ID is the same
-	TestTrue("Text should be identical", ChoiceText0.IdenticalTo(Dlg->GetText()));
+	TestTrue("Text should be identical", ChoiceText0.IdenticalTo(Dlg->GetText(), ETextIdenticalModeFlags::DeepCompare));
 	TestEqual("TextIDs should match", FTextInspector::GetTextId(ChoiceText0).GetKey().GetChars(), FTextInspector::GetTextId(Dlg->GetText()).GetKey().GetChars());
 	
 	Dlg->Continue();
@@ -264,7 +264,7 @@ bool FTestChoicesAsSpeakerLineWithStringKeys::RunTest(const FString& Parameters)
 	TestDialogueText(this, "Duplicated speaker line", Dlg, "Player", "Choice 1a");
 	
 	// Confirm that text ID is the same
-	TestTrue("Text should be identical", ChoiceText0.IdenticalTo(Dlg->GetText()));
+	TestTrue("Text should be identical", ChoiceText0.IdenticalTo(Dlg->GetText(), ETextIdenticalModeFlags::DeepCompare));
 	TestEqual("TextIDs should match", FTextInspector::GetTextId(ChoiceText0).GetKey().GetChars(), FTextInspector::GetTextId(Dlg->GetText()).GetKey().GetChars());
 
 	Script->MarkAsGarbage();
