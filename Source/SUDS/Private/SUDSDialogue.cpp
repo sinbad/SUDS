@@ -195,8 +195,9 @@ USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node)
 {
 	// Define internal random selection variable (used in random selects)
 	const int OptCount = Node->GetEdgeCount();
-	if (OptCount > 0)
+	if (OptCount > 0 && Node->GetEdge(0)->GetCondition().GetSourceString().Contains(SUDS_RANDOMITEM_VAR))
 	{
+		// Random picker
 		// Use SRand() so can be seeded if required
 		const int RandChoice = FMath::Min(OptCount-1, FMath::TruncToInt(FMath::SRand() * (float)OptCount));
 
