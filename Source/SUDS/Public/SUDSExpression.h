@@ -125,6 +125,10 @@ public:
 	 */
 	bool ParseFromString(const FString& Expression, FString* OutParseError);
 
+	/// Reset the expression to return true 
+	void Reset();
+
+
 	/// Evaluate the expression and return the result, using a given variable state 
 	FSUDSValue Evaluate(const TMap<FName, FSUDSValue>& Variables, const TMap<FName, FSUDSValue>& GlobalVariables) const;
 

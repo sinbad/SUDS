@@ -1065,11 +1065,20 @@ bool FSUDSScriptImporter::ParseEndRandomLine(const FStringView& Line,
 	FSUDSMessageLogger* Logger,
 	bool bSilent)
 {
-	// Same as "endif" in practice
+	// Similar to "endif"; except that we need to turn the last option into an "else", otherwise at end of
+	// parsing we'll add an extra else edge
 	if (Tree.ConditionalBlocks.IsValidIndex(Tree.CurrentConditionalBlockIdx))
 	{
 		// Endrandom finishes the current block
 		const auto& Block = Tree.ConditionalBlocks[Tree.CurrentConditionalBlockIdx];
+		const int NodeIdx = Block.SelectNodeIdx;
+		auto& SelectNode = Tree.Nodes[NodeIdx];
+		if (SelectNode.Edges.Num() > 0)
+		{
+			auto& LastEdge = SelectNode.Edges[SelectNode.Edges.Num()-1];
+			LastEdge.ConditionExpression.Reset();
+		}
+		
 		Tree.CurrentConditionalBlockIdx = Block.PreviousBlockIdx;
 		// We must also clear the indent last node pointer, because we never want to auto-connect to conditionals
 		// We'll let the final fallthrough pass connect things

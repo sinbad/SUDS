@@ -150,6 +150,14 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, FString* OutPar
 	return bIsValid;
 }
 
+void FSUDSExpression::Reset()
+{
+	bIsValid = true;
+	Queue.Empty();
+	VariableNames.Empty();
+	SourceString = "";
+}
+
 
 ESUDSExpressionItemType FSUDSExpression::ParseOperator(const FString& OpStr)
 {
