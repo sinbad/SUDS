@@ -42,18 +42,18 @@ bool FTestRandomBasics::RunTest(const FString& Parameters)
     auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
 
     // Seed random so we have consistent results
-    FMath::SRandInit(99);
+    FMath::SRandInit(34);
     Dlg->Start();
 
     TestDialogueText(this, "Text node", Dlg, "Player", "Hello");
     TestTrue("Continue", Dlg->Continue());
-    TestDialogueText(this, "Random node", Dlg, "NPC", "Reply when random == 1");
+    TestDialogueText(this, "Random node", Dlg, "NPC", "Reply when random == 2");
     TestTrue("Continue", Dlg->Continue());
     TestDialogueText(this, "Final node", Dlg, "Player", "OK");
 
     // Should loop, run random again 
     TestTrue("Continue", Dlg->Continue());
-    TestDialogueText(this, "Random node", Dlg, "NPC", "Reply when random == 2");
+    TestDialogueText(this, "Random node", Dlg, "NPC", "Reply when random == 1");
     TestTrue("Continue", Dlg->Continue());
     TestDialogueText(this, "Final node", Dlg, "Player", "OK");
 
@@ -63,6 +63,12 @@ bool FTestRandomBasics::RunTest(const FString& Parameters)
     TestTrue("Continue", Dlg->Continue());
     TestDialogueText(this, "Final node", Dlg, "Player", "OK");
 
+    // Should loop, run random again 
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Random node", Dlg, "NPC", "Reply when random == 1");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Final node", Dlg, "Player", "OK");
+    
     Script->MarkAsGarbage();
     return true;
     
