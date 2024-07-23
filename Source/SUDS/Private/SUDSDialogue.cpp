@@ -213,7 +213,15 @@ USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node)
 			RaiseExpressionVariablesRequested(Edge.GetCondition(), Edge.GetSourceLineNo());
 			const bool bSuccess = Edge.GetCondition().EvaluateBoolean(VariableState, GetGlobalVariables(), BaseScript->GetName());
 #if WITH_EDITOR
-			InternalOnSelectEval.ExecuteIfBound(this, Edge.GetCondition().GetSourceString(), bSuccess, Edge.GetSourceLineNo());
+			{
+				FString ExprStr = Edge.GetCondition().GetSourceString();
+				if (ExprStr.IsEmpty())
+				{
+					// Lack of condition is an else / final random option
+					ExprStr = "else";
+				}
+				InternalOnSelectEval.ExecuteIfBound(this, ExprStr, bSuccess, Edge.GetSourceLineNo());
+			}
 #endif
 			
 			if (bSuccess)
