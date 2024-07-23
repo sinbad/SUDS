@@ -58,10 +58,10 @@ class SudsLexer(RegexLexer):
             (r'\`[^\`]*\`', String.Escape),
             (r'\d+(\.\d+)?', Number),
             (r'\b([tT]rue|[fF]alse|[mM]asculine|[fF]eminine|[nN]euter)\b', Name.Constant),
-            (r'\b(and|or|&&|\|\||not)\b', Operator),
             # Set, event commands so we can highlight variable/event differently
             (r'\s*(set|event)(\s+)([^\]\s]+)', bygroups(Keyword, Text, Name.Variable)),
-            (r'\s*(if|else|elseif|endif|event|return|goto|gosub|go to|go sub)\b', Keyword),
+            (r'\s*(if|else|elseif|endif|event|return|goto|gosub|go to|go sub|random|endrandom)\b', Keyword),
+            (r'\b(and|or|&&|\|\||not)\b', Operator),
             (r'[,]', Punctuation),
             (r'\s+', Text), # whitespace OK
 
