@@ -20,7 +20,7 @@ SUDS has many features, including:
 * Dialogue flow is expressed in a text file for a focussed writing experience
 * Multi-line [speech](docs/SpeakerLines.md) support
 * Player [choices](docs/ChoiceLines.md) with unlimited embedded responses
-* Flow control via [goto](docs/GotoLines.md), [gosub](docs/GosubLines.md) and [conditional branching](docs/ConditionalLines)
+* Flow control: [goto](docs/GotoLines.md), [gosub](docs/GosubLines.md), [conditional branching](docs/ConditionalLines), [random lines](docs/RandomLines.md)
 * Persistent [variable state](docs/Variables.md)
 * Send [events](docs/EventLines.md) back to code/blueprints with any number of arguments
 * Supports all the [variable substitution and formatting features](docs/TextMarkup.md) in the same way Unreal does

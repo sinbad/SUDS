@@ -16,6 +16,7 @@
     - [Gosub & Return Lines](docs/GosubLines.md)
     - [Set Lines](docs/SetLines.md)
     - [Conditional Lines](docs/ConditionalLines.md) 
+    - [Random Lines](docs/RandomLines.md) 
     - [Event Lines](docs/EventLines.md)
 1. [Variables](docs/Variables.md)
 1. [Expressions](docs/Expressions.md)

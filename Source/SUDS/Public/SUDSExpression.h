@@ -125,6 +125,10 @@ public:
 	 */
 	bool ParseFromString(const FString& Expression, FString* OutParseError);
 
+	/// Reset the expression to return true 
+	void Reset();
+
+
 	/// Evaluate the expression and return the result, using a given variable state 
 	FSUDSValue Evaluate(const TMap<FName, FSUDSValue>& Variables, const TMap<FName, FSUDSValue>& GlobalVariables) const;
 
@@ -142,6 +146,9 @@ public:
 
 	/// Get the list of variables this expression needs
 	const TArray<FName>& GetVariableNames() const { return VariableNames; }
+	
+	/// Return whether this expression is a generated random condition
+	bool IsRandomCondition() const;
 
 	/**
 	 * Attempt to parse an operand from a string. Returns true if this string is a valid operand, which means a literal

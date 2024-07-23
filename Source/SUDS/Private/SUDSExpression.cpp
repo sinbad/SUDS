@@ -150,6 +150,23 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, FString* OutPar
 	return bIsValid;
 }
 
+void FSUDSExpression::Reset()
+{
+	bIsValid = true;
+	Queue.Empty();
+	VariableNames.Empty();
+	SourceString = "";
+}
+
+bool FSUDSExpression::IsRandomCondition() const
+{
+	if (Queue.Num() > 0 && Queue[0].GetType() == ESUDSExpressionItemType::Operand)
+	{
+		const auto& Operand = Queue[0].GetOperandValue();
+		return Operand.IsVariable() && Operand.GetVariableNameValue() == FSUDSConstants::RandomItemSelectIndexVarName;
+	}
+	return false;
+}
 
 ESUDSExpressionItemType FSUDSExpression::ParseOperator(const FString& OpStr)
 {

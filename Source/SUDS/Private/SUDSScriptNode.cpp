@@ -24,6 +24,13 @@ void USUDSScriptNode::InitReturn(int LineNo)
 	SourceLineNo = LineNo;
 }
 
+bool USUDSScriptNode::IsRandomSelect() const
+{
+	return NodeType == ESUDSScriptNodeType::Select &&
+		GetEdgeCount() > 0 &&
+		GetEdge(0)->GetCondition().IsRandomCondition();
+}
+
 void USUDSScriptNode::AddEdge(const FSUDSScriptEdge& NewEdge)
 {
 	Edges.Add(NewEdge);

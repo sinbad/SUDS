@@ -22,6 +22,7 @@ const FName NAME_Choice("Choice");
 const FName NAME_VariableSet("VariableSet");
 const FName NAME_VariableEdit("VariableEdit");
 const FName NAME_SelectEval("Condition");
+const FName NAME_RandomEval("Random");
 const FName NAME_Event("Event");
 const FName NAME_Start("Start");
 const FName NAME_Finish("Finish");
@@ -1078,6 +1079,17 @@ void FSUDSEditorToolkit::OnDialogueSelectEval(USUDSDialogue* D,
 	                              FText::FromString(ExpressionStr),
 	                              bSuccess ? INVTEXT("true") : INVTEXT("false")),
 	                INVTEXT("Conditional"));
+}
+
+void FSUDSEditorToolkit::OnDialogueRandomEval(USUDSDialogue* D,
+                                              const int RandomOutcome,
+                                              int LineNo)
+{
+	AddDialogueStep(NAME_RandomEval,
+					LineNo,
+					FText::Format(INVTEXT(": {0}"),
+								  RandomOutcome),
+					INVTEXT("Random"));
 }
 
 TSharedRef<ITableRow> FSUDSEditorToolkit::OnGenerateRowForOutput(

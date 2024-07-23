@@ -59,7 +59,7 @@ enum class ESUDSParsedNodeType : uint8
 	Text,
 	/// Choice node, displaying a series of user choices which navigate to other nodes
 	Choice,
-	/// Select node, automatically selecting one which navigates to another node based on state
+	/// Select node, automatically selecting one which navigates to another node based on state (also Random)
 	Select,
 	/// Goto node, redirects execution somewhere else
 	/// Gotos are only nodes in the parsing structure, because they need to be discoverable as a fallthrough destination
@@ -183,7 +183,9 @@ protected:
 	{
 		IfStage,
 		ElseIfStage,
-		ElseStage
+		ElseStage,
+		RandomStage,
+		RandomOptionStage
 	};
 	enum class EConditionalParent : uint8
 	{
@@ -368,6 +370,35 @@ protected:
 	                    FSUDSMessageLogger*
 	                    Logger,
 	                    bool bSilent);
+	static bool IsRandomLine(const FStringView& Line);
+	bool ParseRandomLine(const FStringView& Line,
+	                     ParsedTree& Tree,
+	                     int IndentLevel,
+	                     int LineNo,
+	                     const FString& NameForErrors,
+	                     FSUDSMessageLogger* Logger,
+	                     bool bSilent);
+	bool ParseBeginRandomLine(const FStringView& Line,
+						 ParsedTree& Tree,
+						 int IndentLevel,
+						 int LineNo,
+						 const FString& NameForErrors,
+						 FSUDSMessageLogger* Logger,
+						 bool bSilent);
+	bool ParseRandomOptionLine(const FStringView& Line,
+						 ParsedTree& Tree,
+						 int IndentLevel,
+						 int LineNo,
+						 const FString& NameForErrors,
+						 FSUDSMessageLogger* Logger,
+						 bool bSilent);
+	bool ParseEndRandomLine(const FStringView& Line,
+						 ParsedTree& Tree,
+						 int IndentLevel,
+						 int LineNo,
+						 const FString& NameForErrors,
+						 FSUDSMessageLogger* Logger,
+						 bool bSilent);
 	bool ParseGotoLabelLine(const FStringView& Line,
 	                        ParsedTree& Tree,
 	                        int IndentLevel,

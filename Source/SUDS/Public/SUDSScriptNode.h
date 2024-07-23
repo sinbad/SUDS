@@ -76,4 +76,6 @@ public:
 		return nullptr;
 	}
 
+	/// Determine if this node is a Select node that's representing a [random]
+	bool IsRandomSelect() const;
 };
