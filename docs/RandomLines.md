@@ -23,7 +23,7 @@ to separate it. This will become an equally weighted option.
 
 After the final random option of the group, end it with an `[endrandom]` line.
 
-Indenting technically doesn't matter because the beginrandom/random/endrandom lines
+Indenting technically doesn't matter because the random/or/endrandom lines
 fully demarcate the groupings; but you will find it easier to follow if you 
 match the indents.
 
