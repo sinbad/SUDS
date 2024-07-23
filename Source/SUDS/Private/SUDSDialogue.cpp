@@ -21,8 +21,6 @@ DEFINE_LOG_CATEGORY(LogSUDSDialogue);
 const FText USUDSDialogue::DummyText = FText::FromString("INVALID");
 const FString USUDSDialogue::DummyString = "INVALID";
 
-const FName USUDSDialogue::RandomItemSelectIndexVarName(SUDS_RANDOMITEM_VAR);
-
 FArchive& operator<<(FArchive& Ar, FSUDSDialogueState& Value)
 {
 	Ar << Value.TextNodeID;
@@ -194,17 +192,17 @@ USUDSScriptNode* USUDSDialogue::RunNode(USUDSScriptNode* Node)
 USUDSScriptNode* USUDSDialogue::RunSelectNode(USUDSScriptNode* Node)
 {
 	// Define internal random selection variable (used in random selects)
-	const int OptCount = Node->GetEdgeCount();
-	if (OptCount > 0 && Node->GetEdge(0)->GetCondition().GetSourceString().Contains(SUDS_RANDOMITEM_VAR))
+	if (Node->IsRandomSelect())
 	{
 		// Random picker
 		// Could try to NOT pick the same ones we already picked, but this would require some additional state, similar
 		// to "ChoicesTaken" state but for random text nodes already chosen. For now, keep it simple
-		
+
+		const int OptCount = Node->GetEdgeCount();
 		// Use SRand() so can be seeded if required
 		const int RandChoice = FMath::Min(OptCount-1, FMath::TruncToInt(FMath::SRand() * (float)OptCount));
 
-		SetVariableInt(RandomItemSelectIndexVarName, RandChoice);
+		SetVariableInt(FSUDSConstants::RandomItemSelectIndexVarName, RandChoice);
 	}
 	
 	for (auto& Edge : Node->GetEdges())

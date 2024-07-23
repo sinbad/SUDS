@@ -146,6 +146,9 @@ public:
 
 	/// Get the list of variables this expression needs
 	const TArray<FName>& GetVariableNames() const { return VariableNames; }
+	
+	/// Return whether this expression is a generated random condition
+	bool IsRandomCondition() const;
 
 	/**
 	 * Attempt to parse an operand from a string. Returns true if this string is a valid operand, which means a literal

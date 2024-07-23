@@ -629,10 +629,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void UnSetVariable(FName Name);
 
-	/// Reserved variable named use to create random results from select nodes
-	static const FName RandomItemSelectIndexVarName;
-
-
 #if WITH_EDITOR
 	FOnDialogueSpeakerLineInternal InternalOnSpeakerLine;
 	FOnDialogueChoiceInternal InternalOnChoice;
