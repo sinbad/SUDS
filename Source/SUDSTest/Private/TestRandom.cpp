@@ -76,6 +76,7 @@ bool FTestRandomBasics::RunTest(const FString& Parameters)
 
 const FString NestedRandomInput = R"RAWSUD(
 Player: Hello
+:start
 [random]
     NPC: Reply when random == 0
 [or]
@@ -88,7 +89,70 @@ Player: Hello
     NPC: Reply when random == 2
 [endrandom]
 Player: OK
+[goto start]
 )RAWSUD";
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestRandomNested,
+								 "SUDSTest.TestRandomNested",
+								 EAutomationTestFlags::EditorContext |
+								 EAutomationTestFlags::ClientContext |
+								 EAutomationTestFlags::ProductFilter)
+
+
+bool FTestRandomNested::RunTest(const FString& Parameters)
+{
+    FSUDSMessageLogger Logger(false);
+    FSUDSScriptImporter Importer;
+    TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(NestedRandomInput), NestedRandomInput.Len(), "NestedRandomInput", &Logger, true));
+
+    auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
+    const ScopedStringTableHolder StringTableHolder;
+    Importer.PopulateAsset(Script, StringTableHolder.StringTable);
+
+    // Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
+    auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
+
+    // Seed random so we have consistent results
+    FMath::SRandInit(785);
+    Dlg->Start();
+
+    TestDialogueText(this, "Text node", Dlg, "Player", "Hello");
+    TestTrue("Continue", Dlg->Continue());
+
+    TestDialogueText(this, "Random node", Dlg, "NPC", "Reply when random == 0");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Final node", Dlg, "Player", "OK");
+    TestTrue("Continue", Dlg->Continue());
+
+    // Restart
+    TestDialogueText(this, "Random node", Dlg, "NPC", "Reply when random == 1 && subrandom == 1");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Final node", Dlg, "Player", "OK");
+    TestTrue("Continue", Dlg->Continue());
+    
+    // Restart
+    TestDialogueText(this, "Random node", Dlg, "NPC", "Reply when random == 1 && subrandom == 0");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Final node", Dlg, "Player", "OK");
+    TestTrue("Continue", Dlg->Continue());
+
+    // Restart
+    TestDialogueText(this, "Random node", Dlg, "NPC", "Reply when random == 2");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Final node", Dlg, "Player", "OK");
+    TestTrue("Continue", Dlg->Continue());
+
+    // Restart
+    TestDialogueText(this, "Random node", Dlg, "NPC", "Reply when random == 0");
+    TestTrue("Continue", Dlg->Continue());
+    TestDialogueText(this, "Final node", Dlg, "Player", "OK");
+    TestTrue("Continue", Dlg->Continue());
+    
+    Script->MarkAsGarbage();
+    return true;
+    
+}
 
 const FString SiblingRandomInput = R"RAWSUD(
 Player: Hello
@@ -108,7 +172,6 @@ Player: Hello
 [endrandom]
 Player: OK
 )RAWSUD";
-
 
 const FString MixedConditionalChoiceAndRandomInput = R"RAWSUD(
 NPC: Hello
