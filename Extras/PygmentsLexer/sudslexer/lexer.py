@@ -53,7 +53,7 @@ class SudsLexer(RegexLexer):
             (r'\]\s*[\n]?', Operator, '#pop'),
             # Variables      
             (r'(\{)([\w\.]+)(\})', bygroups(Operator, Name.Variable, Operator)),
-            (r'\+\/\-\*\!', Operator),
+            (r'\+\/\-\*\!\%', Operator),
             (r'\"[^\"]*\"', String.Double),
             (r'\`[^\`]*\`', String.Escape),
             (r'\d+(\.\d+)?', Number),
