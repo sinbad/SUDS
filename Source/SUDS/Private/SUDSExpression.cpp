@@ -29,7 +29,7 @@ bool FSUDSExpression::ParseFromString(const FString& Expression, FString* OutPar
 	// - Quoted strings "string"
 	//   - Including ignoring escaped double quotes
 	// - Quoted names `name`
-	const FRegexPattern Pattern(TEXT("(\\{[\\w\\.]+\\}|-?\\d+(?:\\.\\d*)?|[-+*\\/\\(\\)]|and|&&|\\|\\||or|not|\\<\\>|!=|!|\\<=?|\\>=?|==?|[mM]asculine|[fF]eminine|[nN]euter|[tT]rue|[fF]alse|\"(?:[^\"\\\\]|\\\\.)*\"|`([^`]*)`)"));
+	const FRegexPattern Pattern(TEXT("(\\{[\\w\\.]+\\}|-?\\d+(?:\\.\\d*)?|[-+*\\/%\\(\\)]|and|&&|\\|\\||or|not|\\<\\>|!=|!|\\<=?|\\>=?|==?|[mM]asculine|[fF]eminine|[nN]euter|[tT]rue|[fF]alse|\"(?:[^\"\\\\]|\\\\.)*\"|`([^`]*)`)"));
 	FRegexMatcher Regex(Pattern, Expression);
 	// Stacks that we use to construct
 	TArray<ESUDSExpressionItemType> OperatorStack;
@@ -178,6 +178,8 @@ ESUDSExpressionItemType FSUDSExpression::ParseOperator(const FString& OpStr)
 		return ESUDSExpressionItemType::Multiply;
 	if (OpStr == "/")
 		return ESUDSExpressionItemType::Divide;
+	if (OpStr == "%")
+		return ESUDSExpressionItemType::Modulo;
 	if (OpStr == "and" || OpStr == "&&")
 		return ESUDSExpressionItemType::And;
 	if (OpStr == "or" || OpStr == "||")
@@ -400,6 +402,8 @@ FSUDSExpressionItem FSUDSExpression::EvaluateOperator(ESUDSExpressionItemType Op
 		return FSUDSExpressionItem(Val1 * Val2);
 	case ESUDSExpressionItemType::Divide:
 		return FSUDSExpressionItem(Val1 / Val2);
+	case ESUDSExpressionItemType::Modulo:
+		return FSUDSExpressionItem(Val1 % Val2);
 	case ESUDSExpressionItemType::Add:
 		return FSUDSExpressionItem(Val1 + Val2);
 	case ESUDSExpressionItemType::Subtract:

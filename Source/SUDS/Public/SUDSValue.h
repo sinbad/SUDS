@@ -242,6 +242,20 @@ public:
 			/
 			(Rhs.GetType() == ESUDSValueType::Float ? Rhs.GetFloatValue() : Rhs.GetIntValue()));
 	}
+	FSUDSValue operator%(const FSUDSValue& Rhs) const
+	{
+		// We don't force types to be numeric here so that we can safely use unset variables
+		// If both int, keep int
+		if (Type == ESUDSValueType::Int && Rhs.Type == Type)
+		{
+			return FSUDSValue(GetIntValue() % Rhs.GetIntValue());
+		}
+		// Otherwise we'll let the type widening handle mixed types for us (ternary will always resolve to float)
+		float lval = (Type == ESUDSValueType::Float ? GetFloatValue() : GetIntValue());
+		float rval = (Rhs.GetType() == ESUDSValueType::Float ? Rhs.GetFloatValue() : Rhs.GetIntValue());
+		// Prevent NaN and errors reported when executing FMath::Fmod with invalid values.
+		return FSUDSValue(rval != 0 ? FMath::Fmod(lval, rval) : 0.0f);
+	}
 	FSUDSValue operator+(const FSUDSValue& Rhs) const
 	{
 		// We don't force types to be numeric here so that we can safely use unset variables
