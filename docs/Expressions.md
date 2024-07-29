@@ -48,7 +48,8 @@ they are listed.
 |-----|-------|------|-----|-----|
 | Not | `!`<br/> `not`| Boolean| Unary |Turns true into false and vice versa|
 | Multiply | `*` |  Integer, Float| Binary | Result is float if any argument is float, otherwise integer|
-| Divide | `\` |  Integer, Float| Binary | Result is float if any argument is float, otherwise integer|
+| Divide | `/` |  Integer, Float| Binary | Result is float if any argument is float, otherwise integer|
+| Modulo | `%` |  Integer, Float| Binary | Result is float if any argument is float, otherwise integer|
 | Add        | `+` | Integer, Float| Binary |Result is float if any argument is float, otherwise integer|
 | Subtract   | `-` |  Integer, Float| Binary | Result is float if any argument is float, otherwise integer|
 | Less Than   | `<` |  Integer, Float| Binary | Result is boolean, arguments must be comparable |

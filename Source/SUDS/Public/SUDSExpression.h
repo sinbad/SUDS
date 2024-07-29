@@ -12,6 +12,7 @@ enum class ESUDSExpressionItemType : uint8
 	Not = 4,
 	Multiply = 10,
 	Divide = 11,
+	Modulo = 12,
 	Add = 20,
 	Subtract = 21,
 	Less = 30,

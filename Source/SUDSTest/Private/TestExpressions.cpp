@@ -40,6 +40,12 @@ bool FTestExpressions::RunTest(const FString& Parameters)
 
 	TestTrue("Arithmetic", Expr.ParseFromString("-6.7 * 2 + (21.3 - 8) * 5", nullptr));
 	TestEqual("Eval", Expr.Evaluate(Variables, GlobalVariables).GetFloatValue(), 53.1f);
+
+	// Modulo operator
+	TestTrue("ModuloIntOperator", Expr.ParseFromString("11 % 5", nullptr));
+	TestEqual("Eval", Expr.Evaluate(Variables, GlobalVariables).GetIntValue(), 1);
+	TestTrue("ModuloFloatOperator", Expr.ParseFromString("7.25 % 3.0", nullptr));
+	TestEqual("Eval", Expr.Evaluate(Variables, GlobalVariables).GetFloatValue(), 1.25f);
 	
 	// Explicit FSUDSValue(true) needed to avoid it using the int conversion by default
 	Variables.Add("IsATest", FSUDSValue(true));
