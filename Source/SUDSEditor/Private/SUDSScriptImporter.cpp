@@ -1957,6 +1957,39 @@ bool FSUDSScriptImporter::PostImportSanityCheck(const FString& NameForErrors, FS
 			bOK = ChoiceNodeCheckPaths(Node, NameForErrors, Logger, bSilent) && bOK;
 		}
 	}
+	// check for unfinished conditional blocks
+	if (BodyTree.ConditionalBlocks.IsValidIndex(BodyTree.CurrentConditionalBlockIdx))
+	{
+		auto& Block = BodyTree.ConditionalBlocks[BodyTree.CurrentConditionalBlockIdx];
+		auto SelectNode = BodyTree.Nodes.IsValidIndex(Block.SelectNodeIdx) ? &BodyTree.Nodes[Block.SelectNodeIdx] : nullptr;
+		if (!bSilent && SelectNode)
+		{
+			FString BlockStartDesc;
+			FString BlockEndDesc;
+			switch (Block.Stage)
+			{
+			case EConditionalStage::IfStage:
+			case EConditionalStage::ElseIfStage:
+			case EConditionalStage::ElseStage:
+				BlockStartDesc = "if";
+				BlockEndDesc = "endif";
+				break;
+			case EConditionalStage::RandomStage:
+			case EConditionalStage::RandomOptionStage:
+				BlockStartDesc = "random";
+				BlockEndDesc = "endrandom";
+				break;
+			}
+			Logger->Logf(ELogVerbosity::Error,
+							 TEXT(
+								 "%s: '%s' block started on line %d is missing '%s'"),
+							 *NameForErrors,
+							 *BlockStartDesc,
+							 SelectNode->SourceLineNo,
+							 *BlockEndDesc);
+		}
+		
+	}
 	return bOK;
 }
 
