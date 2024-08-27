@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "SUDSValue.h"
 #include "Framework/Text/BaseTextLayoutMarshaller.h"
+#include "Toolkits/AssetEditorToolkit.h"
 #include "UObject/Object.h"
 
 class SMultiLineEditableTextBox;

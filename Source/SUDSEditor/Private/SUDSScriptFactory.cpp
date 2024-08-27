@@ -9,6 +9,7 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Internationalization/StringTable.h"
+#include "Editor.h"
 
 
 USUDSScriptFactory::USUDSScriptFactory()
