@@ -178,7 +178,7 @@ protected:
 	float InitialWidth = 70;
 	FName VariableName;
 	FSUDSValue VariableValue;
-	bool bIsManualOverride;
+	bool bIsManualOverride = false;
 	class FSUDSEditorToolkit* Parent = nullptr;
 
 	TSharedRef<class SWidget>  GetGenderMenu();

@@ -16,6 +16,8 @@
 #include "Framework/Text/SlateTextRun.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
 #include "Widgets/Input/SNumericEntryBox.h"
+#include "Toolkits/AssetEditorToolkit.h"
+#include "PropertyEditorModule.h"
 
 const FName NAME_SpeakerLine("SpeakerLine");
 const FName NAME_Choice("Choice");
@@ -1414,7 +1416,7 @@ void FSUDSTraceLogMarshaller::SetText(const FString& SourceString, FTextLayout& 
 	const FTextBlockStyle& OrigStyle = FEditorStyle::Get().GetWidgetStyle<FTextBlockStyle>(LogNormalStyle);
 #endif
 
-	for (const auto Msg : Messages)
+	for (const auto& Msg : Messages)
 	{
 		// Get base style & copy
 		FTextBlockStyle Style = OrigStyle;
