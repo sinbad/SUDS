@@ -61,6 +61,9 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = "Choices", meta = (Tooltip = "The SpeakerID to use for speaker lines generated from choices"))
 	FString SpeakerIdForGeneratedLinesFromChoices = "Player";
 
+	UPROPERTY(config, EditAnywhere, Category = "Assets", AdvancedDisplay, meta = (Tooltip = "Whether to create string tables as a separate package (.uasset) from the SUDS Script, which will cause them to appear separately in the Content Browser"))
+	bool bCreateStringTablesAsSeparatePackages = false;
+
 	USUDSEditorSettings() {}
 
 	bool ShouldGenerateVoiceAssets(const FString& PackagePath) const;

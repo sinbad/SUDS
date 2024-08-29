@@ -32,5 +32,6 @@ protected:
 	bool ShouldGenerateVoiceAssets(const FString& PackagePath) const;
 	FSUDSScriptImporter Importer;
 
-	UStringTable* CreateStringTable(FName InName, USUDSScript* Script, EObjectFlags Flags, FSUDSMessageLogger* Logger);
+	void ForceDeleteAssets(const TArray<FAssetData>& Assets);
+	UStringTable* CreateStringTable(UObject* ScriptParent, FName InName, USUDSScript* Script, EObjectFlags Flags, FSUDSMessageLogger* Logger);
 };
