@@ -24,6 +24,9 @@ into a Texture Asset.
 ![Import Process](img/ImportProcess.png)
 
 > In fact you get both a *Script Asset* and a *String Table*, which helps with [localisation](Localisation.md).
+> However by default you won't see the string table, since it's embedded in the script asset. 
+> If you want to see the string tables separately there's an option for that in
+> the plugin settings.
 
 You'll always be writing your dialogue in SUDS Script Source Files in a text editor,
 but at runtime you'll be using the SUDS Script Assets. They're small and efficient
