@@ -386,6 +386,59 @@ bool FTestSiblingConditionalsWithElse::RunTest(const FString& Parameters)
         // Dangling choice with no condition
         TestParsedChoiceEdge(this, "Choice 3", RootChoice, 3, "Second Alt Choice", Importer, &NextNode);
     }
+
+
+    // Test running
+    auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
+    const ScopedStringTableHolder StringTableHolder;
+    Importer.PopulateAsset(Script, StringTableHolder.StringTable);
+
+    // Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
+    auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
+
+    // For the first run, do not set any state
+    Dlg->Start();
+
+    TestDialogueText(this, "First node", Dlg, "NPC", "Hello");
+    if (TestEqual("Choice count", Dlg->GetNumberOfChoices(), 3))
+    {
+        TestEqual("Choice 0", Dlg->GetChoiceText(0).ToString(), TEXT("First choice"));
+        TestEqual("Choice 1", Dlg->GetChoiceText(1).ToString(), TEXT("Second alt choice"));
+        TestEqual("Choice 2", Dlg->GetChoiceText(2).ToString(), TEXT("Third alt choice"));
+    }
+
+    // restart, set some variables to alter the path
+    Dlg->SetVariableInt("x", 1);
+    Dlg->SetVariableInt("y", 1);
+    Dlg->SetVariableInt("z", 0);
+    Dlg->Restart(false);
+
+    TestDialogueText(this, "First node", Dlg, "NPC", "Hello");
+    if (TestEqual("Choice count", Dlg->GetNumberOfChoices(), 3))
+    {
+        TestEqual("Choice 0", Dlg->GetChoiceText(0).ToString(), TEXT("First alt choice"));
+        TestEqual("Choice 1", Dlg->GetChoiceText(1).ToString(), TEXT("Second choice (conditional)"));
+        TestEqual("Choice 2", Dlg->GetChoiceText(2).ToString(), TEXT("Third alt choice"));
+    }
+    
+    // restart, set some variables to alter the path
+    Dlg->SetVariableBoolean("SomeBool", true);
+    Dlg->SetVariableInt("x", 1);
+    Dlg->SetVariableInt("y", 0);
+    Dlg->SetVariableInt("z", 1);
+    Dlg->Restart(false);
+
+    TestDialogueText(this, "First node", Dlg, "NPC", "Hello");
+    if (TestEqual("Choice count", Dlg->GetNumberOfChoices(), 3))
+    {
+        TestEqual("Choice 0", Dlg->GetChoiceText(0).ToString(), TEXT("First alt choice elseif"));
+        TestEqual("Choice 1", Dlg->GetChoiceText(1).ToString(), TEXT("Second alt choice elseif"));
+        TestEqual("Choice 2", Dlg->GetChoiceText(2).ToString(), TEXT("Third choice (conditional)"));
+    }
+
+    Script->MarkAsGarbage();
+
+    
     return true;
 }
 
