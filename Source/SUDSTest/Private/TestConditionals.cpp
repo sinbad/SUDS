@@ -82,6 +82,32 @@ NPC: Hello
 NPC: End
 )RAWSUD";
 
+const FString SiblingConditionalChoiceWithElseInput = R"RAWSUD(
+NPC: Hello
+[if {x} == 0]
+    * First choice
+        Player: I took the 1.1 choice
+[else]
+    * First alt choice
+        Player: I took the 1.1b choice
+[endif]
+[if {y} == 1]
+    * Second choice (conditional)
+        Player: I took the 1.2 choice
+[else]
+    * Second alt choice
+        Player: I took the 1.2b choice
+[endif]
+[if {z} == 1]
+    * Third choice (conditional)
+        Player: I took the 1.3 choice
+[else]
+    * Third alt choice
+        Player: I took the 1.3b choice
+[endif]
+NPC: End
+)RAWSUD";
+
 
 const FString MixedChoiceAndBranchInput = R"RAWSUD(
 [if {alreadyvisited}]
@@ -271,6 +297,71 @@ bool FTestSiblingConditionals::RunTest(const FString& Parameters)
     }
     return true;
 }
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestSiblingConditionalsWithElse,
+                                 "SUDSTest.TestSiblingConditionalsWithElse",
+                                 EAutomationTestFlags::EditorContext |
+                                 EAutomationTestFlags::ClientContext |
+                                 EAutomationTestFlags::ProductFilter)
+
+bool FTestSiblingConditionalsWithElse::RunTest(const FString& Parameters)
+{
+    FSUDSScriptImporter Importer;
+    FSUDSMessageLogger Logger(false);
+    TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SiblingConditionalChoiceWithElseInput), SiblingConditionalChoiceWithElseInput.Len(), "SiblingConditionalChoiceWithElseInput", &Logger, true));
+
+    // Test the content of the parsing
+    auto NextNode = Importer.GetNode(0);
+    if (!TestNotNull("Root node should exist", NextNode))
+        return false;
+    TestParsedText(this, "Text node", NextNode, "NPC", "Hello");
+    TestGetParsedNextNode(this, "Get next", NextNode, Importer, false, &NextNode);
+    if (TestParsedChoice(this, "Root Choice", NextNode, 3))
+    {
+        auto RootChoice = NextNode;
+        // Sibling choices all get their own nodes
+        // Bit wasteful to have C -> S -> C -> Text instead of just C -> T but you never know how many choices would
+        // be in each select level
+        TestParsedChoiceEdge(this, "Choice 0", RootChoice, 0, "", Importer, &NextNode);
+        if (TestParsedSelect(this, "Select 0", NextNode, 2))
+        {
+            const FSUDSParsedNode* SelectNode = NextNode;
+            TestParsedSelectEdge(this, "Select 0", SelectNode, 0, "{x} == 0", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 0 sub", NextNode, 0, "First choice", Importer, &NextNode);
+            TestParsedText(this, "Text 0", NextNode, "Player", "I took the 1.1 choice");
+            TestParsedSelectEdge(this, "Select 0 ELSE", SelectNode, 1, "", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 0 sub ELSE", NextNode, 0, "First alt choice", Importer, &NextNode);
+            TestParsedText(this, "Text 0 ELSE", NextNode, "Player", "I took the 1.1b choice");
+        }
+        TestParsedChoiceEdge(this, "Choice 1", RootChoice, 1, "", Importer, &NextNode);
+        if (TestParsedSelect(this, "Select 1", NextNode, 2))
+        {
+            const FSUDSParsedNode* SelectNode = NextNode;
+            TestParsedSelectEdge(this, "Select 1", SelectNode, 0, "{y} == 1", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 1 sub", NextNode, 0, "Second choice (conditional)", Importer, &NextNode);
+            TestParsedText(this, "Text 1", NextNode, "Player", "I took the 1.2 choice");
+            TestParsedSelectEdge(this, "Select 1 ELSE", SelectNode, 1, "", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 1 sub ELSE", NextNode, 0, "Second alt choice", Importer, &NextNode);
+            TestParsedText(this, "Text 1 ELSE", NextNode, "Player", "I took the 1.2b choice");
+        }
+        TestParsedChoiceEdge(this, "Choice 2", RootChoice, 2, "", Importer, &NextNode);
+        if (TestParsedSelect(this, "Select 2", NextNode, 2))
+        {
+            const FSUDSParsedNode* SelectNode = NextNode;
+            TestParsedSelectEdge(this, "Select 2", SelectNode, 0, "{z} == 1", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 2 sub", NextNode, 0, "Third choice (conditional)", Importer, &NextNode);
+            TestParsedText(this, "Text 2", NextNode, "Player", "I took the 1.3 choice");
+            TestParsedSelectEdge(this, "Select 2 ELSE", SelectNode, 1, "", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 2 sub ELSE", NextNode, 0, "Third alt choice", Importer, &NextNode);
+            TestParsedText(this, "Text 2 ELSE", NextNode, "Player", "I took the 1.3b choice");
+        }
+        // Dangling choice with no condition
+        TestParsedChoiceEdge(this, "Choice 3", RootChoice, 3, "Second Alt Choice", Importer, &NextNode);
+    }
+    return true;
+}
+
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestRunningBasicConditionals,
                                  "SUDSTest.TestRunningBasicConditionals",

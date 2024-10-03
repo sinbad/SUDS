@@ -727,7 +727,10 @@ bool FSUDSScriptImporter::ParseElseLine(const FStringView& Line,
 		if (Block.Stage != EConditionalStage::ElseStage)
 		{
 			Block.Stage = EConditionalStage::ElseStage;
-			Block.ConditionStr = "";
+			// We need to give each else a unique condition string, otherwise sibling else's can be considered
+			// equivalent, when they in fact originate from different if's
+			// ID by select node index
+			Block.ConditionStr = FString::Printf(TEXT("else-%d"), Block.SelectNodeIdx);
 			const int NodeIdx = Block.SelectNodeIdx;
 				
 			auto& SelectNode = Tree.Nodes[NodeIdx];
