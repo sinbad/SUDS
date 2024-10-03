@@ -87,6 +87,9 @@ NPC: Hello
 [if {x} == 0]
     * First choice
         Player: I took the 1.1 choice
+[elseif {SomeBool}]
+    * First alt choice elseif
+        Player: I took the 1.1 elseif choice
 [else]
     * First alt choice
         Player: I took the 1.1b choice
@@ -94,6 +97,9 @@ NPC: Hello
 [if {y} == 1]
     * Second choice (conditional)
         Player: I took the 1.2 choice
+[elseif {SomeBool}]
+    * Second alt choice elseif
+        Player: I took the 1.2 elseif choice
 [else]
     * Second alt choice
         Player: I took the 1.2b choice
@@ -101,6 +107,9 @@ NPC: Hello
 [if {z} == 1]
     * Third choice (conditional)
         Player: I took the 1.3 choice
+[elseif {SomeBool}]
+    * Third alt choice elseif
+        Player: I took the 1.3 elseif choice
 [else]
     * Third alt choice
         Player: I took the 1.3b choice
@@ -324,35 +333,53 @@ bool FTestSiblingConditionalsWithElse::RunTest(const FString& Parameters)
         // Bit wasteful to have C -> S -> C -> Text instead of just C -> T but you never know how many choices would
         // be in each select level
         TestParsedChoiceEdge(this, "Choice 0", RootChoice, 0, "", Importer, &NextNode);
-        if (TestParsedSelect(this, "Select 0", NextNode, 2))
+        if (TestParsedSelect(this, "Select 0", NextNode, 3))
         {
             const FSUDSParsedNode* SelectNode = NextNode;
             TestParsedSelectEdge(this, "Select 0", SelectNode, 0, "{x} == 0", Importer, &NextNode);
             TestParsedChoiceEdge(this, "Choice 0 sub", NextNode, 0, "First choice", Importer, &NextNode);
             TestParsedText(this, "Text 0", NextNode, "Player", "I took the 1.1 choice");
-            TestParsedSelectEdge(this, "Select 0 ELSE", SelectNode, 1, "", Importer, &NextNode);
+
+            // It's key to have the same "elseif {SomeBool}" for every sibling "if" to prove that the elseifs don't get merged
+            // just because their own conditions are the same. They're different because they're dependent on their own ifs not
+            // being true.
+            TestParsedSelectEdge(this, "Select 0 ELSEIF", SelectNode, 1, "{SomeBool}", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 0 sub ELSEIF", NextNode, 0, "First alt choice elseif", Importer, &NextNode);
+            TestParsedText(this, "Text 0 ELSEIF", NextNode, "Player", "I took the 1.1 elseif choice");
+
+            TestParsedSelectEdge(this, "Select 0 ELSE", SelectNode, 2, "", Importer, &NextNode);
             TestParsedChoiceEdge(this, "Choice 0 sub ELSE", NextNode, 0, "First alt choice", Importer, &NextNode);
             TestParsedText(this, "Text 0 ELSE", NextNode, "Player", "I took the 1.1b choice");
         }
         TestParsedChoiceEdge(this, "Choice 1", RootChoice, 1, "", Importer, &NextNode);
-        if (TestParsedSelect(this, "Select 1", NextNode, 2))
+        if (TestParsedSelect(this, "Select 1", NextNode, 3))
         {
             const FSUDSParsedNode* SelectNode = NextNode;
             TestParsedSelectEdge(this, "Select 1", SelectNode, 0, "{y} == 1", Importer, &NextNode);
             TestParsedChoiceEdge(this, "Choice 1 sub", NextNode, 0, "Second choice (conditional)", Importer, &NextNode);
             TestParsedText(this, "Text 1", NextNode, "Player", "I took the 1.2 choice");
-            TestParsedSelectEdge(this, "Select 1 ELSE", SelectNode, 1, "", Importer, &NextNode);
+
+            TestParsedSelectEdge(this, "Select 1 ELSEIF", SelectNode, 1, "{SomeBool}", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 1 sub ELSEIF", NextNode, 0, "Second alt choice elseif", Importer, &NextNode);
+            TestParsedText(this, "Text 1 ELSEIF", NextNode, "Player", "I took the 1.2 elseif choice");
+
+            TestParsedSelectEdge(this, "Select 1 ELSE", SelectNode, 2, "", Importer, &NextNode);
             TestParsedChoiceEdge(this, "Choice 1 sub ELSE", NextNode, 0, "Second alt choice", Importer, &NextNode);
             TestParsedText(this, "Text 1 ELSE", NextNode, "Player", "I took the 1.2b choice");
         }
         TestParsedChoiceEdge(this, "Choice 2", RootChoice, 2, "", Importer, &NextNode);
-        if (TestParsedSelect(this, "Select 2", NextNode, 2))
+        if (TestParsedSelect(this, "Select 2", NextNode, 3))
         {
             const FSUDSParsedNode* SelectNode = NextNode;
             TestParsedSelectEdge(this, "Select 2", SelectNode, 0, "{z} == 1", Importer, &NextNode);
             TestParsedChoiceEdge(this, "Choice 2 sub", NextNode, 0, "Third choice (conditional)", Importer, &NextNode);
             TestParsedText(this, "Text 2", NextNode, "Player", "I took the 1.3 choice");
-            TestParsedSelectEdge(this, "Select 2 ELSE", SelectNode, 1, "", Importer, &NextNode);
+            
+            TestParsedSelectEdge(this, "Select 2 ELSEIF", SelectNode, 1, "{SomeBool}", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 2 sub ELSEIF", NextNode, 0, "Third alt choice elseif", Importer, &NextNode);
+            TestParsedText(this, "Text 2 ELSE", NextNode, "Player", "I took the 1.3 elseif choice");
+
+            TestParsedSelectEdge(this, "Select 2 ELSE", SelectNode, 2, "", Importer, &NextNode);
             TestParsedChoiceEdge(this, "Choice 2 sub ELSE", NextNode, 0, "Third alt choice", Importer, &NextNode);
             TestParsedText(this, "Text 2 ELSE", NextNode, "Player", "I took the 1.3b choice");
         }
