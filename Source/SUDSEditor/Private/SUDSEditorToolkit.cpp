@@ -123,7 +123,9 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 	InTabManager->RegisterTabSpawner("SUDSDialogueTab", FOnSpawnTab::CreateLambda([this](const FSpawnTabArgs&)
 	{
 		OutputListView = SNew(SListView<TSharedPtr<FSUDSEditorOutputRow>>)
+#if ENGINE_MINOR_VERSION < 5
 				.ItemHeight(24)
+#endif
 				.SelectionMode(ESelectionMode::None)
 				.ListItemsSource(&OutputRows)
 				.OnGenerateRow(this, &FSUDSEditorToolkit::OnGenerateRowForOutput)
@@ -159,7 +161,9 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 		ChoicesBox = SNew(SVerticalBox);
 
 		VariablesListView = SNew(SListView<TSharedPtr<FSUDSEditorVariableRow>>)
+#if ENGINE_MINOR_VERSION < 5
 				.ItemHeight(28)
+#endif
 				.SelectionMode(ESelectionMode::None)
 				.ListItemsSource(&VariableRows)
 				.OnGenerateRow(this, &FSUDSEditorToolkit::OnGenerateRowForVariable)
