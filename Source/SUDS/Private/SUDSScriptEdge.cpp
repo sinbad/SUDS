@@ -34,7 +34,7 @@ void FSUDSScriptEdge::ExtractFormat() const
 
 FString FSUDSScriptEdge::GetTextID() const
 {
-	return FTextInspector::GetTextId(Text).GetKey().GetChars();
+	return SUDS_GET_TEXT_KEY(Text);
 }
 
 void FSUDSScriptEdge::SetText(const FText& InText)

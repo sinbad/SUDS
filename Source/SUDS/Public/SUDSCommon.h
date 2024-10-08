@@ -14,3 +14,9 @@ struct FSUDSConstants
 	static const FName RandomItemSelectIndexVarName;
 
 };
+
+#if ENGINE_MINOR_VERSION >= 5
+#define SUDS_GET_TEXT_KEY(Text) FTextInspector::GetTextId(Text).GetKey().ToString()
+#else
+#define SUDS_GET_TEXT_KEY(Text) FTextInspector::GetTextId(Text).GetKey().GetChars()
+#endif
