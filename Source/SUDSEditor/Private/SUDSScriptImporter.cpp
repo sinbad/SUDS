@@ -1389,7 +1389,7 @@ bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line,
                                          bool bSilent)
 {
 	const FString LineStr(Line);
-	const FRegexPattern EventPattern(TEXT("^\\[event\\s+(\\w+)([^\\]]*)\\]$"));
+	const FRegexPattern EventPattern(TEXT("^\\[event\\s+([\\w.]+)([^\\]]*)\\]$"));
 	FRegexMatcher EventRegex(EventPattern, LineStr);
 	if (EventRegex.FindNext())
 	{
