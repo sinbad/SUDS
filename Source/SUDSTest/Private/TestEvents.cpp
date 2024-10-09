@@ -16,8 +16,9 @@ Player: Ow do?
 [set StringVar "Ey up"]
 [event SummatHappened "2 penneth", 99.99, masculine, {IntVar}, 42, false]
 NPC: Alreet chook
-[event WellBlowMeDown {FloatVar}, true, {StringVar}]
+[event Well.Blow.Me.Down {FloatVar}, true, {StringVar}]
 [event Calculated {FloatVar} + 10, true or false, {StringVar}]
+[event Actor.Emote `Player`, `Question`]
 Player: Tara
 )RAWSUD";
 
@@ -207,9 +208,9 @@ bool FTestEvents::RunTest(const FString& Parameters)
 	TestDialogueText(this, "Line 2", Dlg, "NPC", "Alreet chook");
 	TestTrue("Continue", Dlg->Continue());
 
-	if (TestEqual("Event sub should have received", EvtSub->EventRecords.Num(), 3))
+	if (TestEqual("Event sub should have received", EvtSub->EventRecords.Num(), 4))
 	{
-		TestEqual("Event name", EvtSub->EventRecords[1].Name.ToString(), "WellBlowMeDown");
+		TestEqual("Event name", EvtSub->EventRecords[1].Name.ToString(), "Well.Blow.Me.Down");
 		if (TestEqual("Event sub arg count", EvtSub->EventRecords[1].Args.Num(), 3))
 		{
 			TestEqual("Event sub arg 0 type", EvtSub->EventRecords[1].Args[0].GetType(), ESUDSValueType::Float);
@@ -229,10 +230,18 @@ bool FTestEvents::RunTest(const FString& Parameters)
 			TestEqual("Event sub arg 2 type", EvtSub->EventRecords[2].Args[2].GetType(), ESUDSValueType::Text);
 			TestEqual("Event sub arg 2 value", EvtSub->EventRecords[2].Args[2].GetTextValue().ToString(), "Ey up");
 		}
+		TestEqual("Event name", EvtSub->EventRecords[3].Name.ToString(), "Actor.Emote");
+		if (TestEqual("Event sub arg count", EvtSub->EventRecords[3].Args.Num(), 2))
+		{
+			TestEqual("Event sub arg 0 type", EvtSub->EventRecords[3].Args[0].GetType(), ESUDSValueType::Name);
+			TestEqual("Event sub arg 0 value", EvtSub->EventRecords[3].Args[0].GetNameValue(), FName("Player"));
+			TestEqual("Event sub arg 2 type", EvtSub->EventRecords[3].Args[1].GetType(), ESUDSValueType::Name);
+			TestEqual("Event sub arg 2 value", EvtSub->EventRecords[3].Args[1].GetNameValue(), FName("Question"));
+		}
 	}
-	if (TestEqual("Participant should have received", Participant->EventRecords.Num(), 3))
+	if (TestEqual("Participant should have received", Participant->EventRecords.Num(), 4))
 	{
-		TestEqual("Event name", Participant->EventRecords[1].Name.ToString(), "WellBlowMeDown");
+		TestEqual("Event name", Participant->EventRecords[1].Name.ToString(), "Well.Blow.Me.Down");
 		if (TestEqual("Participant arg count", Participant->EventRecords[1].Args.Num(), 3))
 		{
 			TestEqual("Participant arg 0 type", Participant->EventRecords[1].Args[0].GetType(), ESUDSValueType::Float);
@@ -252,7 +261,14 @@ bool FTestEvents::RunTest(const FString& Parameters)
 			TestEqual("Event sub arg 2 type", Participant->EventRecords[2].Args[2].GetType(), ESUDSValueType::Text);
 			TestEqual("Event sub arg 2 value", Participant->EventRecords[2].Args[2].GetTextValue().ToString(), "Ey up");
 		}
-		
+		TestEqual("Event name", EvtSub->EventRecords[3].Name.ToString(), "Actor.Emote");
+		if (TestEqual("Event sub arg count", EvtSub->EventRecords[3].Args.Num(), 2))
+		{
+			TestEqual("Event sub arg 0 type", EvtSub->EventRecords[3].Args[0].GetType(), ESUDSValueType::Name);
+			TestEqual("Event sub arg 0 value", EvtSub->EventRecords[3].Args[0].GetNameValue(), FName("Player"));
+			TestEqual("Event sub arg 2 type", EvtSub->EventRecords[3].Args[1].GetType(), ESUDSValueType::Name);
+			TestEqual("Event sub arg 2 value", EvtSub->EventRecords[3].Args[1].GetNameValue(), FName("Question"));
+		}
 	}
 	
 	Script->MarkAsGarbage();
