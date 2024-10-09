@@ -15,8 +15,12 @@ An event line might look something like this:
 
 The first parameter is the event name, in this case "`MyAwesomeEvent`".
 
-Event names can be any sequence of alphanumeric characters or underscores; note
-that dashes or other symbols are not allowed (much like [Labels](GotoLines.md#label-lines)).
+Event names can contain:
+* Letters (a-z, A-Z)
+* Numbers (0-9)
+* Underscores (_)
+* Periods (.)
+
 
 ## Event Arguments
 
