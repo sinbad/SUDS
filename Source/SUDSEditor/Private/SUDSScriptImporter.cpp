@@ -359,7 +359,7 @@ bool FSUDSScriptImporter::ParseBodyLine(const FStringView& Line,
 		if (!bParsed)
 			bParsed = ParseSetLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 		if (!bParsed)
-			bParsed = ParseEventLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
+			bParsed = ParseEventLine(Line, BodyTree, IndentLevel, LineNo, true, NameForErrors, Logger, bSilent);
 		if (!bParsed)
 			bParsed = ParseGosubLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 		if (!bParsed)
@@ -368,6 +368,22 @@ bool FSUDSScriptImporter::ParseBodyLine(const FStringView& Line,
 			bParsed = ParseImportSettingLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
 		if (!bParsed)
 			bParsed = ParseRandomLine(Line, BodyTree, IndentLevel, LineNo, NameForErrors, Logger, bSilent);
+
+		if(!bParsed)
+		{
+			bool AllowEventsWithoutEventLiteral = false;
+			if (const auto Settings = GetDefault<USUDSEditorSettings>())
+			{
+				AllowEventsWithoutEventLiteral = Settings->bAllowEventsWithoutEventLiteral;
+			}
+			if(bAllowEventsWithoutEventLiteral.IsSet())
+			{
+				AllowEventsWithoutEventLiteral = bAllowEventsWithoutEventLiteral.GetValue();
+			}
+			
+			if(AllowEventsWithoutEventLiteral)
+				bParsed = ParseEventLine(Line, BodyTree, IndentLevel, LineNo, false, NameForErrors, Logger, bSilent);
+		}
 
 		if (!bParsed)
 		{
@@ -1366,6 +1382,19 @@ bool FSUDSScriptImporter::ParseImportSettingLine(const FStringView& Line,
 								Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: [importsetting SpeakerIDForGeneratedLinesFromChoices ...] requires a Name literal e.g. (`Value`)"), *NameForErrors, LineNo);
 						}
 					}
+					else if (Name.Compare("AllowEventsWithoutEventLiteral", ESearchCase::IgnoreCase) == 0)
+					{
+						if (Expr.GetLiteralValue().GetType() == ESUDSValueType::Boolean)
+						{
+							// Speaker IDs are strings, but we go via FName to avoid translation
+							bAllowEventsWithoutEventLiteral = Expr.GetBooleanLiteralValue();
+						}
+						else
+						{
+							if (!bSilent)
+								Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: [importsetting AllowEventsWithoutEventLiteral ...] requires a boolean literal"), *NameForErrors, LineNo);
+						}
+					}
 				
 					return true;
 				}
@@ -1390,13 +1419,16 @@ bool FSUDSScriptImporter::ParseEventLine(const FStringView& Line,
                                          FSUDSScriptImporter::ParsedTree& Tree,
                                          int IndentLevel,
                                          int LineNo,
+                                         bool bLookForEventLiteral,
                                          const FString& NameForErrors,
                                          FSUDSMessageLogger* Logger,
                                          bool bSilent)
 {
 	const FString LineStr(Line);
 	const FRegexPattern EventPattern(TEXT("^\\[event\\s+([\\w.]+)([^\\]]*)\\]$"));
-	FRegexMatcher EventRegex(EventPattern, LineStr);
+	const FRegexPattern EventPatternNoLiteral(TEXT("^\\[\\s*([\\w.]+)([^\\]]*)\\]$"));
+	
+	FRegexMatcher EventRegex(bLookForEventLiteral ? EventPattern : EventPatternNoLiteral, LineStr);
 	if (EventRegex.FindNext())
 	{
 		if (!bSilent)

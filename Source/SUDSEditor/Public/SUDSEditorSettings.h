@@ -64,6 +64,10 @@ public:
 	UPROPERTY(config, EditAnywhere, Category = "Assets", AdvancedDisplay, meta = (Tooltip = "Whether to create string tables as a separate package (.uasset) from the SUDS Script, which will cause them to appear separately in the Content Browser (requires script re-import)"))
 	bool bCreateStringTablesAsSeparatePackages = false;
 
+	UPROPERTY(config, EditAnywhere, Category = "Assets", AdvancedDisplay, meta = (Tooltip = "Whether the event syntax of [EventName ...] is allowed"))
+	bool bAllowEventsWithoutEventLiteral = false;
+
+
 	USUDSEditorSettings() {}
 
 	bool ShouldGenerateVoiceAssets(const FString& PackagePath) const;

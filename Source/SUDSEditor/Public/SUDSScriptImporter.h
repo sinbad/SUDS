@@ -318,6 +318,7 @@ protected:
 	bool bTooLateForHeader = false;
 	bool bHeaderInProgress = false;
 	TOptional<bool> bOverrideGenerateSpeakerLineForChoice;
+	TOptional<bool> bAllowEventsWithoutEventLiteral;
 	TOptional<FString> OverrideChoiceSpeakerID;
 	bool bTextInProgress = false;
 	int ChoiceUniqueId = 0;
@@ -438,9 +439,9 @@ protected:
 	                    ParsedTree& Tree,
 	                    int IndentLevel,
 	                    int LineNo,
+	                    bool bLookForEventLiteral,
 	                    const FString& NameForErrors,
-	                    FSUDSMessageLogger* Logger,
-	                    bool bSilent);
+	                    FSUDSMessageLogger* Logger, bool bSilent);
 	bool ParseTextLine(const FStringView& Line,
 	                   ParsedTree& Tree,
 	                   int IndentLevel,
