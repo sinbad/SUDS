@@ -21,6 +21,8 @@ DEFINE_LOG_CATEGORY(LogSUDSDialogue);
 const FText USUDSDialogue::DummyText = FText::FromString("INVALID");
 const FString USUDSDialogue::DummyString = "INVALID";
 
+
+
 FArchive& operator<<(FArchive& Ar, FSUDSDialogueState& Value)
 {
 	Ar << Value.TextNodeID;
@@ -979,7 +981,7 @@ void USUDSDialogue::ResetState(bool bResetVariables, bool bResetPosition, bool b
 FSUDSDialogueState USUDSDialogue::GetSavedState() const
 {
 	const FString CurrentNodeId = CurrentSpeakerNode
-		                              ? FTextInspector::GetTextId(CurrentSpeakerNode->GetText()).GetKey().GetChars()
+		                              ? SUDS_GET_TEXT_KEY(CurrentSpeakerNode->GetText())
 		                              : FString();
 
 	TArray<FString> ExportReturnStack;
