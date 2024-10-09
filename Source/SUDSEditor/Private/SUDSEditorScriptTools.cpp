@@ -170,7 +170,7 @@ bool FSUDSEditorScriptTools::WriteBackTextID(const FText& AssetText, int LineNo,
 	}
 
 	const FString& SourceLine = Lines[Idx];
-	const FString TextID = FTextInspector::GetTextId(AssetText).GetKey().GetChars();
+	const FString TextID = SUDS_GET_TEXT_KEY(AssetText);
 	FString ExistingTextID;
 	int ExistingNum;
 	FStringView SourceLineView(SourceLine);

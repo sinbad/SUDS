@@ -15,7 +15,7 @@ void USUDSScriptNodeText::Init(const FString& InSpeakerID, const FText& InText, 
 
 FString USUDSScriptNodeText::GetTextID() const
 {
-	return FTextInspector::GetTextId(Text).GetKey().GetChars();
+	return SUDS_GET_TEXT_KEY(Text);
 }
 
 const FTextFormat& USUDSScriptNodeText::GetTextFormat() const
