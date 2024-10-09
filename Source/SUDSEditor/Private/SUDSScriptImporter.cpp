@@ -727,7 +727,10 @@ bool FSUDSScriptImporter::ParseElseLine(const FStringView& Line,
 		if (Block.Stage != EConditionalStage::ElseStage)
 		{
 			Block.Stage = EConditionalStage::ElseStage;
-			Block.ConditionStr = "";
+			// We need to give each else a unique condition string, otherwise sibling else's can be considered
+			// equivalent, when they in fact originate from different if's
+			// ID by select node index
+			Block.ConditionPathElement = FString::Printf(TEXT("else-%d"), Block.SelectNodeIdx);
 			const int NodeIdx = Block.SelectNodeIdx;
 				
 			auto& SelectNode = Tree.Nodes[NodeIdx];
@@ -845,7 +848,10 @@ bool FSUDSScriptImporter::ParseElseIfLine(const FStringView& Line,
 		if (Block.Stage != EConditionalStage::ElseStage)
 		{
 			Block.Stage = EConditionalStage::ElseIfStage;
-			Block.ConditionStr = ConditionStr;
+			// For the purposes of the block, the condition isn't just the condition contained here,
+			// it's also the negation of the original "if". This is to prevent multiple sibling
+			// elseifs merging if they contain the same condition but are attached to different ifs
+			Block.ConditionPathElement = FString::Printf(TEXT("elseif-%d %s"), Block.SelectNodeIdx, *ConditionStr);
 			const int NodeIdx = Block.SelectNodeIdx;
 				
 			auto& SelectOrChoiceNode = Tree.Nodes[NodeIdx];
@@ -1027,12 +1033,12 @@ bool FSUDSScriptImporter::ParseRandomOptionLine(const FStringView& Line,
 				
 			auto& SelectOrChoiceNode = Tree.Nodes[NodeIdx];
 			// Generate condition based on auto-generated random item choice
-			Block.ConditionStr = FString::Printf(TEXT("{%hs} == %d"), SUDS_RANDOMITEM_VAR, SelectOrChoiceNode.Edges.Num());
+			Block.ConditionPathElement = FString::Printf(TEXT("{%hs} == %d"), SUDS_RANDOMITEM_VAR, SelectOrChoiceNode.Edges.Num());
 			const int EdgeIdx = SelectOrChoiceNode.Edges.Add(FSUDSParsedEdge(NodeIdx, -1, LineNo));
 			auto E = &SelectOrChoiceNode.Edges[EdgeIdx];
 			{
 				FString ParseError;
-				if (!E->ConditionExpression.ParseFromString(Block.ConditionStr, &ParseError))
+				if (!E->ConditionExpression.ParseFromString(Block.ConditionPathElement, &ParseError))
 				{
 					if (!bSilent)
 						Logger->Logf(ELogVerbosity::Error, TEXT("Error in %s line %d: %s"), *NameForErrors, LineNo, *ParseError);
@@ -1609,7 +1615,7 @@ FString FSUDSScriptImporter::GetCurrentTreeConditionalPath(const FSUDSScriptImpo
 	// work backwards, hence prepend
 	while (BlockIdx != -1)
 	{
-		const FString& ConditionStr = Tree.ConditionalBlocks[BlockIdx].ConditionStr;
+		const FString& ConditionStr = Tree.ConditionalBlocks[BlockIdx].ConditionPathElement;
 		// Note: add the "/" even if ConditionStr is empty, because it means it's an else level
 		// Not including it can cause an if block to fall through to its own else
 		B.Prepend(FString::Printf(TEXT("%s%s"), *TreePathSeparator, *ConditionStr));

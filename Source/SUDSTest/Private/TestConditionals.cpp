@@ -82,6 +82,41 @@ NPC: Hello
 NPC: End
 )RAWSUD";
 
+const FString SiblingConditionalChoiceWithElseInput = R"RAWSUD(
+NPC: Hello
+[if {x} == 0]
+    * First choice
+        Player: I took the 1.1 choice
+[elseif {SomeBool}]
+    * First alt choice elseif
+        Player: I took the 1.1 elseif choice
+[else]
+    * First alt choice
+        Player: I took the 1.1b choice
+[endif]
+[if {y} == 1]
+    * Second choice (conditional)
+        Player: I took the 1.2 choice
+[elseif {SomeBool}]
+    * Second alt choice elseif
+        Player: I took the 1.2 elseif choice
+[else]
+    * Second alt choice
+        Player: I took the 1.2b choice
+[endif]
+[if {z} == 1]
+    * Third choice (conditional)
+        Player: I took the 1.3 choice
+[elseif {SomeBool}]
+    * Third alt choice elseif
+        Player: I took the 1.3 elseif choice
+[else]
+    * Third alt choice
+        Player: I took the 1.3b choice
+[endif]
+NPC: End
+)RAWSUD";
+
 
 const FString MixedChoiceAndBranchInput = R"RAWSUD(
 [if {alreadyvisited}]
@@ -271,6 +306,142 @@ bool FTestSiblingConditionals::RunTest(const FString& Parameters)
     }
     return true;
 }
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestSiblingConditionalsWithElse,
+                                 "SUDSTest.TestSiblingConditionalsWithElse",
+                                 EAutomationTestFlags::EditorContext |
+                                 EAutomationTestFlags::ClientContext |
+                                 EAutomationTestFlags::ProductFilter)
+
+bool FTestSiblingConditionalsWithElse::RunTest(const FString& Parameters)
+{
+    FSUDSScriptImporter Importer;
+    FSUDSMessageLogger Logger(false);
+    TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(SiblingConditionalChoiceWithElseInput), SiblingConditionalChoiceWithElseInput.Len(), "SiblingConditionalChoiceWithElseInput", &Logger, true));
+
+    // Test the content of the parsing
+    auto NextNode = Importer.GetNode(0);
+    if (!TestNotNull("Root node should exist", NextNode))
+        return false;
+    TestParsedText(this, "Text node", NextNode, "NPC", "Hello");
+    TestGetParsedNextNode(this, "Get next", NextNode, Importer, false, &NextNode);
+    if (TestParsedChoice(this, "Root Choice", NextNode, 3))
+    {
+        auto RootChoice = NextNode;
+        // Sibling choices all get their own nodes
+        // Bit wasteful to have C -> S -> C -> Text instead of just C -> T but you never know how many choices would
+        // be in each select level
+        TestParsedChoiceEdge(this, "Choice 0", RootChoice, 0, "", Importer, &NextNode);
+        if (TestParsedSelect(this, "Select 0", NextNode, 3))
+        {
+            const FSUDSParsedNode* SelectNode = NextNode;
+            TestParsedSelectEdge(this, "Select 0", SelectNode, 0, "{x} == 0", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 0 sub", NextNode, 0, "First choice", Importer, &NextNode);
+            TestParsedText(this, "Text 0", NextNode, "Player", "I took the 1.1 choice");
+
+            // It's key to have the same "elseif {SomeBool}" for every sibling "if" to prove that the elseifs don't get merged
+            // just because their own conditions are the same. They're different because they're dependent on their own ifs not
+            // being true.
+            TestParsedSelectEdge(this, "Select 0 ELSEIF", SelectNode, 1, "{SomeBool}", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 0 sub ELSEIF", NextNode, 0, "First alt choice elseif", Importer, &NextNode);
+            TestParsedText(this, "Text 0 ELSEIF", NextNode, "Player", "I took the 1.1 elseif choice");
+
+            TestParsedSelectEdge(this, "Select 0 ELSE", SelectNode, 2, "", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 0 sub ELSE", NextNode, 0, "First alt choice", Importer, &NextNode);
+            TestParsedText(this, "Text 0 ELSE", NextNode, "Player", "I took the 1.1b choice");
+        }
+        TestParsedChoiceEdge(this, "Choice 1", RootChoice, 1, "", Importer, &NextNode);
+        if (TestParsedSelect(this, "Select 1", NextNode, 3))
+        {
+            const FSUDSParsedNode* SelectNode = NextNode;
+            TestParsedSelectEdge(this, "Select 1", SelectNode, 0, "{y} == 1", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 1 sub", NextNode, 0, "Second choice (conditional)", Importer, &NextNode);
+            TestParsedText(this, "Text 1", NextNode, "Player", "I took the 1.2 choice");
+
+            TestParsedSelectEdge(this, "Select 1 ELSEIF", SelectNode, 1, "{SomeBool}", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 1 sub ELSEIF", NextNode, 0, "Second alt choice elseif", Importer, &NextNode);
+            TestParsedText(this, "Text 1 ELSEIF", NextNode, "Player", "I took the 1.2 elseif choice");
+
+            TestParsedSelectEdge(this, "Select 1 ELSE", SelectNode, 2, "", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 1 sub ELSE", NextNode, 0, "Second alt choice", Importer, &NextNode);
+            TestParsedText(this, "Text 1 ELSE", NextNode, "Player", "I took the 1.2b choice");
+        }
+        TestParsedChoiceEdge(this, "Choice 2", RootChoice, 2, "", Importer, &NextNode);
+        if (TestParsedSelect(this, "Select 2", NextNode, 3))
+        {
+            const FSUDSParsedNode* SelectNode = NextNode;
+            TestParsedSelectEdge(this, "Select 2", SelectNode, 0, "{z} == 1", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 2 sub", NextNode, 0, "Third choice (conditional)", Importer, &NextNode);
+            TestParsedText(this, "Text 2", NextNode, "Player", "I took the 1.3 choice");
+            
+            TestParsedSelectEdge(this, "Select 2 ELSEIF", SelectNode, 1, "{SomeBool}", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 2 sub ELSEIF", NextNode, 0, "Third alt choice elseif", Importer, &NextNode);
+            TestParsedText(this, "Text 2 ELSE", NextNode, "Player", "I took the 1.3 elseif choice");
+
+            TestParsedSelectEdge(this, "Select 2 ELSE", SelectNode, 2, "", Importer, &NextNode);
+            TestParsedChoiceEdge(this, "Choice 2 sub ELSE", NextNode, 0, "Third alt choice", Importer, &NextNode);
+            TestParsedText(this, "Text 2 ELSE", NextNode, "Player", "I took the 1.3b choice");
+        }
+        // Dangling choice with no condition
+        TestParsedChoiceEdge(this, "Choice 3", RootChoice, 3, "Second Alt Choice", Importer, &NextNode);
+    }
+
+
+    // Test running
+    auto Script = NewObject<USUDSScript>(GetTransientPackage(), "Test");
+    const ScopedStringTableHolder StringTableHolder;
+    Importer.PopulateAsset(Script, StringTableHolder.StringTable);
+
+    // Script shouldn't be the owner of the dialogue but it's the only UObject we've got right now so why not
+    auto Dlg = USUDSLibrary::CreateDialogue(Script, Script);
+
+    // For the first run, do not set any state
+    Dlg->Start();
+
+    TestDialogueText(this, "First node", Dlg, "NPC", "Hello");
+    if (TestEqual("Choice count", Dlg->GetNumberOfChoices(), 3))
+    {
+        TestEqual("Choice 0", Dlg->GetChoiceText(0).ToString(), TEXT("First choice"));
+        TestEqual("Choice 1", Dlg->GetChoiceText(1).ToString(), TEXT("Second alt choice"));
+        TestEqual("Choice 2", Dlg->GetChoiceText(2).ToString(), TEXT("Third alt choice"));
+    }
+
+    // restart, set some variables to alter the path
+    Dlg->SetVariableInt("x", 1);
+    Dlg->SetVariableInt("y", 1);
+    Dlg->SetVariableInt("z", 0);
+    Dlg->Restart(false);
+
+    TestDialogueText(this, "First node", Dlg, "NPC", "Hello");
+    if (TestEqual("Choice count", Dlg->GetNumberOfChoices(), 3))
+    {
+        TestEqual("Choice 0", Dlg->GetChoiceText(0).ToString(), TEXT("First alt choice"));
+        TestEqual("Choice 1", Dlg->GetChoiceText(1).ToString(), TEXT("Second choice (conditional)"));
+        TestEqual("Choice 2", Dlg->GetChoiceText(2).ToString(), TEXT("Third alt choice"));
+    }
+    
+    // restart, set some variables to alter the path
+    Dlg->SetVariableBoolean("SomeBool", true);
+    Dlg->SetVariableInt("x", 1);
+    Dlg->SetVariableInt("y", 0);
+    Dlg->SetVariableInt("z", 1);
+    Dlg->Restart(false);
+
+    TestDialogueText(this, "First node", Dlg, "NPC", "Hello");
+    if (TestEqual("Choice count", Dlg->GetNumberOfChoices(), 3))
+    {
+        TestEqual("Choice 0", Dlg->GetChoiceText(0).ToString(), TEXT("First alt choice elseif"));
+        TestEqual("Choice 1", Dlg->GetChoiceText(1).ToString(), TEXT("Second alt choice elseif"));
+        TestEqual("Choice 2", Dlg->GetChoiceText(2).ToString(), TEXT("Third choice (conditional)"));
+    }
+
+    Script->MarkAsGarbage();
+
+    
+    return true;
+}
+
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestRunningBasicConditionals,
                                  "SUDSTest.TestRunningBasicConditionals",

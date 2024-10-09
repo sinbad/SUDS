@@ -203,14 +203,14 @@ protected:
 		int PreviousBlockIdx = -1;
 		/// Track whether we're in if/elseif/else
 		EConditionalStage Stage;
-		/// String of current condition 
-		FString ConditionStr;
+		/// String identifying the current condition; for elseif or else contains original "if" context 
+		FString ConditionPathElement;
 
 		ConditionalContext(int InSelectNodeIdx, int InPrevBlockIdx, EConditionalStage InStage, const FString& InCondStr) :
 			SelectNodeIdx(InSelectNodeIdx),
 			PreviousBlockIdx(InPrevBlockIdx),
 			Stage(InStage),
-			ConditionStr(InCondStr)
+			ConditionPathElement(InCondStr)
 		{
 		}
 
