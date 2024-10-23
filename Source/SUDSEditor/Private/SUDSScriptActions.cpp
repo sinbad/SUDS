@@ -10,6 +10,8 @@
 #include "SUDSScript.h"
 #include "ToolMenuSection.h"
 #include "EditorFramework/AssetImportData.h"
+#include "Misc/MessageDialog.h"
+#include "Widgets/Views/SListView.h"
 
 FText FSUDSScriptActions::GetName() const
 {

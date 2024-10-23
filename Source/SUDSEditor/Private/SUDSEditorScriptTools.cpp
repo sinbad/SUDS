@@ -11,6 +11,9 @@
 #include "SUDSScriptNodeText.h"
 #include "EditorFramework/AssetImportData.h"
 #include "Misc/FileHelper.h"
+#include "Misc/PackageName.h"
+#include "Misc/Paths.h"
+#include "UObject/Package.h"
 
 void FSUDSEditorScriptTools::WriteBackTextIDs(USUDSScript* Script, FSUDSMessageLogger& Logger)
 {

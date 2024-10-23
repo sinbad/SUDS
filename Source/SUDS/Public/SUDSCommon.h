@@ -2,6 +2,7 @@
 // Released under the MIT license https://opensource.org/license/MIT/
 #pragma once
 #include "CoreMinimal.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 // Use DECLARE_LOG_CATEGORY_CLASS not DECLARE_LOG_CATEGORY_EXTERN because we use UE_LOG in headers
 DECLARE_LOG_CATEGORY_CLASS(LogSUDS, Warning, All)

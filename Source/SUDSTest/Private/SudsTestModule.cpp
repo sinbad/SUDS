@@ -1,5 +1,7 @@
 #include "SudsTestModule.h"
 
+#include "Modules/ModuleManager.h"
+
 DEFINE_LOG_CATEGORY(LogSudsTestModule)
 
 void FSudsTestModule::StartupModule()

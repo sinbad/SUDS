@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Runtime/Launch/Resources/Version.h"
 #include "Sound/DialogueVoice.h"
 #include "UObject/Object.h"
 #include "SUDSScript.generated.h"

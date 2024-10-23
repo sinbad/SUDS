@@ -4,6 +4,8 @@
 #include "SUDSScriptNodeText.h"
 #include "Internationalization/StringTable.h"
 #include "Internationalization/StringTableRegistry.h"
+#include "Misc/AutomationTest.h"
+#include "UObject/Package.h"
 
 FORCEINLINE void TestDialogueText(FAutomationTestBase* T, const FString& NameForTest, USUDSDialogue* D, const FString& SpeakerID, const FString& Text)
 {

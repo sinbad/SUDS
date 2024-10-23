@@ -2,6 +2,11 @@
 // Released under the MIT license https://opensource.org/license/MIT/
 #pragma once
 
+#include "CoreMinimal.h"
+#include "Logging/TokenizedMessage.h"
+
+class FTokenizedMessage;
+
 struct SUDSEDITOR_API FSUDSMessageLogger
 {
 protected:
