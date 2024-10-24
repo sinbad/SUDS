@@ -7,6 +7,7 @@
 #include "SUDSScript.h"
 #include "SUDSScriptNodeText.h"
 #include "EditorFramework/AssetImportData.h"
+#include "HAL/FileManager.h"
 #include "Sound/DialogueWave.h"
 
 USUDSScriptReimportFactory::USUDSScriptReimportFactory()

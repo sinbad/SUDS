@@ -4,9 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "SUDSValue.h"
+#include "Framework/Commands/Commands.h"
 #include "Framework/Text/BaseTextLayoutMarshaller.h"
 #include "Toolkits/AssetEditorToolkit.h"
 #include "UObject/Object.h"
+#include "Widgets/Views/STableRow.h"
 
 class SMultiLineEditableTextBox;
 struct FSUDSValue;

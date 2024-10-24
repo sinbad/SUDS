@@ -3,6 +3,7 @@
 #include "SUDSMessageLogger.h"
 #include "IMessageLogListing.h"
 #include "MessageLogModule.h"
+#include "Modules/ModuleManager.h"
 
 FSUDSMessageLogger::~FSUDSMessageLogger()
 {

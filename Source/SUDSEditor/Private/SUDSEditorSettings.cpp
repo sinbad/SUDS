@@ -1,6 +1,7 @@
 // Copyright Steve Streeting 2022
 // Released under the MIT license https://opensource.org/license/MIT/
 #include "SUDSEditorSettings.h"
+#include "Misc/Paths.h"
 
 bool USUDSEditorSettings::ShouldGenerateVoiceAssets(const FString& PackagePath) const
 {
