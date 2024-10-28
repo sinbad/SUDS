@@ -47,15 +47,15 @@ to do it.
 
 However, if you'd like more of the integration done for you, including supporting
 making camera cuts, playing cutscenes, and animating characters, I also publish
-[SUDS Pro on the Marketplace](https://unrealengine.com/marketplace/en-US/product/suds-pro-dialogue-system).
+[SUDS Pro on Fab](https://fab.com/s/c80e7c961216).
 It's pre-built for the engine so you don't need a C++ project, which is also
 convenient for people who just want to use Blueprints.
 
-You don't *need* [SUDS Pro](https://unrealengine.com/marketplace/en-US/product/suds-pro-dialogue-system); 
+You don't *need* [SUDS Pro](https://fab.com/s/c80e7c961216); 
 core SUDS is a perfectly capable dialogue engine on its own
 and you can integrate it with the rest of your code how you like. But, if you'd like a little extra 
 functionality pre-integrated, and also to help fund development, please consider
-buying [SUDS Pro](https://unrealengine.com/marketplace/en-US/product/suds-pro-dialogue-system).
+buying [SUDS Pro](https://fab.com/s/c80e7c961216).
 
 > ### See Also
 > * [Testing Scripts](docs/Testing.md)
