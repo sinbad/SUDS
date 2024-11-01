@@ -21,6 +21,7 @@ const FString FSUDSScriptImporter::TreePathSeparator = "/";
 
 DEFINE_LOG_CATEGORY(LogSUDSImporter)
 
+UE_DISABLE_OPTIMIZATION
 
 bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent)
 {
@@ -408,9 +409,11 @@ int FSUDSScriptImporter::FindLastChoiceNode(const ParsedTree& Tree, int IndentLe
 	return Ret;
 }
 
-int FSUDSScriptImporter::FindChoiceAfterTextNode(const FSUDSScriptImporter::ParsedTree& Tree, int TextNodeIdx)
+int FSUDSScriptImporter::FindChoiceAfterTextNode(const FSUDSScriptImporter::ParsedTree& Tree, int TextNodeIdx, const FString& ConditionalPath)
 {
 	const auto& TextNode = Tree.Nodes[TextNodeIdx];
+
+	int RootChoiceIdx = -1;
 	if (TextNode.Edges.Num() == 1 && Tree.Nodes.IsValidIndex(TextNode.Edges[0].TargetNodeIdx))
 	{
 		int NextNodeIdx = TextNode.Edges[0].TargetNodeIdx;
@@ -422,26 +425,108 @@ int FSUDSScriptImporter::FindChoiceAfterTextNode(const FSUDSScriptImporter::Pars
 			case ESUDSParsedNodeType::Select:
 			case ESUDSParsedNodeType::Text:
 				// Didn't find
-				return -1;
+				break;
 			case ESUDSParsedNodeType::Choice:
-				return NextNodeIdx;
+				RootChoiceIdx = NextNodeIdx;
+				NextNodeIdx = -1; // to break out of loop
+				break;
 			case ESUDSParsedNodeType::SetVariable:
 			case ESUDSParsedNodeType::Goto:
 			case ESUDSParsedNodeType::Event:
+				// Cascade through events to find the first choice
 				if (Node.Edges.Num() == 1)
 				{
 					NextNodeIdx = Node.Edges[0].TargetNodeIdx;
 				}
 				else
 				{
-					return -1;
+					NextNodeIdx = -1;
 				}
 				break;
 			default: ;
 			};
 		}
+
+		if (RootChoiceIdx == -1)
+		{
+			return -1;
+		}
+
+		// Now we've found the first choice after the text node
+		// BUT if there are conditional choices, there are select nodes underneath this, with
+		// more choice nodes. We want to find the deepest matching one and use the choice under that.
+		return RecurseChoiceNodeFindDeepest(Tree, RootChoiceIdx, ConditionalPath);
+
 	}
 	return -1;
+	
+}
+
+int FSUDSScriptImporter::RecurseChoiceNodeFindDeepest(const ParsedTree& Tree,
+	int FromChoiceIdx,
+	const FString& ConditionalPath)
+{
+	// We need to recurse from the Choice and any sequence of S->C->S->C is valid
+	// so long as the condition path matches. The deepest one is the best
+	// So here we're a Choice, and we can recurse into any Selects, and any Choices under that
+	// where the edge condition is a subset of ConditionalPath
+
+	int Ret = FromChoiceIdx;
+
+	if (Tree.Nodes.IsValidIndex(FromChoiceIdx))
+	{
+		const auto& Choice = Tree.Nodes[FromChoiceIdx];
+		for (int i = 0; i < Choice.Edges.Num(); ++i)
+		{
+			const auto& Edge = Choice.Edges[i];
+			if (Edge.Text.IsEmpty() && Tree.Nodes.IsValidIndex(Edge.TargetNodeIdx) && Tree.Nodes[Edge.TargetNodeIdx].NodeType == ESUDSParsedNodeType::Select)
+			{
+				int ChildIdx = RecurseSelectNodeFindDeepestChoice(Tree, Edge.TargetNodeIdx, ConditionalPath);
+				// There should be only one that matches conditional
+				if (ChildIdx != -1)
+				{
+					Ret = ChildIdx;
+					break;
+				}
+			}
+		}
+	}
+	return Ret;
+}
+
+int FSUDSScriptImporter::RecurseSelectNodeFindDeepestChoice(const ParsedTree& Tree,
+	int FromSelectNode,
+	const FString& ConditionalPath)
+{
+	// Default to not having found a choice that matches conditional
+	int Ret = -1;
+
+	if (Tree.Nodes.IsValidIndex(FromSelectNode))
+	{
+		const auto& Select = Tree.Nodes[FromSelectNode];
+		for (int i = 0; i < Select.Edges.Num(); ++i)
+		{
+			const auto& Edge = Select.Edges[i];
+			if (Tree.Nodes.IsValidIndex(Edge.TargetNodeIdx) && Tree.Nodes[Edge.TargetNodeIdx].NodeType == ESUDSParsedNodeType::Choice)
+			{
+				// It might be this choice node, IF edge matches the conditional path
+				FString ChoiceConditionalPath = GetTreeConditionalPath(Tree, Edge.TargetNodeIdx);
+
+				if (ConditionalPath.StartsWith(ChoiceConditionalPath))
+				{
+					// But also we recurse from here because there may be other nested Selects which match closer
+					int ChildIdx = RecurseChoiceNodeFindDeepest(Tree, Edge.TargetNodeIdx, ConditionalPath);
+					// There should be only one that matches conditional
+					if (ChildIdx != -1)
+					{
+						Ret = ChildIdx;
+						break;
+					}
+				}
+			}
+		}
+	}
+	return Ret;
 	
 }
 
@@ -628,7 +713,7 @@ void FSUDSScriptImporter::EnsureChoiceNodeExistsAboveSelect(ParsedTree& Tree, in
 		if (Tree.Nodes.IsValidIndex(TopSelectIdx) && Tree.Nodes.IsValidIndex(Ctx.LastTextNodeIdx))
 		{
 			// Choice node might not be directly underneath
-			const int ChoiceIdx = FindChoiceAfterTextNode(Tree, Ctx.LastTextNodeIdx);
+			const int ChoiceIdx = FindChoiceAfterTextNode(Tree, Ctx.LastTextNodeIdx, Tree.Nodes[TopSelectIdx].ConditionalPath);
 			if (ChoiceIdx != -1)
 			{
 				auto& SelNode = Tree.Nodes[TopSelectIdx];
@@ -730,7 +815,7 @@ bool FSUDSScriptImporter::ParseElseLine(const FStringView& Line,
 			// We need to give each else a unique condition string, otherwise sibling else's can be considered
 			// equivalent, when they in fact originate from different if's
 			// ID by select node index
-			Block.ConditionPathElement = FString::Printf(TEXT("else-%d"), Block.SelectNodeIdx);
+			Block.ConditionPathElement = MakeElseConditionPathElement(Block.SelectNodeIdx);
 			const int NodeIdx = Block.SelectNodeIdx;
 				
 			auto& SelectNode = Tree.Nodes[NodeIdx];
@@ -759,6 +844,23 @@ bool FSUDSScriptImporter::ParseElseLine(const FStringView& Line,
 		UE_LOG(LogSUDSImporter, VeryVerbose, TEXT("%3d:%2d: ELSE  : %s"), LineNo, IndentLevel, *FString(Line));
 	return true;
 	
+}
+
+FString FSUDSScriptImporter::MakeIfConditionPathElement(int SelectNodeIdx,
+	const FString& ConditionStr)
+{
+	return ConditionStr;
+}
+
+FString FSUDSScriptImporter::MakeElseIfConditionPathElement(int SelectNodeIdx,
+	const FString& ConditionStr)
+{
+	return FString::Printf(TEXT("elseif-%d %s"), SelectNodeIdx, *ConditionStr);
+}
+
+FString FSUDSScriptImporter::MakeElseConditionPathElement(int SelectNodeIdx)
+{
+	return FString::Printf(TEXT("else-%d"), SelectNodeIdx);
 }
 
 bool FSUDSScriptImporter::ParseEndIfLine(const FStringView& Line,
@@ -820,7 +922,7 @@ bool FSUDSScriptImporter::ParseIfLine(const FStringView& Line,
 	Tree.EdgeInProgressEdgeIdx = EdgeIdx;
 			
 	Tree.CurrentConditionalBlockIdx = Tree.ConditionalBlocks.Add(
-		ConditionalContext(NewNodeIdx, Tree.CurrentConditionalBlockIdx, EConditionalStage::IfStage, ConditionStr));
+		ConditionalContext(NewNodeIdx, Tree.CurrentConditionalBlockIdx, EConditionalStage::IfStage, MakeIfConditionPathElement(NewNodeIdx, ConditionStr)));
 	
 	return true;
 	
@@ -851,7 +953,7 @@ bool FSUDSScriptImporter::ParseElseIfLine(const FStringView& Line,
 			// For the purposes of the block, the condition isn't just the condition contained here,
 			// it's also the negation of the original "if". This is to prevent multiple sibling
 			// elseifs merging if they contain the same condition but are attached to different ifs
-			Block.ConditionPathElement = FString::Printf(TEXT("elseif-%d %s"), Block.SelectNodeIdx, *ConditionStr);
+			Block.ConditionPathElement = MakeElseIfConditionPathElement(Block.SelectNodeIdx, ConditionStr);
 			const int NodeIdx = Block.SelectNodeIdx;
 				
 			auto& SelectOrChoiceNode = Tree.Nodes[NodeIdx];
@@ -1611,7 +1713,7 @@ FString FSUDSScriptImporter::GetCurrentTreeConditionalPath(const FSUDSScriptImpo
 	// Cannot fall through to blocks that aren't on the same conditional path
 	FStringBuilderBase B;
 	int BlockIdx = Tree.CurrentConditionalBlockIdx;
-	B.Append("/");
+	B.Append(TreePathSeparator);
 	// work backwards, hence prepend
 	while (BlockIdx != -1)
 	{
@@ -1623,6 +1725,72 @@ FString FSUDSScriptImporter::GetCurrentTreeConditionalPath(const FSUDSScriptImpo
 	}
 	return B.ToString();
 	
+}
+
+FString FSUDSScriptImporter::GetTreeConditionalPath(const FSUDSScriptImporter::ParsedTree& Tree, int NodeIndex)
+{
+	// Like GetCurrentTreeConditionalPath, but we're not in the block context. Follow the nodes back up 
+	FStringBuilderBase B;
+	B.Append(TreePathSeparator);
+
+	while (Tree.Nodes.IsValidIndex(NodeIndex))
+	{
+		const auto Node = Tree.Nodes[NodeIndex];
+		if (Tree.Nodes.IsValidIndex(Node.ParentNodeIdx))
+		{
+			const auto& Parent = Tree.Nodes[Node.ParentNodeIdx];
+			if (Parent.NodeType == ESUDSParsedNodeType::Select)
+			{
+				const int SelectNodeIdx = Node.ParentNodeIdx;
+				const int EdgeIdx = FindEdge(Tree, SelectNodeIdx, NodeIndex);
+				if (Parent.Edges.IsValidIndex(EdgeIdx))
+				{
+					const auto& Edge = Parent.Edges[EdgeIdx];
+					const bool bHasCondition = !Edge.ConditionExpression.IsEmpty();
+					FString ConditionalPathElem;
+					if (EdgeIdx == 0)
+					{
+						// First edge is always if
+						ConditionalPathElem = MakeIfConditionPathElement(SelectNodeIdx, Edge.ConditionExpression.GetSourceString());
+					}
+					else
+					{
+						if (bHasCondition)
+						{
+							// non-zero index edge with a condition is elseif
+							ConditionalPathElem = MakeElseIfConditionPathElement(SelectNodeIdx, Edge.ConditionExpression.GetSourceString());
+						}
+						else
+						{
+							ConditionalPathElem = MakeElseConditionPathElement(SelectNodeIdx);
+						}
+					}
+					// working backwards, hence prepend
+					B.Prepend(FString::Printf(TEXT("%s%s"), *TreePathSeparator, *ConditionalPathElem));
+				}
+			}
+		}
+		NodeIndex = Node.ParentNodeIdx;
+	}
+
+	return B.ToString();
+	
+}
+
+int FSUDSScriptImporter::FindEdge(const FSUDSScriptImporter::ParsedTree& Tree, int ParentNodeIdx, int TargetNodeIndex)
+{
+	if (Tree.Nodes.IsValidIndex(ParentNodeIdx))
+	{
+		const auto& Parent = Tree.Nodes[ParentNodeIdx];
+		for (int i = 0; i < Parent.Edges.Num(); ++i)
+		{
+			if (Parent.Edges[i].TargetNodeIdx == TargetNodeIndex)
+			{
+				return i;
+			}
+		}
+	}
+	return -1;
 }
 
 void FSUDSScriptImporter::SetFallthroughForNewNode(FSUDSScriptImporter::ParsedTree& Tree, FSUDSParsedNode& NewNode)
@@ -2459,3 +2627,4 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 	
 }
 
+UE_ENABLE_OPTIMIZATION
