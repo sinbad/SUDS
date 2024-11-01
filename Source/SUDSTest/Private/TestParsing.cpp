@@ -981,4 +981,167 @@ bool FTestTrailingEventProblem::RunTest(const FString& Parameters)
 	return true;
 }
 
+const FString ConditionalChoicesNestedAndSiblingsInput = R"RAWSUD(
+
+Player: Hello
+
+[if {TopCondition} == 0]
+    * Top level choice 1
+        [goto outro]
+[endif]
+
+[if {TopCondition} == 1]
+        * Top level choice 2
+            [goto outro]
+    [if {NestedCondition1} == 1]
+        * Nested condition choice 1
+            [goto outro]
+    [endif]
+    [if {NestedCondition2} == 0]
+        * Nested condition choice 2
+            [goto outro]
+    [endif]
+    [if {NestedCondition3} == 1]
+        * Nested condition choice 3
+            [goto outro]
+    [endif]
+[endif]
+
+:outro
+Player: Bye
+)RAWSUD";
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestConditionalChoicesNestedAndSiblings,
+								 "SUDSTest.TestConditionalChoicesNestedAndSiblings",
+								 EAutomationTestFlags::EditorContext |
+								 EAutomationTestFlags::ClientContext |
+								 EAutomationTestFlags::ProductFilter)
+
+
+bool FTestConditionalChoicesNestedAndSiblings::RunTest(const FString& Parameters)
+{
+	FSUDSMessageLogger Logger(false);
+	FSUDSScriptImporter Importer;
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(ConditionalChoicesNestedAndSiblingsInput), ConditionalChoicesNestedAndSiblingsInput.Len(), "ConditionalChoicesNestedAndSiblingsInput", &Logger, true));
+
+
+	auto Asset = NewObject<USUDSScript>(GetTransientPackage(), "Test");
+	const ScopedStringTableHolder StringTableHolder;
+	Importer.PopulateAsset(Asset, StringTableHolder.StringTable);
+
+	auto StartNode = Asset->GetFirstNode();
+	if (!TestNotNull("Start node should be true", StartNode))
+	{
+		return false;
+	}
+
+	TestTextNode(this, "Start node", StartNode, "Player", "Hello");
+
+	auto NextNode = StartNode;
+	if (!TestEqual("Start node edges", NextNode->GetEdgeCount(), 1))
+	{
+		return false;
+	}
+	
+	auto pEdge = NextNode->GetEdge(0);
+	if (!TestNotNull("Start node edge", pEdge))
+	{
+		return false;
+	}
+
+	/* Node structure:
+		T -> C1
+		C1 -> S1 -> (if TopCondition == 0) C2 --> Top level choice 1
+		C1 -> S2 -> (if TopCondition == 1) C3 -> Top Level choice 2
+                                           |-> S3 -> (if NestedCondition1 == 1) -> C4 -> Nested condition choice 1
+                                           |-> S4 -> (if NestedCondition2 == 0) -> C5 -> Nested condition choice 2
+                                           |-> S5 -> (if NestedCondition3 == 0) -> C5 -> Nested condition choice 3
+	 */
+	
+	NextNode = pEdge->GetTargetNode().Get();
+	if (TestChoiceNode(this, "Start node next", NextNode, 2))
+	{
+		auto ChoiceNode = NextNode;
+		// Top condition == 0 subtree
+		if (TestChoiceEdge(this, "Select Path 1", ChoiceNode, 0, "", &NextNode))
+		{
+			if (TestSelectNode(this, "Select 1", NextNode, 1))
+			{
+				if (TestSelectEdge(this, "Select 1 Edge", NextNode, 0, "{TopCondition} == 0", &NextNode))
+				{
+					if (TestChoiceNode(this, "Choice 1 Leaf", NextNode, 1))
+					{
+						TestChoiceEdge(this, "Choice 1 Leaf Edge", NextNode, 0, "Top level choice 1", &NextNode);
+					}
+				}
+			}
+		}
+
+		// Top condition == 1 subtree
+		if (TestChoiceEdge(this, "Select Path 2", ChoiceNode, 1, "", &NextNode))
+		{
+			if (TestSelectNode(this, "Select 2", NextNode, 1))
+			{
+				if (TestSelectEdge(this, "Select 2 Edge", NextNode, 0, "{TopCondition} == 1", &NextNode))
+				{
+					// This choice node holds the non-nested condition choice, plus 3 more nested selects
+					// Because each condition is a sibling they become separate select subtrees
+					if (TestChoiceNode(this, "Choice 2 Mid", NextNode, 4))
+					{
+						auto ChoiceNode2 = NextNode;
+						TestChoiceEdge(this, "Choice 2 Leaf Edge 1", ChoiceNode2, 0, "Top level choice 2", &NextNode);
+
+						if (TestChoiceEdge(this, "Choice 2 To Select Edge 1", ChoiceNode2, 1, "", &NextNode))
+						{
+							if (TestSelectNode(this, "Select 2", NextNode, 1))
+							{
+								if (TestSelectEdge(this, "Select 2 Edge", NextNode, 0, "{NestedCondition1} == 1", &NextNode))
+								{
+									if (TestChoiceNode(this, "Choice 2 Leaf", NextNode, 1))
+									{
+										TestChoiceEdge(this, "Choice 2 Leaf Edge", NextNode, 0, "Nested condition choice 1", &NextNode);
+									}
+								}
+							}
+						}
+
+						if (TestChoiceEdge(this, "Choice 2 To Select Edge 2", ChoiceNode2, 2, "", &NextNode))
+						{
+							if (TestSelectNode(this, "Select 3", NextNode, 1))
+							{
+								if (TestSelectEdge(this, "Select 3 Edge", NextNode, 0, "{NestedCondition2} == 0", &NextNode))
+								{
+									if (TestChoiceNode(this, "Choice 3 Leaf", NextNode, 1))
+									{
+										TestChoiceEdge(this, "Choice 3 Leaf Edge", NextNode, 0, "Nested condition choice 2", &NextNode);
+									}
+								}
+							}
+						}
+
+						if (TestChoiceEdge(this, "Choice 2 To Select Edge 3", ChoiceNode2, 3, "", &NextNode))
+						{
+							if (TestSelectNode(this, "Select 4", NextNode, 1))
+							{
+								if (TestSelectEdge(this, "Select 4 Edge", NextNode, 0, "{NestedCondition3} == 1", &NextNode))
+								{
+									if (TestChoiceNode(this, "Choice 4 Leaf", NextNode, 1))
+									{
+										TestChoiceEdge(this, "Choice 4 Leaf Edge", NextNode, 0, "Nested condition choice 3", &NextNode);
+									}
+								}
+							}
+						}
+
+					}
+				}
+			}
+		}
+
+		
+	}
+	return true;
+}
+
 UE_ENABLE_OPTIMIZATION
