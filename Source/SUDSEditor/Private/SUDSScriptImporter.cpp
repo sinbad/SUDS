@@ -21,8 +21,6 @@ const FString FSUDSScriptImporter::TreePathSeparator = "/";
 
 DEFINE_LOG_CATEGORY(LogSUDSImporter)
 
-UE_DISABLE_OPTIMIZATION
-
 bool FSUDSScriptImporter::ImportFromBuffer(const TCHAR *Start, int32 Length, const FString& NameForErrors, FSUDSMessageLogger* Logger, bool bSilent)
 {
 	static const TCHAR* LineEndings[] =
@@ -2627,4 +2625,3 @@ void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
 	
 }
 
-UE_ENABLE_OPTIMIZATION
