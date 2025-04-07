@@ -99,7 +99,28 @@ UStringTable* USUDSScriptFactory::CreateStringTable(UObject* ScriptParent, FName
 
 	if (bCreateSeparatePackage)
 	{
+		
 		// Create string table as its own package (.uasset)
+
+		{
+			// Destroy any string table packed together with the script
+			const FString ScriptPackageName = Script->GetPackage()->GetPathName();
+			TArray<FAssetData> ScriptAssets;
+			Registry->GetAssetsByPackageName(*ScriptPackageName, ScriptAssets);
+			TArray<UObject*> StringTableAssets;
+			for (auto& Asset : ScriptAssets)
+			{
+				if (Asset.GetClass() == UStringTable::StaticClass())
+				{
+					StringTableAssets.Add(Asset.GetAsset());
+				}
+			}
+			if (StringTableAssets.Num() > 0)
+			{
+				ObjectTools::ForceDeleteObjects(StringTableAssets, false );
+			}
+		}
+
 
 		if (FPackageName::DoesPackageExist(*PackageName))
 		{
