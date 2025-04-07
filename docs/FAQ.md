@@ -2,6 +2,24 @@
 
 ## Importing
 
+### Why do I suddenly see "Strings" files in the Content Browser?
+
+For a little while since UE 5.3, the String Table files associated with each script were not visible in the Content
+Browser. This is because SUDS used to embed the String Table in the same .uasset file as the Script asset itself, 
+which was kind of convenient, but as of 5.3 they stopped showing in the browser. That was fine because you usually don't
+need to know about them, since they're auto-generated from the script.
+
+However, we discovered recently that there are some edge cases with storing the String Tables like this, and although
+UE supports it, nothing in the core engine uses that feature. There is an option in Project Settings > Plugins > SUDS Editor
+called "Create String Tables As Separate Packages" which is now defaulted to TRUE, which causes all *imported* scripts
+to generate separate Strings files. You'll get that even if you re-import an old script which didn't used to have a
+separate Strings file.
+
+While you don't currently *need* to reimport all your scripts to create the separate strings files, this is now the default
+going forward to avoid these rare edge cases (one of which was calling `CollectGarbage(RF_None)` in your own editor code
+could cause scripts to disappear until you restarted the editor - don't ask, we don't know why).
+
+
 ### When using Source Control, I get prompted to re-import other people's changes to .sud files
 
 > This sucks! I've actually [submitted a Pull Request](https://github.com/EpicGames/UnrealEngine/pull/10006)
