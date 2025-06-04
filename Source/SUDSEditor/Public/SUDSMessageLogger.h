@@ -24,8 +24,8 @@ public:
 	
 	bool GetWriteToMessageLog() const { return bWriteToMessageLog; }
 	void AddMessage(EMessageSeverity::Type Severity, const FText& Text);
-	template <typename FmtType, typename... Types>
-	FORCEINLINE void Logf(ELogVerbosity::Type Verbosity, const FmtType& Fmt, Types... Args)
+	template <typename... Types>
+	FORCEINLINE void Logf(ELogVerbosity::Type Verbosity, UE::Core::TCheckedFormatString<FString::FmtCharType, Types...> Fmt, Types... Args)
 	{
 		EMessageSeverity::Type Sev = EMessageSeverity::Info;
 		switch(Verbosity)
