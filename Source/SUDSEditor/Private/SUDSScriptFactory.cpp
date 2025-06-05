@@ -134,6 +134,7 @@ UStringTable* USUDSScriptFactory::CreateStringTable(UObject* ScriptParent, FName
 					{
 						Table = Cast<UStringTable>(Assets[0].GetAsset());
 						Table->GetMutableStringTable()->ClearSourceStrings();
+						Table->MarkPackageDirty();
 					}
 					else
 					{
