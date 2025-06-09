@@ -1144,4 +1144,46 @@ bool FTestConditionalChoicesNestedAndSiblings::RunTest(const FString& Parameters
 	return true;
 }
 
+// The deliberate mistake here is that the speaker lines are not indented underneath the choices,
+// which when combined with the conditionals confuses the parser so that it leaves all but the
+// first choice orphaned and unreachable. Import should report this to the user
+const FString ErrorsReportedForBadChoiceIndentsInput = R"RAWSUD(
+
+npc: hello
+:chatchoices
+    [if {npc_hasQuests}]
+        * Any news?
+        player: Any news?
+    [endif]
+    [if {npc_canTrade}]
+        * Trade
+        player: What do you have for sale?
+    [endif]
+    [if {npc_hasLore}]
+        * How are you?
+        player: How are things?
+    [endif]
+        * Nevermind
+        npc: Alright. Come back anytime.
+)RAWSUD";
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTestErrorsReportedForBadChoiceIndents,
+								 "SUDSTest.TestErrorsReportedForBadChoiceIndents",
+								 EAutomationTestFlags::EditorContext |
+								 EAutomationTestFlags::ClientContext |
+								 EAutomationTestFlags::ProductFilter)
+
+
+bool FTestErrorsReportedForBadChoiceIndents::RunTest(const FString& Parameters)
+{
+	FSUDSMessageLogger Logger(false);
+	FSUDSScriptImporter Importer;
+	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(ErrorsReportedForBadChoiceIndentsInput), ErrorsReportedForBadChoiceIndentsInput.Len(), "ErrorsReportedForBadChoiceIndentsInput", &Logger, true));
+
+	TestTrue("Errors should have been logged", Logger.HasErrors());
+	return true;
+}
+
+
+
 UE_ENABLE_OPTIMIZATION

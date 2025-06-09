@@ -2162,6 +2162,40 @@ bool FSUDSScriptImporter::PostImportSanityCheck(const FString& NameForErrors, FS
 		}
 		
 	}
+
+	// Now check everything is referenced
+	TArray<bool> ReferencedNodes;
+	ReferencedNodes.SetNumZeroed(BodyTree.Nodes.Num());
+	// First node is always reachable
+	ReferencedNodes[0] = true;
+	for (const auto& Goto : BodyTree.GotoLabelList)
+	{
+		// Goto creates a reference
+		ReferencedNodes[Goto.Value] = true;
+	}
+	for (const auto& Node : BodyTree.Nodes)
+	{
+		for (const auto& Edge : Node.Edges)
+		{
+			if (ReferencedNodes.IsValidIndex(Edge.TargetNodeIdx))
+			{
+				ReferencedNodes[Edge.TargetNodeIdx] = true;
+			}
+		}
+	}
+
+	for (int i = 0; i < ReferencedNodes.Num(); ++i)
+	{
+		if (!ReferencedNodes[i])
+		{
+			Logger->Logf(ELogVerbosity::Error,
+						 TEXT(
+							 "%s: Line %d is unreachable. Check your indenting particularly under choice lines."),
+						 *NameForErrors,
+						 BodyTree.Nodes[i].SourceLineNo);			
+		}
+	}
+	
 	return bOK;
 }
 
