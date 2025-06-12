@@ -2188,11 +2188,11 @@ bool FSUDSScriptImporter::PostImportSanityCheck(const FString& NameForErrors, FS
 	{
 		if (!ReferencedNodes[i])
 		{
-			Logger->Logf(ELogVerbosity::Error,
+			Logger->Logf(ELogVerbosity::Warning,
 						 TEXT(
 							 "%s: Line %d is unreachable. Check your indenting particularly under choice lines."),
 						 *NameForErrors,
-						 BodyTree.Nodes[i].SourceLineNo);			
+						 BodyTree.Nodes[i].SourceLineNo);		
 		}
 	}
 	
