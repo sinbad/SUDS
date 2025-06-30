@@ -958,6 +958,11 @@ bool USUDSDialogue::IsEnded() const
 	return CurrentSpeakerNode == nullptr;
 }
 
+bool USUDSDialogue::IsFinalLine() const
+{
+	return CurrentSpeakerNode && CurrentChoices.Num() == 1 && CurrentChoices[0].GetTargetNode() == nullptr;
+}
+
 void USUDSDialogue::End(bool bQuietly)
 {
 	SetCurrentSpeakerNode(nullptr, bQuietly);

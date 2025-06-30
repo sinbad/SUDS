@@ -426,6 +426,13 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintPure, Category="SUDS|Dialogue")
 	bool IsEnded() const;
 
+	/// Returns whether the current speaker line is the last line of dialogue, i.e. there are no
+	/// further choices and the next continue will end the dialogue. This allows you to anticipate
+	/// the end of dialogue (IsEnded() will still return false until the last continue is taken)
+	UFUNCTION(BlueprintCallable, BlueprintPure, Category="SUDS|Dialogue")
+	bool IsFinalLine() const;
+	
+
 	/// End the dialogue early
 	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
 	void End(bool bQuietly);
