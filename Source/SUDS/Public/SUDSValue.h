@@ -196,8 +196,10 @@ public:
 			return FFormatArgumentValue(GetGenderValue());
 		case ESUDSValueType::Float:
 			return FFormatArgumentValue(GetFloatValue());
-		case ESUDSValueType::Empty:
 		case ESUDSValueType::Name:
+			// return something useful from FName even though technically shouldn't use in visible text
+			return FFormatArgumentValue(FText::FromName(GetNameValue()));
+		case ESUDSValueType::Empty:
 		case ESUDSValueType::Variable:
 			return FFormatArgumentValue();
 		}
