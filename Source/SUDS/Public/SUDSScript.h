@@ -42,7 +42,7 @@ protected:
 
 	/// When using VO, Dialogue Voice assets are associated with speaker IDs
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="SUDS")
-	TMap<FString, UDialogueVoice*> SpeakerVoices;
+	TMap<FString, TObjectPtr<UDialogueVoice>> SpeakerVoices;
 
 	bool DoesAnyPathAfterLeadToChoice(USUDSScriptNode* FromNode);
 	int RecurseLookForChoice(USUDSScriptNode* CurrNode);
@@ -93,7 +93,7 @@ public:
 
 	/// Set up the speaker voice association
 	void SetSpeakerVoice(const FString& SpeakerID, UDialogueVoice* Voice);
-	const TMap<FString, UDialogueVoice*> GetSpeakerVoices() const  { return SpeakerVoices; }
+	const TMap<FString, UDialogueVoice*> GetSpeakerVoices() const  { return ObjectPtrDecay(SpeakerVoices); }
 
 #if WITH_EDITORONLY_DATA
 	// Import data for this 

@@ -218,7 +218,7 @@ USUDSScriptNodeGosub* USUDSScript::GetNodeByGosubID(const FString& ID) const
 
 UDialogueVoice* USUDSScript::GetSpeakerVoice(const FString& SpeakerID) const
 {
-	if (UDialogueVoice* const* pVoice = SpeakerVoices.Find(SpeakerID))
+	if (auto pVoice = SpeakerVoices.Find(SpeakerID))
 	{
 		return *pVoice;
 	}
