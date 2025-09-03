@@ -181,7 +181,7 @@ protected:
 	void InitVariables();
 	void RunUntilNextSpeakerNodeOrEnd(USUDSScriptNode* FromNode, bool bRaiseAtEnd);
 	const USUDSScriptNode* WalkToNextChoiceNode(USUDSScriptNode* FromNode, bool bExecute);
-	USUDSScriptNode* RecurseWalkToNextChoiceOrTextNode(USUDSScriptNode* Node, bool bExecute, TArray<USUDSScriptNodeGosub*>& LocalGosubStack);
+	USUDSScriptNode* RecurseWalkToNextChoiceOrTextNode(USUDSScriptNode* Node, bool bExecute, TArray<TObjectPtr<USUDSScriptNodeGosub>>& LocalGosubStack);
 	const USUDSScriptNode* RunUntilNextChoiceNode(USUDSScriptNode* FromTextNode);
 	const USUDSScriptNode* FindNextChoiceNode(USUDSScriptNode* FromNode);
 	void SetCurrentSpeakerNode(USUDSScriptNodeText* Node, bool bQuietly);

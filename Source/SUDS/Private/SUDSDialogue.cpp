@@ -699,7 +699,7 @@ const USUDSScriptNode* USUDSDialogue::WalkToNextChoiceNode(USUDSScriptNode* From
 	if (FromNode && FromNode->GetEdgeCount() == 1)
 	{
 		const auto NextNode = GetNextNode(FromNode);
-		TArray<USUDSScriptNodeGosub*> TempGosubStack;
+		TArray<TObjectPtr<USUDSScriptNodeGosub>> TempGosubStack;
 		if (!bExecute)
 		{
 			// Make a copy of the gosub stack so we can safely explore gosubs
@@ -715,7 +715,7 @@ const USUDSScriptNode* USUDSDialogue::WalkToNextChoiceNode(USUDSScriptNode* From
 	return nullptr;
 }
 
-USUDSScriptNode* USUDSDialogue::RecurseWalkToNextChoiceOrTextNode(USUDSScriptNode* Node, bool bExecute, TArray<USUDSScriptNodeGosub*>& LocalGosubStack)
+USUDSScriptNode* USUDSDialogue::RecurseWalkToNextChoiceOrTextNode(USUDSScriptNode* Node, bool bExecute, TArray<TObjectPtr<USUDSScriptNodeGosub>>& LocalGosubStack)
 {
 	auto NextNode = Node;
 	while (NextNode && !IsChoiceOrTextNode(NextNode->GetNodeType()))
