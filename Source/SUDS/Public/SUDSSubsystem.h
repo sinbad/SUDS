@@ -68,7 +68,7 @@ public:
 
 protected:
 	UPROPERTY()
-	USoundConcurrency* VoiceConcurrency;
+	TObjectPtr<USoundConcurrency> VoiceConcurrency;
 	
 	/// Global variable state
 	TMap<FName, FSUDSValue> GlobalVariableState;

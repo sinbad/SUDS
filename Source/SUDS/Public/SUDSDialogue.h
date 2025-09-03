@@ -142,15 +142,15 @@ public:
 	FOnDialogueFinished OnFinished;
 protected:
 	UPROPERTY()
-	const USUDSScript* BaseScript;
+	TObjectPtr<const USUDSScript> BaseScript;
 	UPROPERTY()
-	USUDSScriptNodeText* CurrentSpeakerNode;
+	TObjectPtr<USUDSScriptNodeText> CurrentSpeakerNode;
 	UPROPERTY()
-	const USUDSScriptNode* CurrentRootChoiceNode;
+	TObjectPtr<const USUDSScriptNode> CurrentRootChoiceNode;
 
 	/// External objects which want to closely participate in the dialogue (not just listen to events)
 	UPROPERTY()
-	TArray<UObject*> Participants;
+	TArray<TObjectPtr<UObject>> Participants;
 	
 
 	/// All of the dialogue variables
@@ -162,7 +162,7 @@ protected:
 
 	/// Stack of Gosub nodes to return to
 	UPROPERTY()
-	TArray<USUDSScriptNodeGosub*> GosubReturnStack;
+	TArray<TObjectPtr<USUDSScriptNodeGosub>> GosubReturnStack;
 
 	/// Set of all the TextIDs of choices taken already in this dialogue
 	TSet<FString> ChoicesTaken;

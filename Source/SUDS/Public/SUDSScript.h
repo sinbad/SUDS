@@ -23,7 +23,7 @@ protected:
 
 	/// Array of nodes (static after import)
 	UPROPERTY(BlueprintReadOnly, Category="SUDS")
-	TArray<USUDSScriptNode*> Nodes;
+	TArray<TObjectPtr<USUDSScriptNode>> Nodes;
 
 	/// Map of labels to nodes
 	UPROPERTY(BlueprintReadOnly, VisibleDefaultsOnly, Category="SUDS")
@@ -31,7 +31,7 @@ protected:
 
 	// Header equivalents for startup
 	UPROPERTY(BlueprintReadOnly, Category="SUDS")
-	TArray<USUDSScriptNode*> HeaderNodes;
+	TArray<TObjectPtr<USUDSScriptNode>> HeaderNodes;
 
 	UPROPERTY(BlueprintReadOnly, Category="SUDS")
 	TMap<FName, int> HeaderLabelList;
@@ -48,8 +48,8 @@ protected:
 	int RecurseLookForChoice(USUDSScriptNode* CurrNode);
 	
 public:
-	void StartImport(TArray<USUDSScriptNode*>** Nodes,
-	                 TArray<USUDSScriptNode*>** HeaderNodes,
+	void StartImport(TArray<TObjectPtr<USUDSScriptNode>>** Nodes,
+	                 TArray<TObjectPtr<USUDSScriptNode>>** HeaderNodes,
 	                 TMap<FName, int>** LabelList,
 	                 TMap<FName, int>** ppHeaderLabelList,
 	                 TArray<FString>** SpeakerList);

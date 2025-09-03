@@ -7,8 +7,8 @@
 #include "SUDSScriptNodeText.h"
 #include "EditorFramework/AssetImportData.h"
 
-void USUDSScript::StartImport(TArray<USUDSScriptNode*>** ppNodes,
-                              TArray<USUDSScriptNode*>** ppHeaderNodes,
+void USUDSScript::StartImport(TArray<TObjectPtr<USUDSScriptNode>>** ppNodes,
+                              TArray<TObjectPtr<USUDSScriptNode>>** ppHeaderNodes,
                               TMap<FName, int>** ppLabelList,
                               TMap<FName, int>** ppHeaderLabelList,
                               TArray<FString>** ppSpeakerList)

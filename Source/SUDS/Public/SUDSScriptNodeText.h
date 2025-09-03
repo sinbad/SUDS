@@ -26,7 +26,7 @@ protected:
 	FText Text;
 	/// DialogueWave asset link for voiced dialogue
 	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category="SUDS")
-	UDialogueWave* Wave;
+	TObjectPtr<UDialogueWave> Wave;
 
 	/// Convenience flag to let you know whether this text node MAY HAVE choices attached
 	/// If false, there's only one way to proceed from here and no text associated with that

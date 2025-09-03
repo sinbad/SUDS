@@ -494,7 +494,7 @@ protected:
 	int GetGotoTargetNodeIndex(const ParsedTree& Tree, const FString& InLabel);
 	void PopulateAssetFromTree(USUDSScript* Asset,
 	                           const ParsedTree& Tree,
-	                           TArray<class USUDSScriptNode*>* pOutNodes,
+	                           TArray<TObjectPtr<class USUDSScriptNode>>* pOutNodes,
 	                           TMap<FName, int>* pOutLabels,
 	                           UStringTable* StringTable);
 

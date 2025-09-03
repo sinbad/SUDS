@@ -2407,8 +2407,8 @@ void FSUDSScriptImporter::PopulateAsset(USUDSScript* Asset, UStringTable* String
 {
 	// This is only called if the parsing was successful
 	// Populate the runtime asset
-	TArray<USUDSScriptNode*> *pOutNodes = nullptr;
-	TArray<USUDSScriptNode*> *pOutHeaderNodes = nullptr;
+	TArray<TObjectPtr<USUDSScriptNode>> *pOutNodes = nullptr;
+	TArray<TObjectPtr<USUDSScriptNode>> *pOutHeaderNodes = nullptr;
 	TMap<FName, int> *pOutLabels = nullptr;
 	TMap<FName, int> *pOutHeaderLabels = nullptr;
 	TArray<FString> *pOutSpeakers = nullptr;
@@ -2436,7 +2436,7 @@ FMD5Hash FSUDSScriptImporter::CalculateHash(const TCHAR* Buffer, int32 Len)
 
 void FSUDSScriptImporter::PopulateAssetFromTree(USUDSScript* Asset,
                                                 const FSUDSScriptImporter::ParsedTree& Tree,
-                                                TArray<USUDSScriptNode*>* pOutNodes,
+                                                TArray<TObjectPtr<USUDSScriptNode>>* pOutNodes,
                                                 TMap<FName, int>* pOutLabels,
                                                 UStringTable* StringTable)
 {
