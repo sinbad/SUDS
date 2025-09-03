@@ -21,7 +21,9 @@ public:
 	void SetWriteToMessageLog(bool bWrite) { bWriteToMessageLog = bWrite; }
 	bool HasErrors() const;
 	int NumErrors() const;
-	
+	bool HasWarnings() const;
+	int NumWarnings() const;
+
 	bool GetWriteToMessageLog() const { return bWriteToMessageLog; }
 	void AddMessage(EMessageSeverity::Type Severity, const FText& Text);
 	

@@ -52,6 +52,31 @@ int FSUDSMessageLogger::NumErrors() const
 	return Errs;
 }
 
+bool FSUDSMessageLogger::HasWarnings() const
+{
+	for (const TSharedRef<FTokenizedMessage>& Msg : ErrorMessages)
+	{
+		if (Msg->GetSeverity() == EMessageSeverity::Warning)
+		{
+			return true;
+		}
+	}
+	return false;		
+}
+
+int FSUDSMessageLogger::NumWarnings() const
+{
+	int Count = 0;
+	for (const TSharedRef<FTokenizedMessage>& Msg : ErrorMessages)
+	{
+		if (Msg->GetSeverity() == EMessageSeverity::Warning)
+		{
+			++Count;
+		}
+	}
+	return Count;
+}
+
 void FSUDSMessageLogger::AddMessage(EMessageSeverity::Type Severity, const FText& Text)
 {
 	ErrorMessages.Add(FTokenizedMessage::Create(Severity, Text));

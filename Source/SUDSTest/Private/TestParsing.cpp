@@ -1180,7 +1180,7 @@ bool FTestErrorsReportedForBadChoiceIndents::RunTest(const FString& Parameters)
 	FSUDSScriptImporter Importer;
 	TestTrue("Import should succeed", Importer.ImportFromBuffer(GetData(ErrorsReportedForBadChoiceIndentsInput), ErrorsReportedForBadChoiceIndentsInput.Len(), "ErrorsReportedForBadChoiceIndentsInput", &Logger, true));
 
-	TestTrue("Errors should have been logged", Logger.HasErrors());
+	TestTrue("Warnings should have been logged", Logger.HasWarnings());
 	return true;
 }
 
