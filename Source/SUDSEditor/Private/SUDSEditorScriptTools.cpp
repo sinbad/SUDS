@@ -112,7 +112,7 @@ bool FSUDSEditorScriptTools::WriteBackTextIDsFromNodes(const TArray<USUDSScriptN
 {
 	bool bAnyChanges = false;
 	// For each speaker line, set line and choice edge, use source line no to append text ID
-	for (const auto N : Nodes)
+	for (const auto& N : Nodes)
 	{
 		if (N->GetNodeType() == ESUDSScriptNodeType::Text)
 		{

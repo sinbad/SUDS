@@ -55,8 +55,8 @@ public:
 	                 TArray<FString>** SpeakerList);
 	void FinishImport();
 
-	const TArray<USUDSScriptNode*>& GetNodes() const { return Nodes; }
-	const TArray<USUDSScriptNode*>& GetHeaderNodes() const { return HeaderNodes; }
+	const TArray<USUDSScriptNode*>& GetNodes() const { return ObjectPtrDecay(Nodes); }
+	const TArray<USUDSScriptNode*>& GetHeaderNodes() const { return ObjectPtrDecay(HeaderNodes); }
 	const TMap<FName, int>& GetLabelList() const { return LabelList; }
 	const TMap<FName, int>& GetHeaderLabelList() const { return HeaderLabelList; }
 	
@@ -93,7 +93,7 @@ public:
 
 	/// Set up the speaker voice association
 	void SetSpeakerVoice(const FString& SpeakerID, UDialogueVoice* Voice);
-	const TMap<FString, UDialogueVoice*> GetSpeakerVoices() const  { return ObjectPtrDecay(SpeakerVoices); }
+	const TMap<FString, UDialogueVoice*>& GetSpeakerVoices() const  { return ObjectPtrDecay(SpeakerVoices); }
 
 #if WITH_EDITORONLY_DATA
 	// Import data for this 

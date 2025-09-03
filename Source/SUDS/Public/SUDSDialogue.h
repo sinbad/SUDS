@@ -262,7 +262,7 @@ public:
 
 	/// Retrieve participants from this dialogue
 	UFUNCTION(BlueprintCallable, Category="SUDS|Dialogue")
-	const TArray<UObject*>& GetParticipants() const { return Participants; }
+	const TArray<UObject*>& GetParticipants() const { return ObjectPtrDecay(Participants); }
 	
 	/**
 	 * Set the complete list of participants for this dialogue instance.

@@ -250,7 +250,7 @@ USUDSScriptNode* USUDSDialogue::RunEventNode(USUDSScriptNode* Node)
 			ArgsResolved.Add(Expr.Evaluate(VariableState, GetGlobalVariables()));
 		}
 		
-		for (const auto P : Participants)
+		for (const auto& P : Participants)
 		{
 			if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
 			{
@@ -345,7 +345,7 @@ USUDSScriptNode* USUDSDialogue::RunSetVariableNode(USUDSScriptNode* Node)
 
 void USUDSDialogue::RaiseVariableChange(const FName& VarName, const FSUDSValue& Value, bool bFromScript, int LineNo)
 {
-	for (const auto P : Participants)
+	for (const auto& P : Participants)
 	{
 		if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
 		{
@@ -367,7 +367,7 @@ void USUDSDialogue::RaiseVariableRequested(const FName& VarName, int LineNo)
 {
 	// Because variables set by participants should "win", raise event first
 	OnVariableRequested.Broadcast(this, VarName);
-	for (const auto P : Participants)
+	for (const auto& P : Participants)
 	{
 		if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
 		{
@@ -1106,7 +1106,7 @@ TSet<FName> USUDSDialogue::GetParametersInUse()
 
 void USUDSDialogue::RaiseStarting(FName StartLabel)
 {
-	for (const auto P : Participants)
+	for (const auto& P : Participants)
 	{
 		if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
 		{
@@ -1121,7 +1121,7 @@ void USUDSDialogue::RaiseStarting(FName StartLabel)
 
 void USUDSDialogue::RaiseFinished()
 {
-	for (const auto P : Participants)
+	for (const auto& P : Participants)
 	{
 		if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
 		{
@@ -1137,7 +1137,7 @@ void USUDSDialogue::RaiseFinished()
 
 void USUDSDialogue::RaiseNewSpeakerLine()
 {
-	for (const auto P : Participants)
+	for (const auto& P : Participants)
 	{
 		if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
 		{
@@ -1154,7 +1154,7 @@ void USUDSDialogue::RaiseNewSpeakerLine()
 
 void USUDSDialogue::RaiseChoiceMade(int Index, int LineNo)
 {
-	for (const auto P : Participants)
+	for (const auto& P : Participants)
 	{
 		if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
 		{
@@ -1170,7 +1170,7 @@ void USUDSDialogue::RaiseChoiceMade(int Index, int LineNo)
 
 void USUDSDialogue::RaiseProceeding()
 {
-	for (const auto P : Participants)
+	for (const auto& P : Participants)
 	{
 		if (P->GetClass()->ImplementsInterface(USUDSParticipant::StaticClass()))
 		{
