@@ -168,43 +168,7 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 
 		ChoicesBox = SNew(SVerticalBox);
 
-		VariablesListView = SNew(SListView<TSharedPtr<FSUDSEditorVariableRow>>)
-#if ENGINE_MINOR_VERSION < 5
-				.ItemHeight(28)
-#endif
-				.SelectionMode(ESelectionMode::None)
-				.ListItemsSource(&VariableRows)
-				.OnGenerateRow(this, &FSUDSEditorToolkit::OnGenerateRowForVariable)
-				.HeaderRow(
-					SNew(SHeaderRow)
-					+ SHeaderRow::Column("NameHeader")
-					.FillSized(VarColumnWidth)
-					.VAlignCell(VAlign_Center)
-					[
-						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						[
-							SNew( STextBlock )
-							.Text( INVTEXT("Name") )
-						]
-					]
-					+ SHeaderRow::Column("ValueHeader")
-					.FillWidth(1.0f)
-					.VAlignCell(VAlign_Fill)
-					[
-						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						[
-							SNew( STextBlock )
-							.Text( INVTEXT("Value") )
-						]
-					]
-
-				);
+		CreateVariablesListViewIfUnset();
 
 		// To ensure globals are pre-populated
 		UpdateVariables();
@@ -231,6 +195,8 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 
 	InTabManager->RegisterTabSpawner("SUDSVariablesTab", FOnSpawnTab::CreateLambda([this](const FSpawnTabArgs&)
 	{
+		CreateVariablesListViewIfUnset();
+		
 		// Possibly use a SPropertyTable with a custom IPropertyTable to implement variable binding
 		return SNew(SDockTab)
 		[
@@ -664,6 +630,50 @@ void FSUDSEditorToolkit::UpdateChoiceButtons()
 		}
 	}
 	
+}
+
+void FSUDSEditorToolkit::CreateVariablesListViewIfUnset()
+{
+	if (VariablesListView.IsValid())
+		return;
+	
+	VariablesListView = SNew(SListView<TSharedPtr<FSUDSEditorVariableRow>>)
+#if ENGINE_MINOR_VERSION < 5
+		.ItemHeight(28)
+#endif
+		.SelectionMode(ESelectionMode::None)
+		.ListItemsSource(&VariableRows)
+		.OnGenerateRow(this, &FSUDSEditorToolkit::OnGenerateRowForVariable)
+		.HeaderRow(
+			SNew(SHeaderRow)
+			+ SHeaderRow::Column("NameHeader")
+			.FillSized(VarColumnWidth)
+			.VAlignCell(VAlign_Center)
+			[
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SNew( STextBlock )
+					.Text( INVTEXT("Name") )
+				]
+			]
+			+ SHeaderRow::Column("ValueHeader")
+			.FillWidth(1.0f)
+			.VAlignCell(VAlign_Fill)
+			[
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				[
+					SNew( STextBlock )
+					.Text( INVTEXT("Value") )
+				]
+			]
+
+		);
 }
 
 void FSUDSEditorToolkit::OnDialogueChoice(USUDSDialogue* D, int ChoiceIndex, int LineNo)

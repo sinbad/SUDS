@@ -304,6 +304,7 @@ private:
 	void DestroyDialogue();
 	void UpdateOutput();
 	void UpdateChoiceButtons();
+	void CreateVariablesListViewIfUnset();
 	void AddOutputRow(const FText& Prefix, const FText& Line, const FSlateColor& PrefixColour, const FSlateColor& LineColour);
 	void AddTraceLogRow(const FName& Category, int SourceLineNo, const FString& Message);
 
