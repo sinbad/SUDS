@@ -167,47 +167,6 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 
 
 		ChoicesBox = SNew(SVerticalBox);
-
-		VariablesListView = SNew(SListView<TSharedPtr<FSUDSEditorVariableRow>>)
-#if ENGINE_MINOR_VERSION < 5
-				.ItemHeight(28)
-#endif
-				.SelectionMode(ESelectionMode::None)
-				.ListItemsSource(&VariableRows)
-				.OnGenerateRow(this, &FSUDSEditorToolkit::OnGenerateRowForVariable)
-				.HeaderRow(
-					SNew(SHeaderRow)
-					+ SHeaderRow::Column("NameHeader")
-					.FillSized(VarColumnWidth)
-					.VAlignCell(VAlign_Center)
-					[
-						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						[
-							SNew( STextBlock )
-							.Text( INVTEXT("Name") )
-						]
-					]
-					+ SHeaderRow::Column("ValueHeader")
-					.FillWidth(1.0f)
-					.VAlignCell(VAlign_Fill)
-					[
-						SNew(SHorizontalBox)
-						+SHorizontalBox::Slot()
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						[
-							SNew( STextBlock )
-							.Text( INVTEXT("Value") )
-						]
-					]
-
-				);
-
-		// To ensure globals are pre-populated
-		UpdateVariables();
 		
 		return SNew(SDockTab)
 		[
@@ -231,6 +190,47 @@ void FSUDSEditorToolkit::RegisterTabSpawners(const TSharedRef<FTabManager>& InTa
 
 	InTabManager->RegisterTabSpawner("SUDSVariablesTab", FOnSpawnTab::CreateLambda([this](const FSpawnTabArgs&)
 	{
+		VariablesListView = SNew(SListView<TSharedPtr<FSUDSEditorVariableRow>>)
+#if ENGINE_MINOR_VERSION < 5
+			.ItemHeight(28)
+#endif
+			.SelectionMode(ESelectionMode::None)
+			.ListItemsSource(&VariableRows)
+			.OnGenerateRow(this, &FSUDSEditorToolkit::OnGenerateRowForVariable)
+			.HeaderRow(
+				SNew(SHeaderRow)
+				+ SHeaderRow::Column("NameHeader")
+				.FillSized(VarColumnWidth)
+				.VAlignCell(VAlign_Center)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(INVTEXT("Name"))
+					]
+				]
+				+ SHeaderRow::Column("ValueHeader")
+				.FillWidth(1.0f)
+				.VAlignCell(VAlign_Fill)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Text(INVTEXT("Value"))
+					]
+				]
+
+			);
+
+		// To ensure globals are pre-populated
+		UpdateVariables();
+
 		// Possibly use a SPropertyTable with a custom IPropertyTable to implement variable binding
 		return SNew(SDockTab)
 		[
@@ -596,7 +596,10 @@ void FSUDSEditorToolkit::Clear()
 	OutputRows.Empty();
 	OutputListView->RequestListRefresh();
 	VariableRows.Empty();
-	VariablesListView->RequestListRefresh();
+	if (VariablesListView.IsValid())
+	{
+		VariablesListView->RequestListRefresh();
+	}
 	//TraceLog->ClearMessages();
 	
 }
@@ -1024,8 +1027,11 @@ void FSUDSEditorToolkit::UpdateVariables()
 	}
 	
 	VariableRows.Sort();
-	
-	VariablesListView->RequestListRefresh();
+
+	if (VariablesListView.IsValid())
+	{
+		VariablesListView->RequestListRefresh();
+	}
 	
 }
 
