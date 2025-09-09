@@ -2166,8 +2166,11 @@ bool FSUDSScriptImporter::PostImportSanityCheck(const FString& NameForErrors, FS
 	// Now check everything is referenced
 	TArray<bool> ReferencedNodes;
 	ReferencedNodes.SetNumZeroed(BodyTree.Nodes.Num());
-	// First node is always reachable
-	ReferencedNodes[0] = true;
+	if (!ReferencedNodes.IsEmpty())
+	{
+		// First node is always reachable
+		ReferencedNodes[0] = true;
+	}
 	for (const auto& Goto : BodyTree.GotoLabelList)
 	{
 		// Goto creates a reference
