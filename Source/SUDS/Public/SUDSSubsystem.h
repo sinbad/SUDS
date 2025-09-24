@@ -100,17 +100,6 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="SUDS|Settings")
 	int GetMaxConcurrentVoicedLines() const;
-	/**
-	 * Sets all the concurrency settings for voiced lines.
-	 * @param NewSettings 
-	 */
-	UFUNCTION(BlueprintCallable, Category="SUDS|Settings")
-	void SetVoicedLineConcurrencySettings(const FSoundConcurrencySettings& NewSettings);
-
-
-	/// Get the concurrency settings for voiced lines
-	UFUNCTION(BlueprintCallable, Category="SUDS|Settings")
-	const FSoundConcurrencySettings& GetVoicedLineConcurrencySettings() const;
 
 	USoundConcurrency* GetVoicedLineConcurrency() const { return VoiceConcurrency; }
 

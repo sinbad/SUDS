@@ -40,26 +40,6 @@ int USUDSSubsystem::GetMaxConcurrentVoicedLines() const
 	return 1;
 }
 
-void USUDSSubsystem::SetVoicedLineConcurrencySettings(const FSoundConcurrencySettings& NewSettings)
-{
-	if (IsValid(VoiceConcurrency))
-	{
-		VoiceConcurrency->Concurrency = NewSettings;
-	}
-}
-
-const FSoundConcurrencySettings& USUDSSubsystem::GetVoicedLineConcurrencySettings() const
-{
-	if (IsValid(VoiceConcurrency))
-	{
-		return VoiceConcurrency->Concurrency;
-	}
-	
-	static const FSoundConcurrencySettings Dummy;
-	return Dummy;
-	
-}
-
 void USUDSSubsystem::ResetGlobalState(bool bResetVariables)
 {
 	if (bResetVariables)
