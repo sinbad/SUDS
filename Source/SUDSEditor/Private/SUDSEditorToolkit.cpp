@@ -1242,7 +1242,7 @@ TSharedRef<SWidget> SSUDSEditorVariableItem::GenerateWidgetForColumn(const FName
 			break;
 		case ESUDSValueType::Boolean:
 			ValueWidget = SNew(SCheckBox)
-				.IsChecked(VariableValue.GetBooleanValue())
+				.IsChecked(VariableValue.GetBooleanValue() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 				.OnCheckStateChanged_Lambda([this] (ECheckBoxState NewState)
 				{
 					Parent->UserEditVariable(VariableName, NewState == ECheckBoxState::Checked);
