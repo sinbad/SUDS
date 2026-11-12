@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Logging/TokenizedMessage.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 class FTokenizedMessage;
 
